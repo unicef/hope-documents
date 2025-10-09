@@ -1,0 +1,25 @@
+.*
+~*
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+/dist
+/specs
+site
+wheels/
+*.egg-info
+*.sqlite
+latest_logs
+archived_logs
+junit.xml
+coverage.xml
+Procfile.tailwind
+src/hope_documents/version.py
+/DATA
+!.gitignore
+!.github
+!tests/.coveragerc
+!.python-version
+!.pre-commit-config.yaml
+!.importlinter

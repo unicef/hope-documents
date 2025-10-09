@@ -1,0 +1,11 @@
+[importlinter]
+root_package = hope_documents
+
+[importlinter:contract:1]
+name=Foo doesn't import bar or baz
+type = layers
+containers =
+    hope_documents
+layers =
+    hope_documents.archive
+    hope_documents.ocr
