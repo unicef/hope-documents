@@ -31,7 +31,6 @@ dependencies = [
   "click>=8.3",
   "django-admin-extra-buttons>=2.1.1",
   "django-regex>=0.5",
-  "django-smart-env>=1",
   "django-streaming>=0.8",
   "matplotlib>=3.10.7",
   "opencv-python>=4.12.0.88",

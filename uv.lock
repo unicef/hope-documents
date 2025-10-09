@@ -372,31 +372,10 @@ wheels = [
 ]
 
 [[package]]
-name = "django-environ"
-version = "0.12.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d6/04/65d2521842c42f4716225f20d8443a50804920606aec018188bbee30a6b0/django_environ-0.12.0.tar.gz", hash = "sha256:227dc891453dd5bde769c3449cf4a74b6f2ee8f7ab2361c93a07068f4179041a", size = 56804, upload-time = "2025-01-13T17:03:37.74Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/83/b3/0a3bec4ecbfee960f39b1842c2f91e4754251e0a6ed443db9fe3f666ba8f/django_environ-0.12.0-py2.py3-none-any.whl", hash = "sha256:92fb346a158abda07ffe6eb23135ce92843af06ecf8753f43adf9d2366dcc0ca", size = 19957, upload-time = "2025-01-13T17:03:32.918Z" },
-]
-
-[[package]]
 name = "django-regex"
 version = "0.5.0"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/02/09/f510713bb0d7f539b320579e2432d9aa8c02a7561bb9e3cdd37c658427d8/django-regex-0.5.0.tar.gz", hash = "sha256:6af1add11ae5232f133a42754c9291f9113996b1294b048305d9f1a427bca27c", size = 26248, upload-time = "2022-03-30T22:46:45.859Z" }
-
-[[package]]
-name = "django-smart-env"
-version = "1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "django-environ" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/22/ce/0f64aaddc1ec2cf3e75a52f0029db93b36229938da95bce70d6464be2fc7/django_smart_env-1.0.tar.gz", hash = "sha256:5793053f3598e43b6647b545628e63f6f7d5484d2504ccb3fe5723e1e593e93a", size = 4418, upload-time = "2025-10-08T09:11:28.838Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e0/f1/7e902edf281b6c52aa33e22f7a323d9e654373ad9e6cd177880ded578c4a/django_smart_env-1.0-py3-none-any.whl", hash = "sha256:c044240b5a480c4138fbf1f4eecda277880d9ad0f20ed973bf97dc3b1b50ede4", size = 5882, upload-time = "2025-10-08T09:11:27.781Z" },
-]
 
 [[package]]
 name = "django-streaming"
@@ -596,7 +575,6 @@ dependencies = [
     { name = "click" },
     { name = "django-admin-extra-buttons" },
     { name = "django-regex" },
-    { name = "django-smart-env" },
     { name = "django-streaming" },
     { name = "matplotlib" },
     { name = "opencv-python" },
@@ -659,7 +637,6 @@ requires-dist = [
     { name = "click", specifier = ">=8.3" },
     { name = "django-admin-extra-buttons", specifier = ">=2.1.1" },
     { name = "django-regex", specifier = ">=0.5" },
-    { name = "django-smart-env", specifier = ">=1" },
     { name = "django-streaming", specifier = ">=0.8" },
     { name = "matplotlib", specifier = ">=3.10.7" },
     { name = "opencv-python", specifier = ">=4.12.0.88" },
