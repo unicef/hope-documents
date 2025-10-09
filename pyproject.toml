@@ -29,20 +29,11 @@ dynamic = [
 ]
 dependencies = [
   "click>=8.3",
-  "colorama>=0.4.6",
-  "django>=5.2.7",
-  "django-admin-extra-buttons>=2.1.1",
   "django-regex>=0.5",
   "django-smart-env>=1",
-  "numpy>=2.0.1",
   "opencv-python>=4.12.0.88",
-  "pandas>=2.3.3",
   "pillow>=11.3",
-  "pymupdf>=1.24.9",
-  "pypdf>=4.4",
   "pytesseract>=0.3.13",
-  "torch>=2.8",
-  "transformers>=4.57",
 ]
 
 scripts.extract = "hope_documents.ocr.__cli__:cli"
