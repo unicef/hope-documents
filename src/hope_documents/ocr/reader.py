@@ -2,6 +2,9 @@ import logging
 
 import pytesseract
 from PIL.Image import Image
+from pytesseract import TesseractError
+
+from hope_documents.exceptions import ExtractionError
 
 logger = logging.getLogger(__name__)
 
@@ -12,4 +15,7 @@ class Reader:
         self.config = config
 
     def extract(self, image: Image) -> str:
-        return pytesseract.image_to_string(image, config=self.config)
+        try:
+            return pytesseract.image_to_string(image, lang="eng", config=self.config)
+        except TesseractError as e:
+            raise ExtractionError() from e

@@ -4,3 +4,7 @@ class DocumentError(BaseException):
 
 class InvalidImageError(DocumentError):
     pass
+
+
+class ExtractionError(DocumentError):
+    pass
