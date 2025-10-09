@@ -3,14 +3,14 @@ name: "Documentation"
 on:
   push:
     branches:
-      - develop
+      - main
     paths:
       - 'docs/**'
       - 'mkdocs.yaml'
       - './github/workflows/docs.yml'
   pull_request:
     branches:
-      - develop
+      - main
     types:
       - opened
       - synchronize
