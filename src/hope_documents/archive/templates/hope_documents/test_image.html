@@ -1,0 +1,23 @@
+{% extends "admin_extra_buttons/action_page.html" %}{% load admin_list admin_urls extra_buttons i18n static %}
+{% block breadcrumbs-active %}&rsaquo; <a href="{% url opts|admin_urlname:'test_image' %}">Test Image</a> {% endblock %}
+
+{% block action-content %}
+    {% if image_src %}
+        <img src="{{ image_src }}" alt="">
+        <table>
+        {% for result in results %}
+            <tr>
+                <td>{{ result.loader }}</td>
+                <td>{{ result.config }}</td>
+                <td><textarea readonly>{{ result.text }}</textarea></td>
+                <td>{{ result.error }}</td>
+            </tr>
+        {% endfor %}
+    {% else %}
+        <form method="post" action="." enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <input type="submit" value="Submit">
+        </form>
+    {% endif %}
+{% endblock action-content %}

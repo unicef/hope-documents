@@ -5,7 +5,7 @@ from typing import Any
 import click
 from colorama import Fore, Style
 
-from hope_documents.ocr.engine import CV2Config, Processor, ScanInfo, TSConfig
+from hope_documents.ocr.engine import CV2Config, Processor, ScanInfo, Scanner, TSConfig
 from hope_documents.utils import LevelFormatter
 
 logger = logging.getLogger(__name__)
@@ -38,19 +38,22 @@ def cli(filepaths: list[click.Path], debug: bool, **kwargs: Any) -> None:
     ret_code = 0
 
     def cb(info: ScanInfo) -> None:
-        click.echo(f"{Fore.YELLOW}{info['filepath']}{Fore.RESET}")
+        click.echo(f"{Fore.YELLOW}File: {Fore.LIGHTWHITE_EX}{info['filepath']}{Fore.RESET}")
+        click.echo(f"{Fore.YELLOW}Loader: {Fore.LIGHTWHITE_EX}{info['loader']}{Fore.RESET}")
+        click.echo(f"{Fore.YELLOW}Config: {Fore.LIGHTWHITE_EX}{info['config']}{Fore.RESET}")
         if err := info["error"]:
             click.echo(f"{Fore.RED}{err}{Fore.RESET}")
         click.echo(f"{Fore.GREEN}{info['text']}{Fore.RESET}")
         click.echo(f"{Fore.LIGHTWHITE_EX}========{Fore.RESET}")
 
     p = Processor(
-        *filepaths,
         ts_config=TSConfig(oem=kwargs["oem"], psm=kwargs["psm"], number_only=kwargs["number_only"]),
         cv2_config=CV2Config(threshold=kwargs["threshold"]),
     )
-    for extracted in p.process():
-        cb(extracted)
-        if extracted["error"] != "":
-            ret_code = 1
+    scanner = Scanner(*filepaths)
+    for file in scanner.files:
+        for extracted in p.process(file, full_scan=True):
+            cb(extracted)
+            if extracted["error"] != "":
+                ret_code = 1
     click.get_current_context().exit(ret_code)

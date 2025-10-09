@@ -13,8 +13,6 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 from typing import Any, Dict, List
 
-from . import env
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -27,7 +25,7 @@ SECRET_KEY: str = "django-insecure-7b411*t88@^8_py&b0p7x7x0)tykqxq8ysv+=y*8%#adh
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG: bool = True
 
-ALLOWED_HOSTS: List[str] = []
+ALLOWED_HOSTS: List[str] = ["*"]
 
 # Application definition
 
@@ -38,8 +36,10 @@ INSTALLED_APPS: List[str] = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "admin_extra_buttons",
     "hope_documents.archive",
     "hope_documents.ocr",
+    "demo",
 ]
 
 MIDDLEWARE: List[str] = [
@@ -82,8 +82,8 @@ DATABASES: Dict[str, Dict[str, Any]] = {
     }
 }
 
-SESSION_COOKIE_SECURE: bool = env("SESSION_COOKIE_SECURE")
-SECURE_SSL_REDIRECT: bool = env("SECURE_SSL_REDIRECT")
+SESSION_COOKIE_SECURE: bool = False
+SECURE_SSL_REDIRECT: bool = False
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 AUTHENTICATION_BACKENDS = ("demo.backends.AnyUserBackend",)

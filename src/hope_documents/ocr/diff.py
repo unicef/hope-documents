@@ -1,3 +1,6 @@
+import regex
+
+
 def levenshtein_distance(s1: str, s2: str) -> int:
     """Return the Levenshtein distance between two strings."""
     m, n = len(s1), len(s2)
@@ -29,3 +32,53 @@ def numeric_string_similarity(s1: str, s2: str) -> float:
         return 1.0  # Both strings are empty, so they are 100% similar
 
     return 1.0 - (distance / max_len)
+
+
+def find_similar(pattern: str, text: str, max_errors: int = 2) -> list[dict[str, str | int]]:
+    """
+    Find all occurrences of a pattern in a text using fuzzy matching.
+
+    This function allows for a specified number of errors (insertions,
+    deletions, or substitutions) when searching for the pattern.
+
+    Args:
+        pattern (str): The string pattern to search for.
+        text (str): The text to search within.
+        max_errors (int): The maximum number of errors allowed for a match.
+                          Defaults to 2. A value of 0 means an exact match.
+
+    Returns:
+        A list of dictionaries, where each dictionary contains:
+        - 'match': The actual substring that was matched.
+        - 'start': The starting index of the match in the text.
+        - 'end': The ending index of the match in the text.
+        - 'errors': The number of errors in the match (distance).
+
+    """
+    if not pattern:
+        return []
+
+    # The fuzzy pattern looks for the `pattern` string with a maximum
+    # number of errors specified by `max_errors`.
+    # {e<=N} is the syntax for "at most N errors".
+    fuzzy_pattern = f"({pattern}){{e<={max_errors}}}"
+
+    results = []
+    for match in regex.finditer(fuzzy_pattern, text, regex.BESTMATCH):
+        # The regex.BESTMATCH flag ensures we get the best possible match
+        # at a given position, minimizing the number of errors.
+        matched_text = match.group(0)
+
+        # The `fuzzy_counts` attribute is a tuple of (substitutions, insertions, deletions)
+        total_errors = sum(match.fuzzy_counts)
+
+        results.append(
+            {
+                "match": matched_text,
+                "start": match.start(),
+                "end": match.end(),
+                "errors": total_errors,
+            }
+        )
+
+    return results

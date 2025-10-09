@@ -6,7 +6,7 @@ from click.testing import CliRunner
 from hope_documents.ocr.__cli__ import cli
 
 images_dir = Path(__file__).parent / "images"
-valid_image = str(images_dir / "arg" / "id1.png")
+valid_image = str(images_dir / "_valid" / "img.png")
 invalid_image = str(images_dir / "_invalid" / "_empty.png")
 test_data = [
     (valid_image, 0),
@@ -38,4 +38,4 @@ def test_extract_help(runner: CliRunner) -> None:
 
 def test_extract_params(runner: CliRunner, arguments, exit_code) -> None:
     result = runner.invoke(cli, arguments)
-    assert result.exit_code == exit_code
+    assert result.exit_code == exit_code, result.output

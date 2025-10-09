@@ -9,7 +9,7 @@ build/
 site
 wheels/
 *.egg-info
-*.sqlite
+*.sqlite3
 latest_logs
 archived_logs
 junit.xml

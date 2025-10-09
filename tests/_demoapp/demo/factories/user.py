@@ -4,7 +4,7 @@ import factory.fuzzy
 from django.contrib.auth.models import Group, User
 from factory.django import DjangoModelFactory
 
-from testutils.factories import AutoRegisterModelFactory
+from .base import AutoRegisterModelFactory
 
 if TYPE_CHECKING:
     from django.db.models import Model

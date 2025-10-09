@@ -16,6 +16,7 @@ class Reader:
 
     def extract(self, image: Image) -> str:
         try:
-            return pytesseract.image_to_string(image, lang="eng", config=self.config)
+            text = pytesseract.image_to_string(image, lang="eng", config=self.config)
+            return "\n".join([line for line in text.splitlines() if line])
         except TesseractError as e:
             raise ExtractionError() from e

@@ -1,0 +1,95 @@
+from admin_extra_buttons.api import ExtraButtonsMixin, button
+from django import forms
+from django.contrib import admin
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import render
+from django.utils.module_loading import import_string
+
+from ..ocr.engine import CV2Config, Processor, TSConfig
+from ..ocr.loaders import Loader, loader_registry
+from . import models
+from .utils import fqn, get_image_base64
+
+PSM_CHOICES = (
+    (0, "(0) Orientation and script detection (OSD) only."),
+    (1, "(1) Automatic page segmentation with OSD."),
+    (2, "(2) Automatic page segmentation, but no OSD, or OCR."),
+    (3, "(3) Fully automatic page segmentation, but no OSD. (Default)"),
+    (4, "(4) Assume a single column of text of variable sizes."),
+    (5, "(5) Assume a single uniform block of vertically aligned text."),
+    (6, "(6) Assume a single uniform block of text."),
+    (7, "(7) Treat the image as a single text line."),
+    (8, "(8) Treat the image as a single word."),
+    (9, "(9) Treat the image as a single word in a circle."),
+    (10, "(10) Treat the image as a single character."),
+    (11, "(11) Sparse text. Find as much text as possible in no particular order."),
+    (12, "(12) Sparse text with OSD."),
+    (13, "(13) Raw line. Treat the image as a single text line, bypassing hacks that are Tesseract-specific."),
+)
+OEM_CHOICES = (
+    (0, "(0) Legacy engine only."),
+    (1, "(1) Neural nets LSTM engine only."),
+    (2, "(2) Legacy + LSTM engines."),
+    (3, "(3) Default, based on what is available."),
+)
+
+LOADERS = [(fqn(p), p.__name__) for p in loader_registry]
+
+
+class TestImageForm(forms.Form):
+    image = forms.ImageField()
+    psm = forms.ChoiceField(initial=11, choices=PSM_CHOICES, help_text="Page segmentation modes")
+    oem = forms.ChoiceField(initial=3, choices=OEM_CHOICES, help_text="OCR Engine modes")
+    number_only = forms.BooleanField(initial=3, required=False, help_text="Only extract numbers")
+
+    threshold = forms.IntegerField(initial=128, validators=[MinValueValidator(1), MaxValueValidator(255)])
+    loaders = forms.MultipleChoiceField(choices=LOADERS, initial=1)
+
+    def clean_loaders(self) -> list[type[Loader]]:
+        return [import_string(p) for p in self.cleaned_data["loaders"]]
+
+
+@admin.register(models.Country)
+class CountryAdmin(admin.ModelAdmin[models.Country]):
+    list_display = ["name", "code2", "code3"]
+    search_fields = ["code", "name"]
+
+
+@admin.register(models.DocumentType)
+class DocumentTypeAdmin(admin.ModelAdmin[models.DocumentType]):
+    list_display = ["code", "name"]
+    search_fields = ["code", "name"]
+
+
+@admin.register(models.DocumentRule)
+class DocumentRuleAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.DocumentRule]):
+    list_display = ["country", "type"]
+    search_fields = ["code", "name"]
+    list_filter = ["country", "type"]
+
+    @button()  # type: ignore[arg-type]
+    def test_image(self, request: HttpRequest) -> HttpResponse:
+        ctx = self.get_common_context(request)
+        if request.method == "POST":
+            form = TestImageForm(request.POST, request.FILES)
+            if form.is_valid():
+                image_file = form.cleaned_data["image"]
+
+                ts_config = TSConfig(
+                    psm=form.cleaned_data["psm"],
+                    oem=form.cleaned_data["oem"],
+                    number_only=form.cleaned_data["number_only"],
+                )
+                cv2_config = CV2Config(threshold=form.cleaned_data["threshold"])
+                p = Processor(ts_config=ts_config, cv2_config=cv2_config, loaders=form.cleaned_data["loaders"])
+                results = list(p.process(image_file, full_scan=True))
+
+                ctx["results"] = results
+                ctx["image_src"] = get_image_base64(image_file)
+            else:
+                pass
+        else:
+            form = TestImageForm()
+        ctx["form"] = form
+        return render(request, "hope_documents/test_image.html", ctx)

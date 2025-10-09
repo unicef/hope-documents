@@ -4,12 +4,14 @@ from functools import cached_property
 from pathlib import Path
 from typing import Any, TypedDict
 
-from hope_documents.exceptions import InvalidImageError
-from hope_documents.ocr.loader import SmartLoader
+from hope_documents.exceptions import ExtractionError, InvalidImageError
+from hope_documents.ocr.loaders import Loader, loader_registry
 from hope_documents.ocr.reader import Reader
 
 
 class ScanInfo(TypedDict):
+    loader: str
+    config: str
     filepath: str
     text: str
     error: str
@@ -40,11 +42,9 @@ class CV2Config:
         return {"threshold": self.threshold}
 
 
-class Processor:
-    def __init__(self, *args: list[str], ts_config: TSConfig, cv2_config: CV2Config) -> None:
+class Scanner:
+    def __init__(self, *args: Any) -> None:
         self.filepaths = args
-        self.ts_config = str(ts_config)
-        self.cv2_config = cv2_config
 
     @property
     def files(self) -> Generator[str, None, None]:
@@ -56,21 +56,37 @@ class Processor:
             else:
                 yield str(entry)
 
+
+class Processor:
+    def __init__(self, ts_config: TSConfig, cv2_config: CV2Config, loaders: list[type[Loader]] | None = None) -> None:
+        self.loader_classes = loaders or loader_registry
+        self.ts_config = str(ts_config)
+        self.cv2_config = cv2_config
+
     @cached_property
-    def loader(self) -> SmartLoader:
-        return SmartLoader(**self.cv2_config.as_dict())
+    def loaders(self) -> list[Loader]:
+        return [loader(**self.cv2_config.as_dict()) for loader in self.loader_classes]
 
     @cached_property
     def reader(self) -> Reader:
         return Reader(str(self.ts_config))
 
-    def process(self) -> Generator[ScanInfo]:
-        for filepath in self.files:
-            ret: ScanInfo = {"filepath": filepath, "text": "", "error": ""}
+    def process(self, filepath: str, full_scan: bool = False) -> Generator[ScanInfo]:
+        for loader in self.loaders:
+            ret: ScanInfo = {
+                "filepath": filepath,
+                "text": "",
+                "error": "",
+                "loader": loader.__class__.__name__,
+                "config": str(self.ts_config),
+            }
             try:
-                image = self.loader.load(filepath)
+                image = loader.load(filepath)
                 text = self.reader.extract(image)
                 ret["text"] = text
-            except InvalidImageError as e:
+            except (InvalidImageError, ExtractionError) as e:
                 ret["error"] = f"{e.__class__.__name__}: {str(e)}"
-            yield ret
+            if full_scan:
+                yield ret
+            else:
+                break
