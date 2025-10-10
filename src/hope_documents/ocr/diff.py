@@ -49,10 +49,9 @@ def find_similar(pattern: str, text: str, max_errors: int = 2) -> list[dict[str,
 
     Returns:
         A list of dictionaries, where each dictionary contains:
-        - 'match': The actual substring that was matched.
-        - 'start': The starting index of the match in the text.
         - 'end': The ending index of the match in the text.
-        - 'errors': The number of errors in the match (distance).
+        - 'distance': The number of errors in the match (distance).
+        - 'similarity': The Levenshtein distance between the matches
 
     """
     if not pattern:
@@ -75,9 +74,8 @@ def find_similar(pattern: str, text: str, max_errors: int = 2) -> list[dict[str,
         results.append(
             {
                 "match": matched_text,
-                "start": match.start(),
-                "end": match.end(),
-                "errors": total_errors,
+                "distance": total_errors,
+                "similarity": levenshtein_distance(pattern, matched_text),
             }
         )
 

@@ -1,6 +1,6 @@
 from admin_extra_buttons.api import ExtraButtonsMixin, button
 from django import forms
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
@@ -8,8 +8,10 @@ from django.utils.module_loading import import_string
 
 from ..ocr.engine import CV2Config, Processor, TSConfig
 from ..ocr.loaders import Loader, loader_registry
+from ..utils.image import get_image_base64
+from ..utils.language import fqn
+from ..utils.timeit import time_it
 from . import models
-from .utils import fqn, get_image_base64
 
 PSM_CHOICES = (
     (0, "(0) Orientation and script detection (OSD) only."),
@@ -41,10 +43,12 @@ class TestImageForm(forms.Form):
     image = forms.ImageField()
     psm = forms.ChoiceField(initial=11, choices=PSM_CHOICES, help_text="Page segmentation modes")
     oem = forms.ChoiceField(initial=3, choices=OEM_CHOICES, help_text="OCR Engine modes")
-    number_only = forms.BooleanField(initial=3, required=False, help_text="Only extract numbers")
+    number_only = forms.BooleanField(initial=False, required=False, help_text="Only extract numbers")
 
     threshold = forms.IntegerField(initial=128, validators=[MinValueValidator(1), MaxValueValidator(255)])
-    loaders = forms.MultipleChoiceField(choices=LOADERS, initial=1)
+    loaders = forms.MultipleChoiceField(choices=LOADERS, initial=[x[0] for x in LOADERS])
+
+    target = forms.CharField(required=False, help_text="Text to search for in the document")
 
     def clean_loaders(self) -> list[type[Loader]]:
         return [import_string(p) for p in self.cleaned_data["loaders"]]
@@ -74,19 +78,27 @@ class DocumentRuleAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.DocumentRule]
         if request.method == "POST":
             form = TestImageForm(request.POST, request.FILES)
             if form.is_valid():
-                image_file = form.cleaned_data["image"]
+                with time_it() as m:
+                    image_file = form.cleaned_data["image"]
 
-                ts_config = TSConfig(
-                    psm=form.cleaned_data["psm"],
-                    oem=form.cleaned_data["oem"],
-                    number_only=form.cleaned_data["number_only"],
-                )
-                cv2_config = CV2Config(threshold=form.cleaned_data["threshold"])
-                p = Processor(ts_config=ts_config, cv2_config=cv2_config, loaders=form.cleaned_data["loaders"])
-                results = list(p.process(image_file, full_scan=True))
+                    ts_config = TSConfig(
+                        psm=form.cleaned_data["psm"],
+                        oem=form.cleaned_data["oem"],
+                        number_only=form.cleaned_data["number_only"],
+                    )
+                    cv2_config = CV2Config(threshold=form.cleaned_data["threshold"])
+                    p = Processor(ts_config=ts_config, cv2_config=cv2_config, loaders=form.cleaned_data["loaders"])
+                    extractions = list(p.find_text(image_file, form.cleaned_data["target"]))
+                ctx["total_time"] = m
+                if text_found := any(x.found for x in extractions):
+                    self.message_user(request, "Text found")
+                else:
+                    self.message_user(request, "Text not found", messages.WARNING)
 
-                ctx["results"] = results
+                ctx["text_found"] = text_found
+                ctx["results"] = {"extractions": extractions, "filename": image_file, "config": ts_config}
                 ctx["image_src"] = get_image_base64(image_file)
+                ctx["searched_text"] = form.cleaned_data["target"]
             else:
                 pass
         else:

@@ -3,20 +3,47 @@
 
 {% block action-content %}
     {% if image_src %}
-        <img src="{{ image_src }}" alt="">
         <table>
-        {% for result in results %}
+            <tr>
+                <th>Config</th>
+                <td colspan="3">{{ results.config }}</td>
+            </tr>
+            <tr>
+                <th>Target</th>
+                <td colspan="3">{{ searched_text }}</td>
+            </tr>
+        </table>
+        <img src="{{ image_src }}" alt="" style="max-width: 500px;">
+        <table>
+        <tr>
+            <th>Loader</th>
+            <th>Match</th>
+            <th>Time</th>
+            <th>Text</th>
+        </tr>
+        {% for result in results.extractions %}
             <tr>
                 <td>{{ result.loader }}</td>
-                <td>{{ result.config }}</td>
-                <td><textarea readonly>{{ result.text }}</textarea></td>
-                <td>{{ result.error }}</td>
+                <td>{{ result.found }}</td>
+                <td>{{ result.time.human }}</td>
+                <td>{{ result.matches }}</td>
+                <td>{{ result.angle }}</td>
+                <td>{{ result.rotations }}</td>
+                <td>
+                    {% if result.error %}
+                        {{ result.error }}
+                    {% else %}
+                        <textarea readonly>{{ result.text }}</textarea>
+                    {% endif %}
+                </td>
             </tr>
         {% endfor %}
     {% else %}
         <form method="post" action="." enctype="multipart/form-data">
             {% csrf_token %}
-            {{ form.as_p }}
+            <table>
+                {{ form.as_table }}
+            </table>
             <input type="submit" value="Submit">
         </form>
     {% endif %}

@@ -6,7 +6,7 @@ import click
 from colorama import Fore, Style
 
 from hope_documents.ocr.engine import CV2Config, Processor, ScanInfo, Scanner, TSConfig
-from hope_documents.utils import LevelFormatter
+from hope_documents.utils.logging import LevelFormatter
 
 logger = logging.getLogger(__name__)
 INFO_LINE = f"{Fore.YELLOW}%-16s: {Style.RESET_ALL}%s"
@@ -38,22 +38,20 @@ def cli(filepaths: list[click.Path], debug: bool, **kwargs: Any) -> None:
     ret_code = 0
 
     def cb(info: ScanInfo) -> None:
-        click.echo(f"{Fore.YELLOW}File: {Fore.LIGHTWHITE_EX}{info['filepath']}{Fore.RESET}")
-        click.echo(f"{Fore.YELLOW}Loader: {Fore.LIGHTWHITE_EX}{info['loader']}{Fore.RESET}")
-        click.echo(f"{Fore.YELLOW}Config: {Fore.LIGHTWHITE_EX}{info['config']}{Fore.RESET}")
-        if err := info["error"]:
+        click.echo(f"{Fore.YELLOW}Loader: {Fore.LIGHTWHITE_EX}{info.loader}{Fore.RESET}")
+        if err := info.error:
             click.echo(f"{Fore.RED}{err}{Fore.RESET}")
-        click.echo(f"{Fore.GREEN}{info['text']}{Fore.RESET}")
+        click.echo(f"{Fore.GREEN}{info.text}{Fore.RESET}")
         click.echo(f"{Fore.LIGHTWHITE_EX}========{Fore.RESET}")
 
-    p = Processor(
-        ts_config=TSConfig(oem=kwargs["oem"], psm=kwargs["psm"], number_only=kwargs["number_only"]),
-        cv2_config=CV2Config(threshold=kwargs["threshold"]),
-    )
+    ts_config = TSConfig(oem=kwargs["oem"], psm=kwargs["psm"], number_only=kwargs["number_only"])
+    p = Processor(ts_config=ts_config, cv2_config=CV2Config(threshold=kwargs["threshold"]))
+    click.echo(f"{Fore.YELLOW}Config: {Fore.LIGHTWHITE_EX}{ts_config}{Fore.RESET}")
     scanner = Scanner(*filepaths)
     for file in scanner.files:
-        for extracted in p.process(file, full_scan=True):
+        click.echo(f"{Fore.YELLOW}File: {Fore.LIGHTWHITE_EX}{file}{Fore.RESET}")
+        for extracted in p.process(file):
             cb(extracted)
-            if extracted["error"] != "":
+            if extracted.error != "":
                 ret_code = 1
     click.get_current_context().exit(ret_code)

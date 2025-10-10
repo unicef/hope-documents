@@ -9,3 +9,4 @@ containers =
 layers =
     hope_documents.archive
     hope_documents.ocr
+    hope_documents.utils

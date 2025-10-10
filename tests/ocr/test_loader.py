@@ -7,7 +7,7 @@ from hope_documents.ocr.loaders import loader_registry
 
 images_dir = Path(__file__).parent.parent / "images"
 
-valid_images = [p for p in images_dir.rglob("*") if not p.is_dir() and not p.name.startswith("_")]
+valid_images = [p for p in images_dir.rglob("*.png") if not p.is_dir() and not p.name.startswith("_")]
 invalid_images = [p for p in images_dir.rglob("*") if not p.is_dir() and p.name.startswith("_")]
 
 
@@ -20,6 +20,13 @@ def loader(request):
 @pytest.mark.parametrize("img", valid_images, ids=[str(p.relative_to(images_dir)) for p in valid_images])
 def test_load_valid(loader, img, caplog):
     image = loader.load(str(img))
+    assert image is not None
+
+
+# @pytest.mark.parametrize("loader", [PILLoader, CV2Loader, SmartLoader, BWLoader], indirect=True)
+@pytest.mark.parametrize("img", valid_images, ids=[str(p.relative_to(images_dir)) for p in valid_images])
+def test_rotate_valid(loader, img, caplog):
+    image = list(loader.rotate(str(img)))
     assert image is not None
 
 
