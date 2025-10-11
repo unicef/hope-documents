@@ -42,13 +42,17 @@ dependencies = [
 scripts.extract = "hope_documents.ocr.__cli__:cli"
 
 [dependency-groups]
+
 dev = [
+  "django>=4.2,<6",
   "django-browser-reload>=1.19",
+  "django-smart-env>=1",
   "django-webtest>=1.9.13",
   "factory-boy>=3.3.3",
   "freezegun>=1.5.5",
   "pdbpp>=0.11.7",
   "pre-commit>=4.3",
+  "psycopg2-binary",
   "pyquery>=2.0.1",
   "pytest>=8.4.2",
   "pytest-cov>=7",
@@ -105,3 +109,6 @@ include = [
 
 [tool.hatch.build.targets.wheel]
 packages = [ "src/hope_documents" ]
+
+[tool.uv]
+default-groups = "all"

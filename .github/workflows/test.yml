@@ -32,7 +32,26 @@ jobs:
   test:
     needs: [ changes ]
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.run_tests == 'true'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:14
+        env:
+          POSTGRES_DATABASE: country_workspace
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USERNAME: postgres
+        ports:
+          - 15432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 10000:5672
+          - 10001:15672
     strategy:
       fail-fast: false
       matrix:

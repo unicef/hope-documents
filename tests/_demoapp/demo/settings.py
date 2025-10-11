@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 from typing import Any, Dict, List
 
+from . import env
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -75,12 +77,7 @@ WSGI_APPLICATION: str = "demo.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES: Dict[str, Dict[str, Any]] = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
+DATABASES = {"default": env.db_url("DATABASE_URL")}
 
 SESSION_COOKIE_SECURE: bool = False
 SECURE_SSL_REDIRECT: bool = False
