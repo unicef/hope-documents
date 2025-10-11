@@ -1,8 +1,11 @@
 import factory.fuzzy
+import pycountry
 
 from hope_documents.archive.models import Country, DocumentRule, DocumentType
 
 from .base import AutoRegisterModelFactory
+
+all_countries = list(pycountry.countries)
 
 
 class CountryFactory(AutoRegisterModelFactory):
@@ -10,10 +13,13 @@ class CountryFactory(AutoRegisterModelFactory):
         model = Country
         django_get_or_create = ("code2",)
 
-    name = factory.Iterator(["France", "Italy", "Spain"])
-    code2 = factory.Iterator(["FR", "IT", "ES"])
-    code3 = factory.Iterator(["FRA", "ITA", "ESP"])
-    number = factory.Iterator(["250", "380", "724"])
+    class Params:
+        country_data = factory.Iterator(all_countries)
+
+    name = factory.LazyAttribute(lambda o: o.country_data.name)
+    code2 = factory.LazyAttribute(lambda o: o.country_data.alpha_2)
+    code3 = factory.LazyAttribute(lambda o: o.country_data.alpha_3)
+    number = factory.LazyAttribute(lambda o: o.country_data.numeric)
 
 
 class DocumentTypeFactory(AutoRegisterModelFactory):
@@ -21,8 +27,8 @@ class DocumentTypeFactory(AutoRegisterModelFactory):
         model = DocumentType
         django_get_or_create = ("code",)
 
-    code = factory.Iterator(["ID", "Driver License", "Passport"])
-    name = factory.Iterator(["ID", "DL", "PAS"])
+    code = factory.Iterator(["ID", "DL", "PAS", "ED"])
+    name = factory.Iterator(["ID", "Driver License", "Passport", "Electoral Card"])
 
 
 class DocumentRuleFactory(AutoRegisterModelFactory):

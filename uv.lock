@@ -628,6 +628,7 @@ dev = [
     { name = "pdbpp" },
     { name = "pre-commit" },
     { name = "psycopg2-binary" },
+    { name = "pycountry" },
     { name = "pyquery" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -695,6 +696,7 @@ dev = [
     { name = "pdbpp", specifier = ">=0.11.7" },
     { name = "pre-commit", specifier = ">=4.3" },
     { name = "psycopg2-binary" },
+    { name = "pycountry" },
     { name = "pyquery", specifier = ">=2.0.1" },
     { name = "pytest", specifier = ">=8.4.2" },
     { name = "pytest-cov", specifier = ">=7" },
@@ -1718,6 +1720,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/76/36/03801461b31b29fe58d228c24388f999fe814dfc302856e0d17f97d7c54d/psycopg2_binary-2.9.11-cp314-cp314-musllinux_1_2_ppc64le.whl", hash = "sha256:9bd81e64e8de111237737b29d68039b9c813bdf520156af36d26819c9a979e5f", size = 3298663, upload-time = "2025-10-10T11:13:44.878Z" },
     { url = "https://files.pythonhosted.org/packages/67/69/f36abe5f118c1dca6d3726ceae164b9356985805480731ac6712a63f24f0/psycopg2_binary-2.9.11-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:c3cb3a676873d7506825221045bd70e0427c905b9c8ee8d6acd70cfcbd6e576d", size = 3347643, upload-time = "2025-10-10T11:13:53.499Z" },
     { url = "https://files.pythonhosted.org/packages/e1/36/9c0c326fe3a4227953dfb29f5d0c8ae3b8eb8c1cd2967aa569f50cb3c61f/psycopg2_binary-2.9.11-cp314-cp314-win_amd64.whl", hash = "sha256:4012c9c954dfaccd28f94e84ab9f94e12df76b4afb22331b1f0d3154893a6316", size = 2803913, upload-time = "2025-10-10T11:13:57.058Z" },
+]
+
+[[package]]
+name = "pycountry"
+version = "24.6.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/76/57/c389fa68c50590881a75b7883eeb3dc15e9e73a0fdc001cdd45c13290c92/pycountry-24.6.1.tar.gz", hash = "sha256:b61b3faccea67f87d10c1f2b0fc0be714409e8fcdcc1315613174f6466c10221", size = 6043910, upload-time = "2024-06-01T04:12:15.05Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b1/ec/1fb891d8a2660716aadb2143235481d15ed1cbfe3ad669194690b0604492/pycountry-24.6.1-py3-none-any.whl", hash = "sha256:f1a4fb391cd7214f8eefd39556d740adcc233c778a27f8942c8dca351d6ce06f", size = 6335189, upload-time = "2024-06-01T04:11:49.711Z" },
 ]
 
 [[package]]

@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING, Any
+
 from admin_extra_buttons.api import ExtraButtonsMixin, button
 from django import forms
 from django.contrib import admin, messages
@@ -6,12 +8,16 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.utils.module_loading import import_string
 
-from ..ocr.engine import CV2Config, Processor, TSConfig
+from ..ocr.engine import CV2Config, Processor, ScanInfo, SearchInfo, TSConfig
 from ..ocr.loaders import Loader, loader_registry
 from ..utils.image import get_image_base64
 from ..utils.language import fqn
 from ..utils.timeit import time_it
 from . import models
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
 
 PSM_CHOICES = (
     (0, "(0) Orientation and script detection (OSD) only."),
@@ -56,8 +62,8 @@ class TestImageForm(forms.Form):
 
 @admin.register(models.Country)
 class CountryAdmin(admin.ModelAdmin[models.Country]):
-    list_display = ["name", "code2", "code3"]
-    search_fields = ["code", "name"]
+    list_display = ["name", "code2", "code3", "number"]
+    search_fields = ["code2", "code3", "number", "name"]
 
 
 @admin.register(models.DocumentType)
@@ -71,10 +77,12 @@ class DocumentRuleAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.DocumentRule]
     list_display = ["country", "type"]
     search_fields = ["code", "name"]
     list_filter = ["country", "type"]
+    autocomplete_fields = ["country", "type"]
 
     @button()  # type: ignore[arg-type]
     def test_image(self, request: HttpRequest) -> HttpResponse:
         ctx = self.get_common_context(request)
+        extractions: Generator[SearchInfo | ScanInfo, Any, None]
         if request.method == "POST":
             form = TestImageForm(request.POST, request.FILES)
             if form.is_valid():
@@ -88,17 +96,21 @@ class DocumentRuleAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.DocumentRule]
                     )
                     cv2_config = CV2Config(threshold=form.cleaned_data["threshold"])
                     p = Processor(ts_config=ts_config, cv2_config=cv2_config, loaders=form.cleaned_data["loaders"])
-                    extractions = list(p.find_text(image_file, form.cleaned_data["target"]))
-                ctx["total_time"] = m
-                if text_found := any(x.found for x in extractions):
-                    self.message_user(request, "Text found")
-                else:
-                    self.message_user(request, "Text not found", messages.WARNING)
+                    if form.cleaned_data["target"]:
+                        extractions = p.find_text(image_file, form.cleaned_data["target"])
+                        if text_found := any(x.found for x in extractions):
+                            self.message_user(request, "Text found")
+                        else:
+                            self.message_user(request, "Text not found", messages.WARNING)
+                        ctx["text_found"] = text_found
+                        ctx["searched_text"] = form.cleaned_data["target"]
+                    else:
+                        extractions = p.process(image_file)
 
-                ctx["text_found"] = text_found
+                ctx["total_time"] = m
+
                 ctx["results"] = {"extractions": extractions, "filename": image_file, "config": ts_config}
                 ctx["image_src"] = get_image_base64(image_file)
-                ctx["searched_text"] = form.cleaned_data["target"]
             else:
                 pass
         else:
