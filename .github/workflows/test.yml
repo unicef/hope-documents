@@ -37,7 +37,7 @@ jobs:
       db:
         image: postgres:14
         env:
-          POSTGRES_DATABASE: country_workspace
+          POSTGRES_DATABASE: demo
           POSTGRES_PASSWORD: postgres
           POSTGRES_USERNAME: postgres
         ports:
@@ -58,7 +58,7 @@ jobs:
         cfg: ["d52-py313", "d42-py312"]
     env:
       STREAMING_BROKER_URL: rabbit://guest:guest@localhost:10000?exchange=hope_live
-      DATABASE_URL: postgres://postgres:postgres@localhost:15432/country_workspace
+      DATABASE_URL: postgres://postgres:postgres@localhost:15432/demo
     steps:
       - uses: actions/checkout@v5
         with:
