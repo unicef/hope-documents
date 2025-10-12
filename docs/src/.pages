@@ -1,0 +1,4 @@
+nav:
+  - Home: index.md
+  - Contributing: contributing.md
+  - Command Line: cli.md
