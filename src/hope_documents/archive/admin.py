@@ -1,5 +1,3 @@
-from typing import TYPE_CHECKING, Any
-
 from admin_extra_buttons.api import ExtraButtonsMixin, button
 from django import forms
 from django.contrib import admin, messages
@@ -8,16 +6,12 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.utils.module_loading import import_string
 
-from ..ocr.engine import CV2Config, Processor, ScanInfo, SearchInfo, TSConfig
+from ..ocr.engine import CV2Config, MatchMode, Processor, ScanInfo, SearchInfo, TSConfig
 from ..ocr.loaders import Loader, loader_registry
 from ..utils.image import get_image_base64
 from ..utils.language import fqn
 from ..utils.timeit import time_it
 from . import models
-
-if TYPE_CHECKING:
-    from collections.abc import Generator
-
 
 PSM_CHOICES = (
     (0, "(0) Orientation and script detection (OSD) only."),
@@ -46,15 +40,22 @@ LOADERS = [(fqn(p), p.__name__) for p in loader_registry]
 
 
 class TestImageForm(forms.Form):
-    image = forms.ImageField()
+    image = forms.ImageField(validators=[])
     psm = forms.ChoiceField(initial=11, choices=PSM_CHOICES, help_text="Page segmentation modes")
     oem = forms.ChoiceField(initial=3, choices=OEM_CHOICES, help_text="OCR Engine modes")
     number_only = forms.BooleanField(initial=False, required=False, help_text="Only extract numbers")
+    detect = forms.BooleanField(initial=False, required=False, help_text="Try to detect Document type")
 
     threshold = forms.IntegerField(initial=128, validators=[MinValueValidator(1), MaxValueValidator(255)])
     loaders = forms.MultipleChoiceField(choices=LOADERS, initial=[x[0] for x in LOADERS])
 
     target = forms.CharField(required=False, help_text="Text to search for in the document")
+    mode = forms.TypedChoiceField(
+        initial=MatchMode.FIRST.value,
+        choices=MatchMode.choices(),
+        coerce=lambda x: MatchMode(int(x)),
+        help_text="Debug mode",
+    )
 
     def clean_loaders(self) -> list[type[Loader]]:
         return [import_string(p) for p in self.cleaned_data["loaders"]]
@@ -80,9 +81,10 @@ class DocumentRuleAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.DocumentRule]
     autocomplete_fields = ["country", "type"]
 
     @button()  # type: ignore[arg-type]
-    def test_image(self, request: HttpRequest) -> HttpResponse:
+    def scan_image(self, request: HttpRequest) -> HttpResponse:
         ctx = self.get_common_context(request)
-        extractions: Generator[SearchInfo | ScanInfo, Any, None]
+        extractions: list[ScanInfo]
+        findings: list[SearchInfo]
         if request.method == "POST":
             form = TestImageForm(request.POST, request.FILES)
             if form.is_valid():
@@ -97,19 +99,24 @@ class DocumentRuleAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.DocumentRule]
                     cv2_config = CV2Config(threshold=form.cleaned_data["threshold"])
                     p = Processor(ts_config=ts_config, cv2_config=cv2_config, loaders=form.cleaned_data["loaders"])
                     if form.cleaned_data["target"]:
-                        extractions = p.find_text(image_file, form.cleaned_data["target"])
-                        if text_found := any(x.found for x in extractions):
+                        findings = list(
+                            p.find_text(image_file, form.cleaned_data["target"], mode=form.cleaned_data["mode"])
+                        )
+                        if text_found := any(x.found for x in findings):
                             self.message_user(request, "Text found")
                         else:
                             self.message_user(request, "Text not found", messages.WARNING)
                         ctx["text_found"] = text_found
                         ctx["searched_text"] = form.cleaned_data["target"]
+                        ctx["results"] = findings
                     else:
-                        extractions = p.process(image_file)
+                        self.message_user(request, "Document processed")
+                        extractions = list(p.process(image_file))
+                        ctx["results"] = extractions
 
                 ctx["total_time"] = m
 
-                ctx["results"] = {"extractions": extractions, "filename": image_file, "config": ts_config}
+                ctx["infos"] = {"filename": image_file, "config": ts_config}
                 ctx["image_src"] = get_image_base64(image_file)
             else:
                 pass

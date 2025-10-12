@@ -1,6 +1,5 @@
-from abc import ABC, ABCMeta
+from abc import ABCMeta
 from collections.abc import Generator
-from inspect import isabstract
 from typing import Any
 
 import cv2
@@ -18,12 +17,11 @@ loader_registry = []
 class LoaderMetaClass(ABCMeta):
     def __new__(cls, class_name: str, bases: tuple[type], attrs: dict[str, Any]) -> type:
         new_class = super().__new__(cls, class_name, bases, attrs)
-        if not isabstract(new_class):
-            loader_registry.append(new_class)
+        loader_registry.append(new_class)
         return new_class
 
 
-class Loader(ABC, metaclass=LoaderMetaClass):
+class Loader(metaclass=LoaderMetaClass):
     def __init__(self, max_size: tuple[int, int] | None = None, **kwargs: Any) -> None:  # noqa B027
         self._image: Image.Image | None = None
         self.max_size = max_size

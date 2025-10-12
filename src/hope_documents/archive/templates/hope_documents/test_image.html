@@ -1,37 +1,50 @@
 {% extends "admin_extra_buttons/action_page.html" %}{% load admin_list admin_urls extra_buttons i18n static %}
-{% block breadcrumbs-active %}&rsaquo; <a href="{% url opts|admin_urlname:'test_image' %}">Test Image</a> {% endblock %}
+{% block breadcrumbs-active %}&rsaquo; <a href=".">Test Image</a> {% endblock %}
 
 {% block action-content %}
     {% if image_src %}
-        <table>
+        <table style="width:100%">
             <tr>
-                <th>Config</th>
-                <td colspan="3">{{ results.config }}</td>
-            </tr>
-            <tr>
-                <th>Target</th>
-                <td colspan="3">{{ searched_text }}</td>
+                <td style="width: 80%">
+                    <table style="width:100%">
+                        <tr>
+                            <th>Config</th>
+                            <td>{{ infos.config }}</td>
+                        </tr>
+                        {% if searched_text %}
+                        <tr>
+                            <th>Target</th>
+                            <td>{{ searched_text }}</td>
+                        </tr>
+                        <tr>
+                            <th>Match Mode</th>
+                            <td>{{ form.cleaned_data.mode }}</td>
+                        </tr>
+                            {% endif %}
+                    </table>
+                </td>
+                <td style="text-align: right;">
+                    <img src="{{ image_src }}" alt="" style="max-width: 500px;">
+                </td>
             </tr>
         </table>
-        <img src="{{ image_src }}" alt="" style="max-width: 500px;">
         <table>
         <tr>
             <th>Loader</th>
             <th>Time</th>
             {% if searched_text %}
-                <td>{{ result.rotations }}</td>
                 <th>Angle</th>
                 <th>Match</th>
+                <th>Findings</th>
             {% endif %}
             <th>Text</th>
         </tr>
-        {% for result in results.extractions %}
+        {% for result in results %}
             <tr>
                 <td>{{ result.loader }}</td>
                 <td>{{ result.time.human }}</td>
                 {% if searched_text %}
                     <td>{{ result.angle }}</td>
-                    <td>{{ result.rotations }}</td>
                     <td>{{ result.found }}</td>
                     <td>{{ result.matches }}</td>
                 {% endif %}
@@ -45,7 +58,7 @@
             </tr>
         {% endfor %}
     {% else %}
-        <form method="post" action="." enctype="multipart/form-data">
+        <form method="post" action="." enctype="multipart/form-data" id="scan-form">
             {% csrf_token %}
             <table>
                 {{ form.as_table }}
