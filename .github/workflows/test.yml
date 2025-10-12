@@ -73,6 +73,11 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           python-version: ${{ matrix.python }}
 
+      - name: Install Tesseract OCR
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr libtesseract-dev
+
       - name: Install tox
         run: uv tool install --python-preference only-managed --python 3.13 tox --with tox-uv --with tox-gh-actions
 
