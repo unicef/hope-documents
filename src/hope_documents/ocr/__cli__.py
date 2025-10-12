@@ -5,7 +5,7 @@ from typing import Any
 import click
 from colorama import Fore, Style
 
-from hope_documents.ocr.engine import CV2Config, Processor, ScanInfo, Scanner, TSConfig
+from hope_documents.ocr.engine import CV2Config, Processor, ScanEntryInfo, Scanner, TSConfig
 from hope_documents.utils.logging import LevelFormatter
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ def cli(filepaths: list[click.Path], debug: bool, **kwargs: Any) -> None:
     configure_logging(debug)
     ret_code = 0
 
-    def cb(info: ScanInfo) -> None:
+    def cb(info: ScanEntryInfo) -> None:
         click.echo(f"{Fore.YELLOW}Loader: {Fore.LIGHTWHITE_EX}{info.loader}{Fore.RESET}")
         if err := info.error:
             click.echo(f"{Fore.RED}{err}{Fore.RESET}")

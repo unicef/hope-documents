@@ -6,7 +6,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.utils.module_loading import import_string
 
-from ..ocr.engine import CV2Config, MatchMode, Processor, ScanInfo, SearchInfo, TSConfig
+from ..ocr.engine import CV2Config, MatchMode, Processor, ScanEntryInfo, SearchInfo, TSConfig
 from ..ocr.loaders import Loader, loader_registry
 from ..utils.image import get_image_base64
 from ..utils.language import fqn
@@ -50,6 +50,9 @@ class TestImageForm(forms.Form):
     loaders = forms.MultipleChoiceField(choices=LOADERS, initial=[x[0] for x in LOADERS])
 
     target = forms.CharField(required=False, help_text="Text to search for in the document")
+    max_errors = forms.IntegerField(
+        initial=5, validators=[MinValueValidator(0)], help_text="Maximum number of errors allowed for a match"
+    )
     mode = forms.TypedChoiceField(
         initial=MatchMode.FIRST.value,
         choices=MatchMode.choices(),
@@ -83,7 +86,7 @@ class DocumentRuleAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.DocumentRule]
     @button()  # type: ignore[arg-type]
     def scan_image(self, request: HttpRequest) -> HttpResponse:
         ctx = self.get_common_context(request)
-        extractions: list[ScanInfo]
+        extractions: list[ScanEntryInfo]
         findings: list[SearchInfo]
         if request.method == "POST":
             form = TestImageForm(request.POST, request.FILES)
@@ -100,7 +103,12 @@ class DocumentRuleAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.DocumentRule]
                     p = Processor(ts_config=ts_config, cv2_config=cv2_config, loaders=form.cleaned_data["loaders"])
                     if form.cleaned_data["target"]:
                         findings = list(
-                            p.find_text(image_file, form.cleaned_data["target"], mode=form.cleaned_data["mode"])
+                            p.find_text(
+                                image_file,
+                                form.cleaned_data["target"],
+                                mode=form.cleaned_data["mode"],
+                                max_errors=form.cleaned_data["max_errors"],
+                            )
                         )
                         if text_found := any(x.found for x in findings):
                             self.message_user(request, "Text found")

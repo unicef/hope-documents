@@ -1,5 +1,4 @@
 import logging
-import os
 import sys
 from pathlib import Path
 
@@ -13,7 +12,6 @@ sys.path.insert(0, str(here / "_extras"))
 
 
 def pytest_configure(config):
-    os.environ["DJANGO_SETTINGS_MODULE"] = "hope_live.config.settings"
     for silenced in ["faker", "PIL", "matplotlib", "pytesseract", "factory"]:
         logger = logging.getLogger(silenced)
         logger.handlers.clear()

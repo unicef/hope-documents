@@ -6,14 +6,14 @@ from pathlib import Path
 from typing import Any
 
 from hope_documents.exceptions import ExtractionError, InvalidImageError
-from hope_documents.ocr.diff import find_similar
+from hope_documents.ocr.diff import Match, find_similar
 from hope_documents.ocr.loaders import Loader, loader_registry
 from hope_documents.ocr.reader import BaseReader, Reader
 from hope_documents.utils.timeit import Timer, time_it
 
 
 @dataclass
-class ScanInfo:
+class ScanEntryInfo:
     def __init__(self, **kwargs: Any) -> None:
         self.loader: str = ""
         self.text: str = ""
@@ -22,20 +22,34 @@ class ScanInfo:
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-
-@dataclass
-class SearchInfo(ScanInfo):
-    def __init__(self, **kwargs: Any) -> None:
-        self.matches: list[dict[str, str | int]] = []
-        self.angle: int = 0
-        super().__init__(**kwargs)
-
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.__dict__!r})"
+
+
+@dataclass
+class SearchInfo(ScanEntryInfo):
+    def __init__(self, **kwargs: Any) -> None:
+        self.matches: list[Match] = []
+        self.angle: int = 0
+        super().__init__(**kwargs)
 
     @property
     def found(self) -> bool:
         return bool(self.matches)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.__dict__!r})"
+
+
+@dataclass
+class ScanInfo:
+    def __init__(self, **kwargs: Any) -> None:
+        self.iterations: list[SearchInfo] = []
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.iterations!r})"
 
 
 @dataclass
@@ -105,10 +119,16 @@ class Processor:
     def reader(self) -> BaseReader:
         return Reader(str(self.ts_config))
 
-    def find_text(
-        self, filepath: str, target: str, mode: MatchMode = MatchMode.FIRST
+    def find_text(  # noqa: C901, PLR0913
+        self,
+        filepath: str,
+        target: str,
+        mode: MatchMode = MatchMode.FIRST,
+        debug: bool = False,
+        max_errors: int = 5,
     ) -> Generator[SearchInfo, Any, None]:
         all_matches = []
+        self.debug_info = ScanInfo()
         for loader in self.loaders:
             for image, angle in loader.rotate(filepath):
                 ret = SearchInfo(loader=loader.__class__.__name__)
@@ -119,15 +139,19 @@ class Processor:
                         ret.text = text
                     except (InvalidImageError, ExtractionError) as e:
                         ret.error = f"{e.__class__.__name__}: {str(e)}"
-                    ret.matches = find_similar(target, text)
+                    ret.matches = find_similar(target, text, max_errors=max_errors)
                 ret.time = m
-                if ret.matches and mode == MatchMode.FIRST:
-                    yield ret
-                    return
-                elif mode == MatchMode.ALL:
-                    yield ret
-                else:
-                    all_matches.append(ret)
+                if debug:
+                    self.debug_info.iterations.append(ret)
+                if ret.matches:
+                    match mode:
+                        case MatchMode.BEST:
+                            all_matches.append(ret)
+                        case MatchMode.FIRST:
+                            yield ret
+                            return
+                        case MatchMode.ALL:
+                            yield ret
         if mode == MatchMode.BEST:
             entries_with_matches = [info for info in all_matches if info.matches]
             if entries_with_matches:
@@ -135,9 +159,9 @@ class Processor:
             else:
                 yield SearchInfo()
 
-    def process(self, filepath: str) -> Generator[ScanInfo]:
+    def process(self, filepath: str) -> Generator[ScanEntryInfo]:
         for loader in self.loaders:
-            ret = ScanInfo(loader=loader.__class__.__name__)
+            ret = ScanEntryInfo(loader=loader.__class__.__name__)
             try:
                 with time_it() as m:
                     image = loader.load(filepath)
