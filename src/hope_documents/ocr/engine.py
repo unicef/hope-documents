@@ -29,13 +29,13 @@ class ScanEntryInfo:
 @dataclass
 class SearchInfo(ScanEntryInfo):
     def __init__(self, **kwargs: Any) -> None:
-        self.matches: list[Match] = []
+        self.match: Match | None = None
         self.angle: int = 0
         super().__init__(**kwargs)
 
     @property
     def found(self) -> bool:
-        return bool(self.matches)
+        return bool(self.match)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.__dict__!r})"
@@ -139,11 +139,11 @@ class Processor:
                         ret.text = text
                     except (InvalidImageError, ExtractionError) as e:
                         ret.error = f"{e.__class__.__name__}: {str(e)}"
-                    ret.matches = find_similar(target, text, max_errors=max_errors)
+                    ret.match = find_similar(target, text, max_errors=max_errors)
                 ret.time = m
                 if debug:
                     self.debug_info.iterations.append(ret)
-                if ret.matches:
+                if ret.match:
                     match mode:
                         case MatchMode.BEST:
                             all_matches.append(ret)
@@ -153,11 +153,7 @@ class Processor:
                         case MatchMode.ALL:
                             yield ret
         if mode == MatchMode.BEST:
-            entries_with_matches = [info for info in all_matches if info.matches]
-            if entries_with_matches:
-                yield min(entries_with_matches, key=lambda item: item.matches[0]["distance"])
-            else:
-                yield SearchInfo()
+            yield min(all_matches, key=lambda item: item.match["distance"] if item.match else 0)
 
     def process(self, filepath: str) -> Generator[ScanEntryInfo]:
         for loader in self.loaders:

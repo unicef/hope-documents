@@ -1,43 +1,65 @@
 from pathlib import Path
 from unittest import mock
 
+import PIL.Image
 import pytest
+from django.core.files.uploadedfile import UploadedFile
 
 from hope_documents.ocr.diff import find_similar1, find_similar2
 from hope_documents.ocr.engine import CV2Config, MatchMode, Processor, SearchInfo, TSConfig
 from hope_documents.ocr.loaders import loader_registry
+from hope_documents.utils.image import get_image_base64
 
-FAILURES = (
-    ("ita/dl3.png", "AA0000000A", False, MatchMode.FIRST),  # does not work
-    ("ssd/dl2.png", "00000000", False, MatchMode.FIRST),  # does not work
-    ("swe/id1.png", "820021", True, MatchMode.FIRST),
-)
+FAILURES = ()
 
 EXPECTATIONS = (
+    ("and/pp1.png", "PP9500063", True, 0),
+    ("arg/id1.png", "99.999.999", True, 0),
+    ("bhr/pp1.png", "80000000", True, 0),
+    ("chi/pp1.png", "RX0006664", True, 0),
+    ("chn/pp1.png", "888800088", True, 0),
+    ("deu/dp1.png", "CZ638HW3P", True, 0),
+    ("deu/dp2.png", "CZ638HW3P", True, 0),
+    ("deu/dr1.png", "Z021AB37X13", True, 0),
+    ("eri/pp1.png", "K0064640", True, 0),
+    ("fin/dr1.png", "0104044898VV1", True, 0),
+    ("hun/id1.png", "012345", True, 0),
+    ("isr/id1.png", "1 2345678 9", True, 0),
+    ("isr/id1.png", "123456789", True, 0),
+    ("onu/dp1.png", "SUNJ00000", True, 0),
+    ("phl/pp1.png", "P0000000A", True, 0),
+    ("pol/pp1.png", "ZP7202173", True, 0),
+    ("pse/id1.png", "924445117", True, 0),
+    ("pse/id2.png", "0 0000000 0", True, 0),
+    ("pse/id3.png", "0 0000000 0", True, 0),
+    ("pse/pp1.png", "ROPOSH.COM", True, 0),
+    ("pse/pp1.png", "0000000", True, 0),
+    ("rou/id1.png", "SP1234694", False, 0),
     ## Ita
-    ("ita/ts1.png", "RSSMRA98H1OH501W", False, MatchMode.FIRST),
-    ("ita/dl1.png", "M01699252K", True, MatchMode.FIRST),
-    ("ita/dl2.png", "AOA000000A", True, MatchMode.FIRST),
-    ("ita/id1.png", "123456", True, MatchMode.FIRST),
-    ("ita/id2.png", "123456", True, MatchMode.FIRST),
+    ("ita/ts1.png", "RSSMRA98H1OH501W", False, 0),
+    ("ita/dl3.png", "AA0000000A", True, 5.0),  # does not work
+    ("ssd/dl2.png", "00000000", True, 5.0),  # does not work
+    ("swe/id1.png", "820021", True, 0),
+    ("ita/dl1.png", "M01699252K", True, 0),
+    ("ita/dl2.png", "AOA000000A", True, 0),
+    ("ita/id1.png", "123456", True, 0),
+    ("ita/id2.png", "123456", True, 0),
     ## South Sudan
-    ("ssd/dl1.png", "25049", True, MatchMode.FIRST),
-    ("ssd/pp1.png", "M5500000000011", True, MatchMode.FIRST),
-    ("ssd/pp1.png", "M5500000000011", True, MatchMode.FIRST),
+    ("ssd/dl1.png", "25049", True, 0),
+    ("ssd/pp1.png", "M5500000000011", True, 0),
+    ("ssd/pp1.png", "M5500000000011", True, 0),
     ## Sudan
-    ("sdn/dl1.png", "L03p29892", True, MatchMode.FIRST),
-    ("sdn/pp1.png", "114-8277-2864", True, MatchMode.FIRST),
-    ("sdn/pp2.png", "A0000000000000", True, MatchMode.FIRST),
+    ("sdn/dl1.png", "L03p29892", True, 0),
+    ("sdn/pp1.png", "114-8277-2864", True, 0),
+    ("sdn/pp2.png", "A0000000000000", True, 0),
     ## Slovenia
-    ("slo/id1.png", "XX024051", True, MatchMode.FIRST),
-    ("slo/id1.png", "1111111111", True, MatchMode.FIRST),
-    ("slo/id1.png", "199030", True, MatchMode.FIRST),
+    ("slo/id1.png", "XX024051", True, 0),
+    ("slo/id1.png", "1111111111", True, 0),
+    ("slo/id1.png", "199030", True, 0),
     ## South Africa
-    ("zaf/pp1.png", "3908200125087", True, MatchMode.FIRST),
-    ("zaf/pp2.png", "8001014999082", True, MatchMode.FIRST),
+    ("zaf/pp1.png", "3908200125087", True, 0),
+    ("zaf/pp2.png", "8001014999082", True, 0),
 )
-images_dir = Path(__file__).parent.parent / "images"
-private_dir = Path(__file__).parent.parent.parent / "DATA"
 
 EX = (
     ("sdn/1726385754342.jpg", "46145701702", True, 0),
@@ -54,6 +76,8 @@ EX = (
     ("sdn/1726406159721.jpg", "11997738501", True, 0),
     ("sdn/1726406159721.jpg", "119 977 38501", True, 0),
 )
+images_dir = Path(__file__).parent.parent / "images"
+private_dir = Path(__file__).parent.parent.parent / "DATA"
 
 
 @pytest.fixture(params=[{"psm": 11, "oem": 3, "number_only": False}])
@@ -66,11 +90,11 @@ def processor(request) -> Processor:
 
 @pytest.mark.parametrize(("filename", "text", "found", "mode"), EXPECTATIONS)
 def test_search_text(processor, filename, text, found, mode) -> None:
-    findings = list(processor.find_text(str(images_dir / filename), text, mode=mode, debug=True))
+    findings = list(processor.find_text(str(images_dir / filename), text, mode=MatchMode.FIRST, debug=True))
     if found:
         assert len(findings) == 1
         assert findings[0].found is found
-        assert findings[0].matches[0]["match"]
+        assert findings[0].match
     else:
         assert not findings
 
@@ -83,7 +107,7 @@ def test_process(processor, target, distance, impl, mode) -> None:
         findings = list(processor.find_text(str(images_dir / "ita/dl1.png"), target, mode=mode))
         assert len(findings) >= 1
         info: SearchInfo = findings[0]
-        match = info.matches[0]
+        match = info.match
         assert info.found
         assert match["distance"] == distance, (
             f"Diff should be {distance}. Got {match['distance']} ({target} != {match['match']})"
@@ -97,10 +121,65 @@ def test_search_protected(processor, filename, text, found, distance) -> None:
     if found:
         assert len(findings) == 1
         info: SearchInfo = findings[0]
-        match = info.matches[0]
         assert info.found
-        assert match["distance"] == distance, (
-            f"Diff should be {distance}. Got {match['distance']} ({text} != {match['match']})"
+        assert info.match["distance"] == distance, (
+            f"Diff should be {distance}. Got {info.match['distance']} ({text} != {info.match['match']})"
         )
     else:
         assert not findings
+
+
+@pytest.mark.skipif("not private_dir.exists()", reason=f"{private_dir} does not exist.")
+def test_create_report(processor):
+    style = """<style>
+.d5 { background-color: #D32F2F; }
+.d4 { background-color: #F57C00; }
+.d3 { background-color: #FBC02D; color: #333; }
+.d2 { background-color: #7CB342; }
+.d1 { background-color: #388E3C; }
+.d0 { background-color: #00AA00; }
+</style>"""
+
+    def get_class(s: SearchInfo):
+        if s:
+            return f"d{int(s.match['distance'])}"
+        return "d5"
+
+    report = Path(__file__).parent.parent.parent / ".report.html"
+    line = """<tr>
+  <td class="%(cls)s">&nbsp;&nbsp;&nbsp;</td>
+  <td><img src="%(image)s" style="max-width:300px"><div>%(info)s</div></td>
+  <td>%(search_text)s</td>
+  <td>%(match)s</td>
+  <td class="%(cls)s">&nbsp;&nbsp;&nbsp;</td>
+<tr>\n"""
+
+    with Path(report).open("w", encoding="utf-8") as f:
+        f.write(f"<HTML><HEAD>{style}</HEAD><BODY>")
+        f.write("<table>\n")
+        f.write("<tr><th></th><th>Image</th><th>Text</th><th>Match</th><th></th></tr>")
+        all_files = []
+        all_files.extend([(str(private_dir / filename), a, b, c) for filename, a, b, c in EX])
+        all_files.extend([(str(images_dir / filename), a, b, c) for filename, a, b, c in EXPECTATIONS])
+        for target, text, __, __ in all_files:
+            filename = Path(target).name
+            image = PIL.Image.open(target)
+            width, height = image.size
+            resolution = image.info.get("dpi")
+            with open(target, "rb") as fi:
+                base64 = get_image_base64(UploadedFile(fi, name=filename))
+            for mode in [MatchMode.FIRST]:
+                findings = list(processor.find_text(target, text, mode=mode, debug=True))
+                f.write(
+                    line
+                    % {
+                        "filename": filename,
+                        "search_text": text,
+                        "image": base64,
+                        "info": f"{int(width)}x{int(height)} ({resolution}dpi)",
+                        "match": None,
+                        "cls": get_class(findings[0] if findings else None),
+                        **(findings[0].__dict__ if findings else {}),
+                    }
+                )
+        f.write("</table></body></html>")

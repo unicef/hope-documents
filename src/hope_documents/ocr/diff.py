@@ -1,3 +1,4 @@
+import sys
 from typing import TypedDict
 
 import regex
@@ -63,7 +64,7 @@ def _normalize_homoglyphs(s: str) -> str:
     return "".join(HOMOGLYPH_MAP.get(ch, ch.upper()) for ch in s)
 
 
-def find_similar1(pattern: str, text: str, max_errors: int = 5) -> list[Match]:
+def find_similar1(pattern: str, text: str, max_errors: int = 5) -> Match | None:
     """Find all occurrences of a pattern in a text using fuzzy matching.
 
     This function allows for a specified number of errors (insertions,
@@ -83,7 +84,7 @@ def find_similar1(pattern: str, text: str, max_errors: int = 5) -> list[Match]:
 
     """
     if not pattern:
-        return []
+        return None
 
     # Create a translation table to remove ignored characters
     translation_table = str.maketrans("", "", IGNORE_CHARS)
@@ -98,8 +99,8 @@ def find_similar1(pattern: str, text: str, max_errors: int = 5) -> list[Match]:
     # number of errors specified by `max_errors`.
     # {e<=N} is the syntax for "at most N errors".
     fuzzy_pattern = f"({pattern_no_ignored}){{e<={max_errors}}}"
-
-    results: list[Match] = []
+    best_distance = sys.maxsize
+    result: Match | None = None
     for match in regex.finditer(fuzzy_pattern, text_no_ignored, regex.BESTMATCH):
         # The regex.BESTMATCH flag ensures we get the best possible match
         # at a given position, minimizing the number of errors.
@@ -114,19 +115,14 @@ def find_similar1(pattern: str, text: str, max_errors: int = 5) -> list[Match]:
 
         # Calculate the base errors from the fuzzy match on the strings with ignored characters removed.
         total_distance = sum(match.fuzzy_counts)
+        if total_distance < best_distance:
+            best_distance = total_distance
+            result = {"match": matched_original, "distance": float(total_distance)}
 
-        if total_distance <= max_errors:
-            results.append(
-                {
-                    "match": matched_original,
-                    "distance": float(total_distance),
-                }
-            )
-
-    return results
+    return result
 
 
-def find_similar2(pattern: str, text: str, max_errors: int = 5) -> list[Match]:
+def find_similar2(pattern: str, text: str, max_errors: int = 5) -> Match | None:
     """Find all occurrences of a pattern in a text.
 
     It allows up to `max_errors` edits, taking into account homoglyph equivalences defined in HOMOGLYPH_GROUPS,
@@ -146,7 +142,8 @@ def find_similar2(pattern: str, text: str, max_errors: int = 5) -> list[Match]:
 
     """
     if not pattern:
-        return []
+        return None
+    best_distance = float(sys.maxsize)
 
     norm_pattern = _normalize_homoglyphs(pattern)
     # assumption: _normalize_homoglyphs is length-preserving, so we can map spans
@@ -165,7 +162,7 @@ def find_similar2(pattern: str, text: str, max_errors: int = 5) -> list[Match]:
     # {e<=N} is the syntax for "at most N errors".
     fuzzy_pattern = f"({pattern_no_ignored}){{e<={max_errors}}}"
 
-    results: list[Match] = []
+    result: Match | None = None
     for match in regex.finditer(fuzzy_pattern, text_no_ignored, regex.BESTMATCH):
         # The regex.BESTMATCH flag ensures we get the best possible match
         # at a given position, minimizing the number of errors.
@@ -181,19 +178,10 @@ def find_similar2(pattern: str, text: str, max_errors: int = 5) -> list[Match]:
         # Calculate the base errors from the fuzzy match on the no-hyphen strings.
         total_distance = sum(match.fuzzy_counts)
 
-        if total_distance <= max_errors:
-            results.append({"match": matched_original, "distance": float(total_distance)})
-
-    # Optionally: deduplicate by (match, distance) preserving first occurrence order
-    seen = set()
-    deduped: list[Match] = []
-    for r in results:
-        key = (r["match"], r["distance"])
-        if key not in seen:
-            seen.add(key)
-            deduped.append(r)
-
-    return deduped
+        if total_distance <= max_errors and total_distance < best_distance:
+            best_distance = float(total_distance)
+            result = {"match": matched_original, "distance": float(total_distance)}
+    return result
 
 
 find_similar = find_similar2
