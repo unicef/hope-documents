@@ -1,0 +1,97 @@
+<HTML>
+<HEAD>
+    <style>
+        table {
+            width: 100%;
+        }
+
+        .d5 {
+            background-color: #D32F2F;
+        }
+
+        .d4 {
+            background-color: #F57C00;
+        }
+
+        .d3 {
+            background-color: #FBC02D;
+            color: #333;
+        }
+
+        .d2 {
+            background-color: #7CB342;
+        }
+
+        .d1 {
+            background-color: #388E3C;
+        }
+
+        .d0 {
+            background-color: #00AA00;
+        }
+    </style>
+</HEAD>
+<BODY>
+<table>
+    <tr>
+        <td>Total</td>
+        <td>
+        {{ lines|length }}
+        <td>
+    </tr>
+    <tr>
+        <td>Success</td>
+        <td>
+            {{ success|length }}
+        <td>
+    </tr>
+    <tr>
+        <td>Warnings</td>
+        <td>
+            {{ warnings|length }}
+        <td>
+    </tr>
+    <tr>
+        <td>Errors</td>
+        <td>
+            {{ errors|length }}
+        <td>
+    </tr>
+</table>
+<table>
+    <thead>
+    <tr>
+        <th></th>
+        <th>Image</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for line in lines %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td class="{{ line.class }}">&nbsp;&nbsp;&nbsp;</td>
+            <td><img src="{{ line.image }}" style="max-width:300px" alt="{{ line.filename }}">
+                <div>{{ line.filename }} - {{ line.info }}</div>
+            </td>
+            <td>{{ line.si.time.human }}</td>
+            <td>
+                <div>
+                    <pre style="display: inline">Search   : {{ line.search_text }}</pre>
+                </div>
+                <div>
+                    <pre style="display: inline">Found    : {{ line.si.match.match }}</pre>
+                </div>
+                <div>
+                    <pre style="display: inline">Distance : {{ line.si.match.distance }}</pre>
+                </div>
+            </td>
+            <td>{{ line.angle }}</td>
+            <td>{% for e in line.si.iterations %}
+                <div>{{ e.loader }}: [ {% for a in e.angles %}{{ a }} {% endfor %} ]</div>
+            {% endfor %}
+            </td>
+            <td class="{{ line.class }}">&nbsp;&nbsp;&nbsp;</td>
+        <tr>
+    {% endfor %}
+    <tbody>
+</table>

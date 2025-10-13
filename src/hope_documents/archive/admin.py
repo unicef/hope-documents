@@ -126,8 +126,6 @@ class DocumentRuleAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.DocumentRule]
 
                 ctx["infos"] = {"filename": image_file, "config": ts_config}
                 ctx["image_src"] = get_image_base64(image_file)
-            else:
-                pass
         else:
             form = TestImageForm()
         ctx["form"] = form

@@ -29,6 +29,7 @@ dynamic = [
 ]
 dependencies = [
   "click>=8.3",
+  "deskew>=1.5.3",
   "django-admin-extra-buttons>=2.1.1",
   "django-regex>=0.5",
   "django-streaming>=0.8",
@@ -38,6 +39,7 @@ dependencies = [
   "pytesseract>=0.3.13",
   "rapidfuzz>=3.14.1",
   "regex>=2025.9.18",
+  "scikit-image>=0.25.2",
 ]
 
 scripts.extract = "hope_documents.ocr.__cli__:cli"

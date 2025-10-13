@@ -26,7 +26,7 @@ def test_scan_image_find(django_app, admin_user, document1):
     assert b"Document processed" in res.content
 
 
-def test_scan_image_search(django_app, admin_user, document1):
+def test_scan_image_search_found(django_app, admin_user, document1):
     url = reverse("admin:archive_documentrule_scan_image")
 
     res = django_app.get(url, user=admin_user)
@@ -36,6 +36,19 @@ def test_scan_image_search(django_app, admin_user, document1):
     res = res.forms["scan-form"].submit()
     assert res.status_code == 200
     assert b"Text found" in res.content
+
+
+def test_scan_image_search_not_found(django_app, admin_user, document1):
+    url = reverse("admin:archive_documentrule_scan_image")
+
+    res = django_app.get(url, user=admin_user)
+    res.forms["scan-form"]["image"] = document1
+    res.forms["scan-form"]["target"] = "555"
+    res.forms["scan-form"]["max_errors"] = "0"
+    res.forms["scan-form"]["mode"] = MatchMode.FIRST.value
+    res = res.forms["scan-form"].submit()
+    assert res.status_code == 200
+    assert b"Text not found" in res.content
 
 
 def test_scan_image_search_all(django_app, admin_user, document1):

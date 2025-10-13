@@ -31,6 +31,7 @@ class SearchInfo(ScanEntryInfo):
     def __init__(self, **kwargs: Any) -> None:
         self.match: Match | None = None
         self.angle: int = 0
+        self.iterations = []
         super().__init__(**kwargs)
 
     @property
@@ -129,10 +130,13 @@ class Processor:
     ) -> Generator[SearchInfo, Any, None]:
         all_matches = []
         self.debug_info = ScanInfo()
+        iterations = []
         for loader in self.loaders:
+            iterations.append({"loader": loader.__class__.__name__, "angles": []})
             for image, angle in loader.rotate(filepath):
                 ret = SearchInfo(loader=loader.__class__.__name__)
                 ret.angle = angle
+                iterations[-1]["angles"].append(angle)
                 with time_it() as m:
                     try:
                         text = self.reader.extract(image)
@@ -141,6 +145,7 @@ class Processor:
                         ret.error = f"{e.__class__.__name__}: {str(e)}"
                     ret.match = find_similar(target, text, max_errors=max_errors)
                 ret.time = m
+                ret.iterations = iterations
                 if debug:
                     self.debug_info.iterations.append(ret)
                 if ret.match:

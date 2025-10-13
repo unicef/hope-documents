@@ -46,7 +46,7 @@ class Loader(metaclass=LoaderMetaClass):
 
     def rotate(self, filepath: str) -> Generator[tuple[Image.Image, int], None, None]:
         image = self.get_image(filepath)
-        for angle in [0, 270, 180, 90]:
+        for angle in [270, 0]:
             if angle == 0:
                 rotated_image = image
             else:

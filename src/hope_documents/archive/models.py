@@ -42,6 +42,3 @@ class DocumentRule(models.Model):
 
     def __str__(self) -> str:
         return f"{self.type.name} {self.country.name}"
-
-    def test(self, text: str) -> bool:
-        return False
