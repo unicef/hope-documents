@@ -1,37 +1,46 @@
-# Contributing
+# Contributing to Hope Documents
 
-To contribute to HOPE Documents, you can follow these steps:
+We welcome contributions to Hope Documents! This guide will help you get started with setting up your development environment.
 
-1.  **Clone the repository**:
+## Cloning the Repository
 
-    ```bash
-    git clone https://github.com/unicef/hope-documents.git
-    ```
+First, clone the repository to your local machine:
 
-2.  **Install the dependencies**:
+```bash
+git clone https://github.com/unicef/hope-documents.git
+cd hope-documents
+```
 
-    To set up the development environment, you need to have `tox` installed.
+## Development Environment
 
-3.  **Run the tests**:
+We use `tox` to manage the development environment and ensure consistency. Make sure you have `tox` installed:
 
-    To run the test suite, use the following command:
+```bash
+pip install tox
+```
 
-    ```bash
-    tox -e d52-py313
-    ```
+### Running Tests
 
-4.  **Check for code style and linting errors**:
+To run the test suite, use the following command:
 
-    ```bash
-    tox lint
-    ```
+```bash
+tox -e d52-py313
+```
 
-5.  **Build the documentation**:
+### Linting
 
-    To build the documentation, use the following command:
+To check for code style and linting errors, run:
 
-    ```bash
-    tox docs
-    ```
+```bash
+tox lint
+```
 
-    The documentation will be generated in the `~build/docs` directory.
+### Building the Documentation
+
+To build the documentation locally, use:
+
+```bash
+tox docs
+```
+
+The documentation will be generated in the `~build/docs` directory.

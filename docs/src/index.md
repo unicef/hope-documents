@@ -1,6 +1,17 @@
-# HOPE Documents
+# Hope Documents
 
-**HOPE Documents** is a Django-based application designed for scanning and processing documents to extract data using OCR capabilities. It provides a command-line interface to extract text from images and PDFs.
+[![Test](https://github.com/unicef/hope-documents/actions/workflows/test.yml/badge.svg)](https://github.com/unicef/hope-documents/actions/workflows/test.yml)
+[![Lint](https://github.com/unicef/hope-documents/actions/workflows/lint.yml/badge.svg)](https://github.com/unicef/hope-documents/actions/workflows/lint.yml)
+[![codecov](https://codecov.io/github/unicef/hope-documents/graph/badge.svg?token=NPQU3MC9PL)](https://codecov.io/github/unicef/hope-documents)
+[![Documentation](https://github.com/unicef/hope-documents/actions/workflows/docs.yml/badge.svg)](https://unicef.github.io/hope-documents/)
+[![Pypi](https://badge.fury.io/py/hope-documents.svg)](https://badge.fury.io/py/hope-documents)
+
+Hope Documents is a Django-based application for automated document scanning and text analysis.
+Its primary purpose is to validate document number consistency, ensuring that identifiers (such as IDs, registration numbers, or codes) detected in document images match the expected reference values.
+
+The system processes uploaded images, extracts textual information using OCR, and searches for the provided number or ID within the document’s contents.
+This enables reliable, automated verification of official documents such as ID cards, invoices, and certificates.
+
 
 ## Features
 

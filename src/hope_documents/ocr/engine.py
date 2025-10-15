@@ -94,7 +94,8 @@ class TSConfig:
 
 @dataclass
 class CV2Config:
-    threshold: int = 128
+    def __init__(self, threshold: int = 120) -> None:
+        self.threshold = threshold
 
     def as_dict(self) -> dict[str, Any]:
         return {"threshold": self.threshold}
