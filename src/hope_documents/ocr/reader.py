@@ -1,4 +1,5 @@
 import logging
+from subprocess import TimeoutExpired
 
 import pytesseract
 from PIL.Image import Image
@@ -23,7 +24,7 @@ class Reader(BaseReader):
 
     def extract(self, image: Image) -> str:
         try:
-            text = pytesseract.image_to_string(image, lang=self.lang, config=self.config, timeout=5)
+            text = pytesseract.image_to_string(image, lang=self.lang, config=self.config, timeout=10)
             return "\n".join([line for line in text.splitlines() if line])
-        except (TesseractError, RuntimeError) as e:
+        except (TesseractError, RuntimeError, TimeoutExpired) as e:
             raise ExtractionError() from e
