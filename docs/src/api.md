@@ -4,7 +4,7 @@
 ### Search pattenrn in an image
 
 ``` python
-    from hope_documents.ocr.engine import SEARCH_TEST_PATTERN, CV2Config, MatchMode, Processor, SearchInfo, TSConfig
+    from hope_documents.ocr.engine import CV2Config, Processor, SearchInfo, TSConfig
 
     ts_config = TSConfig(psm=11, oem=3)
     cv2_config = CV2Config()
