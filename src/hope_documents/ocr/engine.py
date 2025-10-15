@@ -65,10 +65,8 @@ class SearchInfo(ScanEntryInfo):
 
 @dataclass
 class ScanInfo:
-    def __init__(self, **kwargs: Any) -> None:
+    def __init__(self) -> None:
         self.iterations: list[SearchInfo] = []
-        for k, v in kwargs.items():
-            setattr(self, k, v)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.iterations!r})"

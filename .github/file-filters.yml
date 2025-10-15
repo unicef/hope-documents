@@ -25,6 +25,7 @@ run_tests:
   - *dependencies
   - '.github/workflows/test.yml'
   - '.github/file-filters.yml'
+  - tox.ini
 
 lint:
   -  *python

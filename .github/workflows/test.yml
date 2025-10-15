@@ -9,6 +9,10 @@ on:
 #  schedule:
 #    - cron: "0 8 * * *"
 
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}-test"
+  cancel-in-progress: true
+
 jobs:
   changes:
     runs-on: ubuntu-latest
