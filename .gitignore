@@ -16,7 +16,7 @@ junit.xml
 coverage.xml
 Procfile.tailwind
 src/hope_documents/version.py
-/DATA
+/~DATA
 !.gitignore
 !.github
 !tests/.coveragerc

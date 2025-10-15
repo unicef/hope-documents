@@ -25,6 +25,10 @@ class Loader(metaclass=LoaderMetaClass):
     def __init__(self, max_size: tuple[int, int] | None = None, **kwargs: Any) -> None:  # noqa B027
         self._image: Image.Image | None = None
         self.max_size = max_size
+        self.rotations = [270, 0]
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}()"
 
     def get_image(self, filepath: str) -> Image.Image:
         try:
@@ -46,7 +50,7 @@ class Loader(metaclass=LoaderMetaClass):
 
     def rotate(self, filepath: str) -> Generator[tuple[Image.Image, int], None, None]:
         image = self.get_image(filepath)
-        for angle in [270, 0]:
+        for angle in self.rotations:
             if angle == 0:
                 rotated_image = image
             else:

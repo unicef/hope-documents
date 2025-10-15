@@ -1,97 +1,198 @@
-<HTML>
-<HEAD>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OCR Test Results</title>
     <style>
-        table {
+        body {
+            font-family: sans-serif;
+        }
+
+        table.full {
             width: 100%;
+            border-collapse: collapse;
         }
 
-        .d5 {
-            background-color: #D32F2F;
+        table.full th, table.full td {
+            border: 1px solid #ddd;
+            padding: 8px;
         }
 
-        .d4 {
-            background-color: #F57C00;
+        table.full th {
+            background-color: #f2f2f2;
         }
 
-        .d3 {
-            background-color: #FBC02D;
-            color: #333;
+        table.full td {
+            vertical-align: top;
         }
 
-        .d2 {
-            background-color: #7CB342;
+        .nobr {
+            white-space: nowrap;
         }
 
-        .d1 {
-            background-color: #388E3C;
+        /* Status colors for rows */
+        tr.success {
+            background-color: #E8F5E9; /* Light Green */
         }
 
-        .d0 {
-            background-color: #00AA00;
+        tr.warning {
+            background-color: #FFFDE7; /* Light Yellow */
+        }
+
+        tr.error {
+            background-color: #FFEBEE; /* Light Red */
+        }
+
+        #filter-controls button {
+            padding: 8px 12px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            margin: 0 5px;
+        }
+
+        pre {
+            white-space: nowrap;
+            font-family: monospace;
+        }
+
+        pre label {
+            width: 50px;
+            display: inline-block;
+            font-weight: bold;
+        }
+        .debug_info.closed{
+            display: none;
+        }
+        .debug_info.open{
+            display: none;
         }
     </style>
-</HEAD>
-<BODY>
+</head>
+<body>
+
+<h2>OCR Test Summary</h2>
 <table>
     <tr>
-        <td>Total</td>
         <td>
-        {{ lines|length }}
+            <table>
+                <tr>
+                    <td>Mode</td>
+                    <td>{{ mode }}</td>
+                </tr>
+                <tr>
+                    <td>Time</td>
+                    <td>{{ timing.human }}</td>
+                </tr>
+                <tr>
+                    <td>Total</td>
+                    <td>{{ lines|length }}</td>
+                </tr>
+                <tr>
+                    <td>Success</td>
+                    <td>{{ success|length }}</td>
+                </tr>
+                <tr>
+                    <td>Warnings</td>
+                    <td>{{ warnings|length }}</td>
+                </tr>
+                <tr>
+                    <td>Errors</td>
+                    <td>{{ errors|length }}</td>
+                </tr>
+            </table>
+        </td>
         <td>
-    </tr>
-    <tr>
-        <td>Success</td>
-        <td>
-            {{ success|length }}
-        <td>
-    </tr>
-    <tr>
-        <td>Warnings</td>
-        <td>
-            {{ warnings|length }}
-        <td>
-    </tr>
-    <tr>
-        <td>Errors</td>
-        <td>
-            {{ errors|length }}
-        <td>
+            <div id="filter-controls" style="padding: 10px 0;">
+                <strong>Filter by status:</strong>
+                <button onclick="filterRows('all')">Show All</button>
+                <button onclick="filterRows('success')">Success</button>
+                <button onclick="filterRows('warning')">Warning</button>
+                <button onclick="filterRows('error')">Error</button>
+            </div>
+        </td>
     </tr>
 </table>
-<table>
+
+<hr>
+<table class="full">
     <thead>
     <tr>
-        <th></th>
+        <th>#</th>
         <th>Image</th>
+        <th>Time</th>
+        <th>Match Details</th>
+        <th>Process Details</th>
+        <th>OCR Text</th>
     </tr>
     </thead>
     <tbody>
     {% for line in lines %}
-        <tr>
+        <tr class="{% if not line.si.match %}error{% elif line.si.match.distance == 0 %}success{% elif line.si.match.distance > 0 %}warning{% else %}error{% endif %}">
             <td>{{ forloop.counter }}</td>
-            <td class="{{ line.class }}">&nbsp;&nbsp;&nbsp;</td>
-            <td><img src="{{ line.image }}" style="max-width:300px" alt="{{ line.filename }}">
-                <div>{{ line.filename }} - {{ line.info }}</div>
+            <td><img src="{{ line.image }}" style="max-width:290px" alt="{{ line.filename }}">
+                <br>{{ line.filename|truncatechars:30 }}
+                <br>{{ line.info }} - {{ line.filesize }}
             </td>
-            <td>{{ line.si.time.human }}</td>
+            <td>{{ line.si.time }}</td>
+            <td class="nobr">
+                <pre><label>Search</label>`{{ line.search_text|default_if_none:"<empty>" }}`</pre>
+                <pre><label>Found</label> {{ line.si.match.text }}</pre>
+                <pre><label>Dist</label> {{ line.si.match.distance }}</pre>
+                <hr/>
+                <pre><label>Loader</label> {{ line.si.loader }}</pre>
+                <pre><label>Angle</label> {{ line.si.angle }}</pre>
+            </td>
             <td>
-                <div>
-                    <pre style="display: inline">Search   : {{ line.search_text }}</pre>
-                </div>
-                <div>
-                    <pre style="display: inline">Found    : {{ line.si.match.match }}</pre>
-                </div>
-                <div>
-                    <pre style="display: inline">Distance : {{ line.si.match.distance }}</pre>
-                </div>
+                {% for e in line.si.iterations %}
+                    <div>{{ e.loader }}: {% for a in e.angles %}({{ a.angle }}:{{ a.match.distance }}){% endfor %};
+                    </div>
+                {% endfor %}
             </td>
-            <td>{{ line.angle }}</td>
-            <td>{% for e in line.si.iterations %}
-                <div>{{ e.loader }}: [ {% for a in e.angles %}{{ a }} {% endfor %} ]</div>
-            {% endfor %}
+            <td style="max-width: 300px; word-wrap: break-word;">
+                {{ line.si.text }}
+                <hr/>
+                <a href="javascript:show_hide('line_{{ forloop.counter }}')">debug</a>
+                <div style="display: none" id="line_{{ forloop.counter }}">
+                    {% for isi in line.si.iterations %}
+                        <div>{{ isi.loader }}</div>
+                        <ul>
+                            {% for angle in isi.angles %}
+                                <li>
+                                    <strong>Angle: {{ angle.angle }}&deg; - {{ angle.match }}</strong>
+                                    {{ angle.text }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endfor %}
+                </div>
+                <div style="color: red;">{{ line.si.error }}</div>
             </td>
-            <td class="{{ line.class }}">&nbsp;&nbsp;&nbsp;</td>
-        <tr>
+        </tr>
     {% endfor %}
-    <tbody>
+    </tbody>
 </table>
+
+<script>
+    function show_hide(target){
+        var el = document.getElementById(target);
+        if (el.style.display === 'block'){
+            el.style.display = 'none';
+        }else{
+            el.style.display = 'block';
+        }
+    }
+    function filterRows(filterClass) {
+        const tableBody = document.querySelector('table.full tbody');
+        const rows = tableBody.querySelectorAll('tr');
+
+        rows.forEach(row => {
+            if (filterClass === 'all' || row.classList.contains(filterClass)) {
+                row.style.display = ''; // Show row by resetting display property
+            } else {
+                row.style.display = 'none'; // Hide row
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

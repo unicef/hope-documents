@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from hope_documents.ocr.__cli__ import cli
+from hope_documents.ocr.__cli__ import extract
 
 images_dir = Path(__file__).parent / "images"
 valid_image = str(images_dir / "_valid" / "img.png")
@@ -15,6 +15,7 @@ test_data = [
     (f"{valid_image} --debug", 0),
     (f"{valid_image} --threshold=100", 0),
     (f"{valid_image} --threshold=100 -n", 0),
+    (f"{valid_image} --pattern=123 -n", 0),
 ]
 
 
@@ -31,11 +32,11 @@ def runner() -> CliRunner:
 
 
 def test_extract_help(runner: CliRunner) -> None:
-    result = runner.invoke(cli, ["--help"])
+    result = runner.invoke(extract, ["--help"])
     assert not result.stderr
     assert result.exit_code == 0
 
 
 def test_extract_params(runner: CliRunner, arguments, exit_code) -> None:
-    result = runner.invoke(cli, arguments)
+    result = runner.invoke(extract, arguments)
     assert result.exit_code == exit_code, result.output

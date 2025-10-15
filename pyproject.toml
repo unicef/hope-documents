@@ -33,16 +33,16 @@ dependencies = [
   "django-admin-extra-buttons>=2.1.1",
   "django-regex>=0.5",
   "django-streaming>=0.8",
+  "humanize>=4.14",
   "matplotlib>=3.10.7",
   "opencv-python>=4.12.0.88",
   "pillow>=11.3",
   "pytesseract>=0.3.13",
   "rapidfuzz>=3.14.1",
   "regex>=2025.9.18",
-  "scikit-image>=0.25.2",
 ]
 
-scripts.extract = "hope_documents.ocr.__cli__:cli"
+scripts.doc = "hope_documents.ocr.__cli__:extract"
 
 [dependency-groups]
 

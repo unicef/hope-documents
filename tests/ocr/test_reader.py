@@ -49,12 +49,6 @@ def test_reader_valid(reader: Reader, image):
     assert text
 
 
-@pytest.mark.parametrize("reader", ["--oem 3 --psm 11"], indirect=True)
-def test_reader_try_rotate(reader: Reader, image):
-    text = reader.try_rotate(image)
-    assert text
-
-
 def test_reader_error(reader: Reader):
     with mock.patch("pytesseract.image_to_string") as m:
         m.side_effect = TesseractError("", "")

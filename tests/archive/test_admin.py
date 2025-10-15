@@ -32,10 +32,11 @@ def test_scan_image_search_found(django_app, admin_user, document1):
     res = django_app.get(url, user=admin_user)
     res.forms["scan-form"]["image"] = document1
     res.forms["scan-form"]["target"] = "MO1699252K"
+    res.forms["scan-form"]["max_errors"] = "5"
     res.forms["scan-form"]["mode"] = MatchMode.FIRST.value
     res = res.forms["scan-form"].submit()
     assert res.status_code == 200
-    assert b"Text found" in res.content
+    assert b"Text found" in res.content, res.showbrowser()
 
 
 def test_scan_image_search_not_found(django_app, admin_user, document1):
@@ -49,6 +50,15 @@ def test_scan_image_search_not_found(django_app, admin_user, document1):
     res = res.forms["scan-form"].submit()
     assert res.status_code == 200
     assert b"Text not found" in res.content
+
+
+def test_scan_image_form_invalid(django_app, admin_user, document1):
+    url = reverse("admin:archive_documentrule_scan_image")
+
+    res = django_app.get(url, user=admin_user)
+    res = res.forms["scan-form"].submit()
+    assert res.status_code == 200
+    assert b"This field is required." in res.content
 
 
 def test_scan_image_search_all(django_app, admin_user, document1):

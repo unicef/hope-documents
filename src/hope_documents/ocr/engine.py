@@ -1,4 +1,5 @@
-from collections.abc import Generator
+import logging
+from collections.abc import Generator, Iterable
 from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property
@@ -7,39 +8,59 @@ from typing import Any
 
 from hope_documents.exceptions import ExtractionError, InvalidImageError
 from hope_documents.ocr.diff import Match, find_similar
-from hope_documents.ocr.loaders import Loader, loader_registry
+from hope_documents.ocr.loaders import (
+    BWLoader,
+    CV2Loader,
+    EnhancedLoader,
+    ImprovedLoader,
+    Loader,
+    PILLoader,
+    SmartLoader,
+)
 from hope_documents.ocr.reader import BaseReader, Reader
-from hope_documents.utils.timeit import Timer, time_it
+from hope_documents.utils.timeit import format_elapsed_time, time_it
+
+logger = logging.getLogger(__name__)
+
+SEARCH_TEST_PATTERN = "||doc-test||"
 
 
 @dataclass
 class ScanEntryInfo:
-    def __init__(self, **kwargs: Any) -> None:
-        self.loader: str = ""
+    __slots__ = ["loader", "text", "error", "time"]
+
+    def __init__(self, *, loader: str) -> None:
+        self.loader = loader
         self.text: str = ""
         self.error: str = ""
-        self.time: Timer | None = None
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+        self.time: str = ""
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.__dict__!r})"
+        return f"{self.__class__.__name__}({self.loader})"
 
 
 @dataclass
 class SearchInfo(ScanEntryInfo):
-    def __init__(self, **kwargs: Any) -> None:
-        self.match: Match | None = None
-        self.angle: int = 0
+    __slots__ = ["loader", "text", "error", "time", "match", "angle", "iterations"]
+
+    def __init__(
+        self,
+        *,
+        loader: str,
+        match: Match | None = None,
+        angle: int = 0,
+    ) -> None:
+        self.match = match
+        self.angle = angle
         self.iterations = []
-        super().__init__(**kwargs)
+        super().__init__(loader=loader)
 
     @property
     def found(self) -> bool:
         return bool(self.match)
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.__dict__!r})"
+        return f"{self.__class__.__name__}({self.loader}):{self.match!r}:{self.angle!r}:{self.time!r}"
 
 
 @dataclass
@@ -108,7 +129,15 @@ class MatchMode(Enum):
 
 class Processor:
     def __init__(self, ts_config: TSConfig, cv2_config: CV2Config, loaders: list[type[Loader]] | None = None) -> None:
-        self.loader_classes = loaders or loader_registry
+        self.loader_classes = loaders or [
+            Loader,
+            PILLoader,
+            EnhancedLoader,
+            CV2Loader,
+            SmartLoader,
+            BWLoader,
+            ImprovedLoader,
+        ]
         self.ts_config = str(ts_config)
         self.cv2_config = cv2_config
 
@@ -120,52 +149,69 @@ class Processor:
     def reader(self) -> BaseReader:
         return Reader(str(self.ts_config))
 
-    def find_text(  # noqa: C901, PLR0913
+    def find_text(  # noqa: C901, PLR0913, PLR0912
         self,
         filepath: str,
         target: str,
         mode: MatchMode = MatchMode.FIRST,
         debug: bool = False,
         max_errors: int = 5,
+        rotations: Iterable[int] = (270, 0),
     ) -> Generator[SearchInfo, Any, None]:
         all_matches = []
         self.debug_info = ScanInfo()
         iterations = []
-        for loader in self.loaders:
-            iterations.append({"loader": loader.__class__.__name__, "angles": []})
-            for image, angle in loader.rotate(filepath):
-                ret = SearchInfo(loader=loader.__class__.__name__)
-                ret.angle = angle
-                iterations[-1]["angles"].append(angle)
-                with time_it() as m:
+        with time_it() as timer1:
+            for loader in self.loaders:
+                stop_loader_iteration = False
+                loader.rotations = rotations
+                iterations.append({"loader": loader.__class__.__name__, "angles": []})
+                for image, angle in loader.rotate(filepath):
+                    ret = SearchInfo(loader=loader.__class__.__name__, angle=angle)
                     try:
                         text = self.reader.extract(image)
                         ret.text = text
+                        logger.debug(f"Loader {loader} angle {angle}: text found {text.replace('\n', ' | ')}")
+                        if text != SEARCH_TEST_PATTERN:
+                            ret.match = find_similar(target, text, max_distance=max_errors)
+                        logger.debug(f"Loader {loader} angle {angle}: searching for `{target}`: {ret.match}")
                     except (InvalidImageError, ExtractionError) as e:
                         ret.error = f"{e.__class__.__name__}: {str(e)}"
-                    ret.match = find_similar(target, text, max_errors=max_errors)
-                ret.time = m
-                ret.iterations = iterations
-                if debug:
-                    self.debug_info.iterations.append(ret)
-                if ret.match:
-                    match mode:
-                        case MatchMode.BEST:
-                            all_matches.append(ret)
-                        case MatchMode.FIRST:
-                            yield ret
-                            return
-                        case MatchMode.ALL:
-                            yield ret
-        if mode == MatchMode.BEST:
-            yield min(all_matches, key=lambda item: item.match["distance"] if item.match else 0)
+                    iterations[-1]["angles"].append(ret)
+                    ret.iterations = iterations
+                    ret.time = format_elapsed_time(timer1.get_partial())
+                    if debug:
+                        self.debug_info.iterations.append(ret)
+                    if ret.match:
+                        match mode:
+                            case MatchMode.BEST:
+                                all_matches.append(ret)
+                                if ret.match.distance == 0.0:
+                                    stop_loader_iteration = True
+                                    break
+                            case MatchMode.FIRST:
+                                yield ret
+                                return
+                            case MatchMode.ALL:
+                                yield ret
 
-    def process(self, filepath: str) -> Generator[ScanEntryInfo]:
+                if stop_loader_iteration:
+                    break
+        if mode == MatchMode.BEST and all_matches:
+            best_match = min(all_matches, key=lambda item: item.match.distance if item.match else 99999)
+            best_match.time = format_elapsed_time(timer1.get_partial())
+            yield best_match
+        elif target == SEARCH_TEST_PATTERN and ret:
+            yield ret
+
+    def process(self, filepath: str, rotate: int = 0) -> Generator[ScanEntryInfo]:
         for loader in self.loaders:
             ret = ScanEntryInfo(loader=loader.__class__.__name__)
             try:
                 with time_it() as m:
                     image = loader.load(filepath)
+                    if rotate:
+                        image = image.rotate(rotate, expand=True)
                     text = self.reader.extract(image)
                     ret.text = text
                 ret.time = m

@@ -5,7 +5,7 @@ from typing import Any
 import click
 from colorama import Fore, Style
 
-from hope_documents.ocr.engine import CV2Config, Processor, ScanEntryInfo, Scanner, TSConfig
+from hope_documents.ocr.engine import CV2Config, Processor, ScanEntryInfo, Scanner, SearchInfo, TSConfig
 from hope_documents.utils.logging import LevelFormatter
 
 logger = logging.getLogger(__name__)
@@ -32,8 +32,10 @@ def configure_logging(debug: bool, loggers: Iterable[str] = ("hope_documents",))
 @click.option("-p", "--psm", default=11, help="TS Page segmentation mode [0..13]")
 @click.option("-o", "--oem", default=3, help="TS OCR Engine mode [0..3]")
 @click.option("-n", "--number-only", default=False, is_flag=True, help="Only extract numbers")
+@click.option("-r", "--rotate", default=0, help="Rotate image")
+@click.option("-s", "--pattern", default="", help="Pattern to search")
 @click.option("--debug", is_flag=True, help="Debug mode")
-def cli(filepaths: list[click.Path], debug: bool, **kwargs: Any) -> None:
+def extract(filepaths: list[click.Path], debug: bool, **kwargs: Any) -> None:
     configure_logging(debug)
     ret_code = 0
 
@@ -44,14 +46,26 @@ def cli(filepaths: list[click.Path], debug: bool, **kwargs: Any) -> None:
         click.echo(f"{Fore.GREEN}{info.text}{Fore.RESET}")
         click.echo(f"{Fore.LIGHTWHITE_EX}========{Fore.RESET}")
 
+    def cb1(info: SearchInfo) -> None:
+        click.echo(f"{Fore.YELLOW}Loader: {Fore.LIGHTWHITE_EX}{info.loader}{Fore.RESET}")
+        if err := info.error:
+            click.echo(f"{Fore.RED}{err}{Fore.RESET}")
+        click.echo(f"Match: {Fore.GREEN}{info.match.text}{Fore.RESET}")
+        click.echo(f"Distance: {Fore.GREEN}{info.match.distance}{Fore.RESET}")
+        click.echo(f"{Fore.LIGHTWHITE_EX}========{Fore.RESET}")
+
     ts_config = TSConfig(oem=kwargs["oem"], psm=kwargs["psm"], number_only=kwargs["number_only"])
     p = Processor(ts_config=ts_config, cv2_config=CV2Config(threshold=kwargs["threshold"]))
     click.echo(f"{Fore.YELLOW}Config: {Fore.LIGHTWHITE_EX}{ts_config}{Fore.RESET}")
     scanner = Scanner(*filepaths)
     for file in scanner.files:
         click.echo(f"{Fore.YELLOW}File: {Fore.LIGHTWHITE_EX}{file}{Fore.RESET}")
-        for extracted in p.process(file):
-            cb(extracted)
-            if extracted.error != "":
-                ret_code = 1
+        if kwargs["pattern"]:
+            for findings in p.find_text(file, kwargs["pattern"], rotations=[kwargs["rotate"]]):
+                cb1(findings)
+        else:
+            for extracted in p.process(file, rotate=kwargs["rotate"]):
+                cb(extracted)
+                if extracted.error != "":
+                    ret_code = 1
     click.get_current_context().exit(ret_code)
