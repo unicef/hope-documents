@@ -29,6 +29,16 @@ def mocked_responses():
         yield rsps
 
 
+@pytest.fixture
+def test_dir():
+    return Path(__file__).parent
+
+
+@pytest.fixture
+def images_dir(test_dir):
+    return test_dir / "images"
+
+
 def pytest_addoption(parser):
     parser.addoption("--with-report", action="store_true", default=False, help="run tests marked with 'report'")
 

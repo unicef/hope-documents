@@ -6,13 +6,12 @@ from webtest import Upload
 
 from hope_documents.ocr.engine import MatchMode
 
-images_dir = Path(__file__).parent.parent / "images"
-
 
 @pytest.fixture
-def document1():
-    with (images_dir / "ita/dl1.png").open("b+r") as f:
-        return Upload("file_path.png", f.read(), "image/png")
+def document1(images_dir):
+    image_file = Path(images_dir / "ita/dl1.png")
+    with image_file.open("b+r") as f:
+        return Upload(str(image_file.absolute()), f.read(), "image/png")
 
 
 def test_scan_image_find(django_app, admin_user, document1):

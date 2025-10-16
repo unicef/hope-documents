@@ -127,19 +127,21 @@
     <tbody>
     {% for line in lines %}
         <tr class="{% if not line.si.match %}error{% elif line.si.match.distance == 0 %}success{% elif line.si.match.distance > 0 %}warning{% else %}error{% endif %}">
-            <td>{{ forloop.counter }}</td>
+            <td>{{ loop.index }}</td>
             <td><img src="{{ line.image }}" style="max-width:290px" alt="{{ line.filename }}">
-                <br>{{ line.filename|truncatechars:30 }}
+                <br>{{ line.filename }}
                 <br>{{ line.info }} - {{ line.filesize }}
             </td>
             <td>{{ line.si.time }}</td>
             <td class="nobr">
-                <pre><label>Search</label>`{{ line.search_text|default_if_none:"<empty>" }}`</pre>
-                <pre><label>Found</label> {{ line.si.match.text }}</pre>
-                <pre><label>Dist</label> {{ line.si.match.distance }}</pre>
-                <hr/>
-                <pre><label>Loader</label> {{ line.si.loader }}</pre>
-                <pre><label>Angle</label> {{ line.si.angle }}</pre>
+                <pre><label>Search</label>`{{ line.search_text }}`</pre>
+                {% if line.si %}
+                    <pre><label>Found</label> {{ line.si.match.text }}</pre>
+                    <pre><label>Dist</label> {{ line.si.match.distance }}</pre>
+                    <hr/>
+                    <pre><label>Loader</label> {{ line.si.loader }}</pre>
+                    <pre><label>Angle</label> {{ line.si.angle }}</pre>
+                {% endif %}
             </td>
             <td>
                 {% for e in line.si.iterations %}
@@ -150,8 +152,8 @@
             <td style="max-width: 300px; word-wrap: break-word;">
                 {{ line.si.text }}
                 <hr/>
-                <a href="javascript:show_hide('line_{{ forloop.counter }}')">debug</a>
-                <div style="display: none" id="line_{{ forloop.counter }}">
+                <a href="javascript:show_hide('line_{{ loop.index }}')">debug</a>
+                <div style="display: none" id="line_{{ loop.index }}">
                     {% for isi in line.si.iterations %}
                         <div>{{ isi.loader }}</div>
                         <ul>

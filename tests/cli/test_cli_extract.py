@@ -3,11 +3,13 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from hope_documents.ocr.__cli__ import extract
+from hope_documents.ocr.__cli__ import cli
 
-images_dir = Path(__file__).parent / "images"
+images_dir = Path(__file__).parent.parent / "images"
+
 valid_image = str(images_dir / "_valid" / "img.png")
 invalid_image = str(images_dir / "_invalid" / "_empty.png")
+
 test_data = [
     (valid_image, 0),
     (invalid_image, 1),
@@ -32,11 +34,11 @@ def runner() -> CliRunner:
 
 
 def test_extract_help(runner: CliRunner) -> None:
-    result = runner.invoke(extract, ["--help"])
+    result = runner.invoke(cli, ["extract", "--help"])
     assert not result.stderr
     assert result.exit_code == 0
 
 
 def test_extract_params(runner: CliRunner, arguments, exit_code) -> None:
-    result = runner.invoke(extract, arguments)
+    result = runner.invoke(cli, ["extract", *arguments.split()], catch_exceptions=False)
     assert result.exit_code == exit_code, result.output

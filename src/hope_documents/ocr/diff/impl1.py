@@ -1,4 +1,9 @@
+from typing import TYPE_CHECKING
+
 from hope_documents.ocr.diff.common import Match, _normalize_homoglyphs
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 def levenshtein_distance(s1: str, s2: str) -> int:
@@ -8,7 +13,7 @@ def levenshtein_distance(s1: str, s2: str) -> int:
     if len(s2) == 0:
         return len(s1)
 
-    previous_row = range(len(s2) + 1)
+    previous_row: Sequence[int] = range(len(s2) + 1)
     for i, c1 in enumerate(s1):
         current_row = [i + 1]
         for j, c2 in enumerate(s2):

@@ -1,5 +1,5 @@
 from abc import ABCMeta
-from collections.abc import Generator
+from collections.abc import Generator, Sequence
 from typing import Any
 
 import cv2
@@ -9,6 +9,7 @@ import numpy as np
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from hope_documents.exceptions import InvalidImageError
+from hope_documents.utils.image import get_image
 
 mpl.use("agg")
 loader_registry = []
@@ -25,31 +26,23 @@ class Loader(metaclass=LoaderMetaClass):
     def __init__(self, max_size: tuple[int, int] | None = None, **kwargs: Any) -> None:  # noqa B027
         self._image: Image.Image | None = None
         self.max_size = max_size
-        self.rotations = [270, 0]
+        self.rotations: Sequence[int] = [270, 0]
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}()"
 
-    def get_image(self, filepath: str) -> Image.Image:
-        try:
-            self._image = Image.open(filepath)
-            return self._image
-        except UnidentifiedImageError as e:
-            raise InvalidImageError(filepath) from e
-
     def load(self, filepath: str) -> Image.Image:
         try:
-            image = self.get_image(filepath)
+            image = get_image(filepath)
             self._image = self.process(image)
             return self._image
-        except UnidentifiedImageError as e:
+        except (UnidentifiedImageError, InvalidImageError) as e:
             raise InvalidImageError(filepath) from e
 
     def process(self, image: Image.Image) -> Image.Image:
         return image
 
-    def rotate(self, filepath: str) -> Generator[tuple[Image.Image, int], None, None]:
-        image = self.get_image(filepath)
+    def rotate(self, image: Image.Image) -> Generator[tuple[Image.Image, int], None, None]:
         for angle in self.rotations:
             if angle == 0:
                 rotated_image = image

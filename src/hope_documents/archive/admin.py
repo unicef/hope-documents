@@ -1,3 +1,4 @@
+from PIL import Image
 from admin_extra_buttons.api import ExtraButtonsMixin, button
 from django import forms
 from django.contrib import admin, messages
@@ -101,10 +102,11 @@ class DocumentRuleAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.DocumentRule]
                     )
                     cv2_config = CV2Config(threshold=form.cleaned_data["threshold"])
                     p = Processor(ts_config=ts_config, cv2_config=cv2_config, loaders=form.cleaned_data["loaders"])
+                    image = Image.open(image_file)
                     if form.cleaned_data["target"]:
                         findings = list(
                             p.find_text(
-                                image_file,
+                                image,
                                 form.cleaned_data["target"],
                                 mode=form.cleaned_data["mode"],
                                 max_errors=form.cleaned_data["max_errors"],

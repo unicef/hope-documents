@@ -1,10 +1,12 @@
 import logging
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property
 from pathlib import Path
 from typing import Any
+
+from PIL import Image
 
 from hope_documents.exceptions import ExtractionError, InvalidImageError
 from hope_documents.ocr.diff import Match, find_similar
@@ -52,7 +54,7 @@ class SearchInfo(ScanEntryInfo):
     ) -> None:
         self.match = match
         self.angle = angle
-        self.iterations = []
+        self.iterations: list[dict[str, Any]] = []
         super().__init__(loader=loader)
 
     @property
@@ -148,32 +150,36 @@ class Processor:
     def reader(self) -> BaseReader:
         return Reader(str(self.ts_config))
 
+    def find_single(self, image: Image.Image, target: str, max_errors: int = 5) -> tuple[str, Match | None]:
+        text = self.reader.extract(image)
+        try:
+            match = find_similar(target, text, max_distance=max_errors)
+        except (InvalidImageError, ExtractionError):
+            match = None
+        return text, match
+
     def find_text(  # noqa: C901, PLR0913, PLR0912
         self,
-        filepath: str,
+        original: Image.Image,
         target: str,
         mode: MatchMode = MatchMode.FIRST,
         debug: bool = False,
         max_errors: int = 5,
-        rotations: Iterable[int] = (270, 0),
+        rotations: Sequence[int] = (270, 0),
     ) -> Generator[SearchInfo, Any, None]:
         all_matches = []
         self.debug_info = ScanInfo()
-        iterations = []
+        iterations: list[dict[str, Any]] = []
+
         with time_it() as timer1:
             for loader in self.loaders:
                 stop_loader_iteration = False
                 loader.rotations = rotations
                 iterations.append({"loader": loader.__class__.__name__, "angles": []})
-                for image, angle in loader.rotate(filepath):
+                for image, angle in loader.rotate(original):
                     ret = SearchInfo(loader=loader.__class__.__name__, angle=angle)
                     try:
-                        text = self.reader.extract(image)
-                        ret.text = text
-                        logger.debug(f"Loader {loader} angle {angle}: text found {text.replace('\n', ' | ')}")
-                        if text != SEARCH_TEST_PATTERN:
-                            ret.match = find_similar(target, text, max_distance=max_errors)
-                        logger.debug(f"Loader {loader} angle {angle}: searching for `{target}`: {ret.match}")
+                        ret.text, ret.match = self.find_single(image, target, max_errors=max_errors)
                     except (InvalidImageError, ExtractionError) as e:
                         ret.error = f"{e.__class__.__name__}: {str(e)}"
                     iterations[-1]["angles"].append(ret)
@@ -213,7 +219,7 @@ class Processor:
                         image = image.rotate(rotate, expand=True)
                     text = self.reader.extract(image)
                     ret.text = text
-                ret.time = m
+                ret.time = m.human
             except (InvalidImageError, ExtractionError) as e:
                 ret.error = f"{e.__class__.__name__}: {str(e)}"
             yield ret

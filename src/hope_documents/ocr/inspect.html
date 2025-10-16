@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OCR Test Results</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+
+        table.full {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table.full th, table.full td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        table.full th {
+            background-color: #f2f2f2;
+        }
+
+        table.full td {
+            vertical-align: top;
+        }
+
+        .nobr {
+            white-space: nowrap;
+        }
+
+        /* Status colors for rows */
+        tr.success {
+            background-color: #E8F5E9; /* Light Green */
+        }
+
+        tr.warning {
+            background-color: #FFFDE7; /* Light Yellow */
+        }
+
+        tr.error {
+            background-color: #FFEBEE; /* Light Red */
+        }
+
+        #filter-controls button {
+            padding: 8px 12px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            margin: 0 5px;
+        }
+
+        pre {
+            white-space: nowrap;
+            font-family: monospace;
+        }
+
+        pre label {
+            width: 50px;
+            display: inline-block;
+            font-weight: bold;
+        }
+
+        .debug_info.closed {
+            display: none;
+        }
+
+        .debug_info.open {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<h2>OCR Test Summary</h2>
+<table>
+    <tr>
+        <td style="vertical-align: top">
+            <img src="{{ original }}" style="max-width:290px">
+        </td>
+        <td style="vertical-align: top">
+            <table>
+                <tr><th>Filename</th><td>{{ filename }}</td></tr>
+                {% for k,v in image_info.items() %}
+                    <tr>
+                        <th>{{ k }}</th>
+                        <td>{{ v }}</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </td>
+    </tr>
+</table>
+<div id="filter-controls" style="padding: 10px 0;">
+    <strong>Filter by status:</strong>
+    <button onclick="filterRows('all')">Show All</button>
+    <button onclick="filterRows('success')">Success</button>
+    <button onclick="filterRows('warning')">Warning</button>
+    <button onclick="filterRows('error')">Error</button>
+</div>
+
+<hr>
+<table class="full">
+    <thead>
+    <tr>
+        <th>#</th>
+        <th>Image</th>
+        <th>Loader</th>
+        <th>Angle</th>
+        <th>Match</th>
+        <th>OCR Text</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for entry in data %}
+        <tr class="{% if not entry.match %}error{% elif entry.match.distance == 0 %}success{% elif entry.match.distance > 0 %}warning{% else %}error{% endif %}">
+            <td>{{ loop.index }}</td>
+            <td><img src="{{ entry.image }}" style="max-width:290px"></td>
+            <td>{{ entry.loader }}</td>
+            <td>{{ entry.angle }}</td>
+            <td>
+                <pre><label>Search</label>`{{ entry.pattern }}`</pre>
+                <pre><label>Found</label> {{ entry.match.text }}</pre>
+                <pre><label>Dist</label> {{ entry.match.distance }}</pre>
+                <hr/>
+                <pre><label>Loader</label> {{ entry.loader }}</pre>
+                <pre><label>Angle</label> {{ entry.angle }}</pre>
+            </td>
+            <td style="max-width: 300px; word-wrap: break-word;">
+                {{ entry.text }}
+            </td>
+
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<script>
+    function show_hide(target) {
+        var el = document.getElementById(target);
+        if (el.style.display === 'block') {
+            el.style.display = 'none';
+        } else {
+            el.style.display = 'block';
+        }
+    }
+
+    function filterRows(filterClass) {
+        const tableBody = document.querySelector('table.full tbody');
+        const rows = tableBody.querySelectorAll('tr');
+
+        rows.forEach(row => {
+            if (filterClass === 'all' || row.classList.contains(filterClass)) {
+                row.style.display = ''; // Show row by resetting display property
+            } else {
+                row.style.display = 'none'; // Hide row
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
