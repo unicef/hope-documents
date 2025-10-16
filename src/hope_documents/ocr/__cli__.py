@@ -182,7 +182,7 @@ def inspect(filepath: click.File, mode: MatchMode, expectations: click.File, deb
     expected_values = load_expectations(expectations.name)
 
     target = Path(filepath.name)
-    file_label = str(target.relative_to(os.getcwd()))
+    file_label = str(target.absolute().relative_to(os.getcwd()))
     data = []
 
     if expected_args := expected_values.get(file_label):
