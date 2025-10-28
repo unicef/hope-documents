@@ -1,4 +1,5 @@
 import csv
+import datetime
 import logging
 import os
 from collections.abc import Iterable
@@ -8,7 +9,7 @@ from typing import Any
 import click
 from PIL.ExifTags import TAGS
 from colorama import Fore, Style
-from humanize import naturalsize
+from humanize import naturaldelta, naturalsize
 from jinja2 import Template
 
 from hope_documents.exceptions import InvalidImageError
@@ -55,7 +56,7 @@ def load_expectations(filename: str) -> dict[str, tuple[str, bool, float]]:
 
 @click.group(name="doc")
 def cli() -> None:
-    pass
+    """Command-line interface for performing OCR tasks."""
 
 
 @cli.command()
@@ -64,11 +65,13 @@ def cli() -> None:
 @click.option("-t", "--threshold", default=128, help="cv2 threshold [0..255]")
 @click.option("-p", "--psm", default=11, help="TS Page segmentation mode [0..13]")
 @click.option("-o", "--oem", default=3, help="TS OCR Engine mode [0..3]")
+@click.option("-m", "--mode", "mode", default=MatchMode.FIRST.name, type=click.Choice(MatchMode), help="Match mode")
 @click.option("-n", "--number-only", default=False, is_flag=True, help="Only extract numbers")
 @click.option("-r", "--rotate", default=0, help="Rotate image")
 @click.option("-s", "--pattern", default="", help="Pattern to search")
 @click.option("--debug", is_flag=True, help="Debug mode")
-def extract(filepaths: list[click.Path], debug: bool, **kwargs: Any) -> None:
+def extract(filepaths: list[click.Path], debug: bool, mode: MatchMode, **kwargs: Any) -> None:
+    """Extract text from one or more images."""
     configure_logging(debug)
     ret_code = 0
 
@@ -83,6 +86,7 @@ def extract(filepaths: list[click.Path], debug: bool, **kwargs: Any) -> None:
         click.echo(f"{Fore.YELLOW}Loader: {Fore.LIGHTWHITE_EX}{info.loader}{Fore.RESET}")
         if err := info.error:
             click.echo(f"{Fore.RED}{err}{Fore.RESET}")
+        click.echo(f"Psm: {Fore.GREEN}{info.psm}{Fore.RESET}")
         click.echo(f"Match: {Fore.GREEN}{info.match.text if info.match else 'N/A'}{Fore.RESET}")
         click.echo(f"Distance: {Fore.GREEN}{info.match.distance if info.match else 'N/A'}{Fore.RESET}")
         click.echo(f"{Fore.LIGHTWHITE_EX}========{Fore.RESET}")
@@ -95,7 +99,7 @@ def extract(filepaths: list[click.Path], debug: bool, **kwargs: Any) -> None:
         click.echo(f"{Fore.YELLOW}File: {Fore.LIGHTWHITE_EX}{file}{Fore.RESET}")
         if kwargs["pattern"]:
             image = get_image(file)
-            for findings in p.find_text(image, kwargs["pattern"], rotations=[kwargs["rotate"]]):
+            for findings in p.find_text(image, kwargs["pattern"], rotations=[kwargs["rotate"]], mode=mode):
                 cb1(findings)
         else:
             for extracted in p.process(file, rotate=kwargs["rotate"]):
@@ -111,6 +115,10 @@ def extract(filepaths: list[click.Path], debug: bool, **kwargs: Any) -> None:
 @click.option("-m", "--mode", "mode", default=MatchMode.FIRST.name, type=click.Choice(MatchMode), help="Match mode")
 @click.option("--debug", is_flag=True, help="Debug mode")
 def report(filepaths: list[click.Path], mode: MatchMode, expectations: click.File, debug: bool, **kwargs: Any) -> None:
+    """Evaluate OCR accuracy for a batch of images.
+
+    Uses  a CSV file of expected values and generates an HTML report.
+    """
     lines = []
     errors = []
     warnings = []
@@ -157,20 +165,22 @@ def report(filepaths: list[click.Path], mode: MatchMode, expectations: click.Fil
                         "image": base64,
                         "info": info,
                         "si": si,
+                        "debug": debug,
                     }
                 )
-        write_report(
-            f".report_{mode.name}.html",
-            "report.html",
-            {
-                "lines": lines,
-                "timing": m,
-                "mode": mode,
-                "errors": errors,
-                "warnings": warnings,
-                "success": success,
-            },
-        )
+    write_report(
+        f".report_{mode.name}.html",
+        "report.html",
+        {
+            "lines": lines,
+            "timing": m,
+            "mode": mode,
+            "errors": errors,
+            "warnings": warnings,
+            "success": success,
+        },
+    )
+    click.echo(f"Done in {naturaldelta(datetime.timedelta(seconds=m.elapsed))}")
 
 
 @cli.command()
@@ -179,6 +189,10 @@ def report(filepaths: list[click.Path], mode: MatchMode, expectations: click.Fil
 @click.option("-m", "--mode", "mode", default=MatchMode.FIRST.name, type=click.Choice(MatchMode), help="Match mode")
 @click.option("--debug", is_flag=True, help="Debug mode")
 def inspect(filepath: click.File, mode: MatchMode, expectations: click.File, debug: bool, **kwargs: Any) -> None:
+    """Provide a detailed analysis of the OCR process for a single image.
+
+    It provides  results from different preprocessing steps and generating an HTML report.
+    """
     expected_values = load_expectations(expectations.name)
 
     target = Path(filepath.name)
@@ -224,15 +238,16 @@ def inspect(filepath: click.File, mode: MatchMode, expectations: click.File, deb
                         "text": text,
                     }
                 )
-        write_report(
-            f".inspect_{mode.name}.html",
-            "inspect.html",
-            {
-                "filename": file_label,
-                "data": data,
-                "timing": m,
-                "mode": mode,
-                "original": get_image_base64(original),
-                "image_info": image_info,
-            },
-        )
+    write_report(
+        f".inspect_{mode.name}.html",
+        "inspect.html",
+        {
+            "filename": file_label,
+            "data": data,
+            "timing": m,
+            "mode": mode,
+            "original": get_image_base64(original),
+            "image_info": image_info,
+        },
+    )
+    click.echo(f"Done in {naturaldelta(datetime.timedelta(seconds=m.elapsed))}")

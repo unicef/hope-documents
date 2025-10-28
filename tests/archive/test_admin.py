@@ -43,7 +43,7 @@ def test_scan_image_search_not_found(django_app, admin_user, document1):
 
     res = django_app.get(url, user=admin_user)
     res.forms["scan-form"]["image"] = document1
-    res.forms["scan-form"]["target"] = "555"
+    res.forms["scan-form"]["target"] = "---"
     res.forms["scan-form"]["max_errors"] = "0"
     res.forms["scan-form"]["mode"] = MatchMode.FIRST.value
     res = res.forms["scan-form"].submit()

@@ -55,14 +55,16 @@
         }
 
         pre label {
-            width: 50px;
+            width: 55px;
             display: inline-block;
             font-weight: bold;
         }
-        .debug_info.closed{
+
+        .debug_info.closed {
             display: none;
         }
-        .debug_info.open{
+
+        .debug_info.open {
             display: none;
         }
     </style>
@@ -140,32 +142,37 @@
                     <pre><label>Dist</label> {{ line.si.match.distance }}</pre>
                     <hr/>
                     <pre><label>Loader</label> {{ line.si.loader }}</pre>
-                    <pre><label>Angle</label> {{ line.si.angle }}</pre>
+                    <pre><label>Angle</label> {{ line.si.angle }}&deg;</pre>
+                    <pre><label>Psm</label> {{ line.si.psm }}</pre>
+                    <pre><label>Attempts</label> {{ line.si.attempts }}</pre>
                 {% endif %}
             </td>
             <td>
                 {% for e in line.si.iterations %}
-                    <div>{{ e.loader }}: {% for a in e.angles %}({{ a.angle }}:{{ a.match.distance }}){% endfor %};
+                    <div>{{ e.loader }}: {% for ssi in e.angles %}({{ ssi.angle }}&deg;:{{ ssi.psm }}:
+                        {{ ssi.match.distance }}){% endfor %};
                     </div>
                 {% endfor %}
             </td>
             <td style="max-width: 300px; word-wrap: break-word;">
                 {{ line.si.text }}
                 <hr/>
-                <a href="javascript:show_hide('line_{{ loop.index }}')">debug</a>
-                <div style="display: none" id="line_{{ loop.index }}">
-                    {% for isi in line.si.iterations %}
-                        <div>{{ isi.loader }}</div>
-                        <ul>
-                            {% for angle in isi.angles %}
-                                <li>
-                                    <strong>Angle: {{ angle.angle }}&deg; - {{ angle.match }}</strong>
-                                    {{ angle.text }}
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% endfor %}
-                </div>
+                {% if debug %}
+                    <a href="javascript:show_hide('line_{{ loop.index }}')">debug</a>
+                    <div style="display: none" id="line_{{ loop.index }}">
+                        {% for isi in line.si.iterations %}
+                            <div>{{ isi.loader }}</div>
+                            <ul>
+                                {% for angle in isi.angles %}
+                                    <li>
+                                        <strong>Angle: {{ angle.angle }}&deg; - {{ angle.match }}</strong>
+                                        {{ angle.text }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endfor %}
+                    </div>
+                {% endif %}
                 <div style="color: red;">{{ line.si.error }}</div>
             </td>
         </tr>
@@ -174,14 +181,15 @@
 </table>
 
 <script>
-    function show_hide(target){
+    function show_hide(target) {
         var el = document.getElementById(target);
-        if (el.style.display === 'block'){
+        if (el.style.display === 'block') {
             el.style.display = 'none';
-        }else{
+        } else {
             el.style.display = 'block';
         }
     }
+
     function filterRows(filterClass) {
         const tableBody = document.querySelector('table.full tbody');
         const rows = tableBody.querySelectorAll('tr');

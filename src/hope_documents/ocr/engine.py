@@ -19,12 +19,12 @@ from hope_documents.ocr.loaders import (
     PILLoader,
     SmartLoader,
 )
-from hope_documents.ocr.reader import BaseReader, Reader
+from hope_documents.ocr.reader import BaseReader, Reader, TSConfig
 from hope_documents.utils.timeit import format_elapsed_time, time_it
 
 logger = logging.getLogger(__name__)
 
-SEARCH_TEST_PATTERN = "||doc-test||"
+SEARCH_TEST_PATTERN = "SEARCH_TEST_PATTERN"
 
 
 @dataclass
@@ -43,7 +43,7 @@ class ScanEntryInfo:
 
 @dataclass
 class SearchInfo(ScanEntryInfo):
-    __slots__ = ["loader", "text", "error", "time", "match", "angle", "iterations"]
+    __slots__ = ["loader", "text", "error", "time", "match", "angle", "iterations", "psm", "attempts"]
 
     def __init__(
         self,
@@ -51,9 +51,13 @@ class SearchInfo(ScanEntryInfo):
         loader: str,
         match: Match | None = None,
         angle: int = 0,
+        psm: int = 11,
+        attempts: int = 0,
     ) -> None:
         self.match = match
         self.angle = angle
+        self.psm = psm
+        self.attempts = attempts
         self.iterations: list[dict[str, Any]] = []
         super().__init__(loader=loader)
 
@@ -72,26 +76,6 @@ class ScanInfo:
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.iterations!r})"
-
-
-@dataclass
-class TSConfig:
-    def __init__(self, **kwargs: Any) -> None:
-        self.psm: int = 11
-        self.oem: int = 3
-        self.number_only: bool = False
-        self.extra: str = ""
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
-    def __str__(self) -> str:
-        cfg = f"--oem {self.oem}  --psm {self.psm} {self.extra}"
-        extra = ""
-        if self.number_only:
-            extra = "tessedit_char_whitelist=0123456789"
-        if extra:
-            cfg = f"{cfg} -c {extra}"
-        return cfg
 
 
 @dataclass
@@ -139,7 +123,7 @@ class Processor:
             BWLoader,
             ImprovedLoader,
         ]
-        self.ts_config = str(ts_config)
+        self.ts_config = ts_config
         self.cv2_config = cv2_config
 
     @cached_property
@@ -148,7 +132,7 @@ class Processor:
 
     @cached_property
     def reader(self) -> BaseReader:
-        return Reader(str(self.ts_config))
+        return Reader(self.ts_config)
 
     def find_single(self, image: Image.Image, target: str, max_errors: int = 5) -> tuple[str, Match | None]:
         text = self.reader.extract(image)
@@ -166,45 +150,52 @@ class Processor:
         debug: bool = False,
         max_errors: int = 5,
         rotations: Sequence[int] = (270, 0),
+        psms: Sequence[int] = (11, 6),
     ) -> Generator[SearchInfo, Any, None]:
         all_matches = []
         self.debug_info = ScanInfo()
         iterations: list[dict[str, Any]] = []
-
+        attempts = 0
         with time_it() as timer1:
             for loader in self.loaders:
-                stop_loader_iteration = False
-                loader.rotations = rotations
-                iterations.append({"loader": loader.__class__.__name__, "angles": []})
-                for image, angle in loader.rotate(original):
-                    ret = SearchInfo(loader=loader.__class__.__name__, angle=angle)
-                    try:
-                        ret.text, ret.match = self.find_single(image, target, max_errors=max_errors)
-                    except (InvalidImageError, ExtractionError) as e:
-                        ret.error = f"{e.__class__.__name__}: {str(e)}"
-                    iterations[-1]["angles"].append(ret)
-                    ret.iterations = iterations
-                    ret.time = format_elapsed_time(timer1.get_partial())
-                    if debug:
-                        self.debug_info.iterations.append(ret)
-                    if ret.match:
-                        match mode:
-                            case MatchMode.BEST:
-                                all_matches.append(ret)
-                                if ret.match.distance == 0.0:
-                                    stop_loader_iteration = True
-                                    break
-                            case MatchMode.FIRST:
-                                yield ret
-                                return
-                            case MatchMode.ALL:
-                                yield ret
+                for psm in psms:
+                    stop_loader_iteration = False
+                    loader.rotations = rotations
+                    iterations.append({"loader": loader.__class__.__name__, "angles": []})
+                    for image, angle in loader.rotate(original):
+                        attempts += 1
+                        ret = SearchInfo(loader=loader.__class__.__name__, angle=angle, psm=psm, attempts=attempts)
+                        self.reader.config.psm = ret.psm
+                        try:
+                            ret.text, ret.match = self.find_single(image, target, max_errors=max_errors)
+                        except (InvalidImageError, ExtractionError) as e:
+                            ret.error = f"{e.__class__.__name__}: {str(e)}"
+                        iterations[-1]["angles"].append(ret)
+                        ret.iterations = iterations
+                        ret.time = format_elapsed_time(timer1.get_partial())
+                        if debug:
+                            self.debug_info.iterations.append(ret)
+                        if ret.match:
+                            match mode:
+                                case MatchMode.BEST:
+                                    all_matches.append(ret)
+                                    if ret.match.distance == 0.0:
+                                        stop_loader_iteration = True
+                                        break
+                                case MatchMode.FIRST:
+                                    yield ret
+                                    return
+                                case MatchMode.ALL:
+                                    yield ret
 
+                    if stop_loader_iteration:
+                        break
                 if stop_loader_iteration:
                     break
         if mode == MatchMode.BEST and all_matches:
             best_match = min(all_matches, key=lambda item: item.match.distance if item.match else 99999)
             best_match.time = format_elapsed_time(timer1.get_partial())
+            best_match.attempts = attempts
             yield best_match
         elif target == SEARCH_TEST_PATTERN and ret:
             yield ret
