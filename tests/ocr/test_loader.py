@@ -3,10 +3,10 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from hope_documents.exceptions import InvalidImageError
-from hope_documents.ocr.loaders import loader_registry
+from hope_ocr.exceptions import InvalidImageError
+from hope_ocr.ocr.loaders import loader_registry
 
-images_dir = Path(__file__).parent.parent / "images"
+images_dir = Path(__file__).parent / "images"
 
 valid_images = [p for p in images_dir.rglob("*.png") if not p.is_dir() and not p.name.startswith("_")]
 invalid_images = [images_dir / "_invalid/_empty.png", images_dir / "_invalid/_text.txt"]

@@ -1,0 +1,30 @@
+.finding-details__meta {
+  margin-bottom: 1.5rem;
+}
+
+.finding-details__value {
+  font-weight: bold;
+}
+
+.finding-details__images {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.finding-details__figure {
+  margin: 0;
+  max-width: 48%;
+}
+
+.finding-details__figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.finding-details__caption {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}

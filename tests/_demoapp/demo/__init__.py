@@ -6,14 +6,14 @@ CONFIG = {
         False,
         True,
         False,
-        "https://docs.djangoproject.com/en/5.1/ref/settings/#debug",
+        "https://docs.djangoproject.com/en/5.2/ref/settings/#debug",
     ),
     "DATABASE_URL": (
         str,
         "",
         "sqlite:///demo.db",
         True,
-        "https://docs.djangoproject.com/en/5.1/ref/settings/#DATABASES",
+        "https://docs.djangoproject.com/en/5.2/ref/settings/#DATABASES",
     ),
 }
 

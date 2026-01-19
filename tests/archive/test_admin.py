@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 from webtest import Upload
 
-from hope_documents.ocr.engine import MatchMode
+from hope_ocr.ocr.engine import MatchMode
 
 
 @pytest.fixture

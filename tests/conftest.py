@@ -20,7 +20,7 @@ def pytest_configure(config):
 
 @pytest.fixture(autouse=True)
 def config_logging(caplog):
-    caplog.set_level(logging.CRITICAL, logger="hope_documents")
+    caplog.set_level(logging.CRITICAL, logger="hope_ocr")
 
 
 @pytest.fixture
@@ -36,7 +36,7 @@ def test_dir():
 
 @pytest.fixture
 def images_dir(test_dir):
-    return test_dir / "images"
+    return test_dir / "ocr" / "images"
 
 
 def pytest_addoption(parser):

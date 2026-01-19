@@ -39,8 +39,8 @@ INSTALLED_APPS: List[str] = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "admin_extra_buttons",
-    "hope_documents.archive",
-    "hope_documents.ocr",
+    "hope_ocr.archive",
+    "hope_ocr.ocr",
     "demo",
 ]
 

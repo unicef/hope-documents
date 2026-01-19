@@ -1,7 +1,7 @@
 import pytest
 
-from hope_documents.ocr.diff.common import Match
-from hope_documents.ocr.diff.impl1 import find_similar, levenshtein_distance
+from hope_ocr.ocr.diff.common import Match
+from hope_ocr.ocr.diff.impl1 import find_similar, levenshtein_distance
 
 
 @pytest.mark.parametrize(

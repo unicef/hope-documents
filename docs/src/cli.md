@@ -4,5 +4,5 @@ Hope Documents provides a command-line interface for interacting with the applic
 
 
 ::: mkdocs-click
-    :module: hope_documents.ocr.__cli__
+    :module: hope_ocr.ocr.__cli__
     :command: extract

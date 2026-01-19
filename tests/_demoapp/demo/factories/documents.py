@@ -1,7 +1,7 @@
 import factory.fuzzy
 import pycountry
 
-from hope_documents.archive.models import Country, DocumentRule, DocumentType
+from hope_ocr.archive.models import Country, DocumentRule, DocumentType
 
 from .base import AutoRegisterModelFactory
 
