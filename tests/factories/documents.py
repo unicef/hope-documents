@@ -1,9 +1,8 @@
 import factory.fuzzy
 import pycountry
 
+from factories.base import AutoRegisterModelFactory
 from hope_ocr.archive.models import Country, DocumentRule, DocumentType
-
-from .base import AutoRegisterModelFactory
 
 all_countries = list(pycountry.countries)
 

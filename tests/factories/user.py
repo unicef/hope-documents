@@ -1,13 +1,16 @@
 from typing import TYPE_CHECKING, Any
 
 import factory.fuzzy
-from django.contrib.auth.models import Group, User
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from factory.django import DjangoModelFactory
 
 from .base import AutoRegisterModelFactory
 
 if TYPE_CHECKING:
     from django.db.models import Model
+
+    from hope_documents.models import User
 
 
 class UserFactory(DjangoModelFactory):
@@ -16,7 +19,7 @@ class UserFactory(DjangoModelFactory):
     password = "password"  # noqa
 
     class Meta:
-        model = User
+        model = get_user_model()
 
     @classmethod
     def _create(cls, model_class: "Model", *args: Any, **kwargs: Any) -> "User":

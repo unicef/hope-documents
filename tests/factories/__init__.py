@@ -1,7 +1,8 @@
 from factory.django import DjangoModelFactory
 
 from .base import AutoRegisterModelFactory, TAutoRegisterModelFactory, factories_registry
-from .user import GroupFactory, SuperUserFactory, User, UserFactory  # noqa
+from .documents import CountryFactory, DocumentRuleFactory, DocumentTypeFactory  # noqa
+from .user import GroupFactory, SuperUserFactory, UserFactory  # noqa
 
 django_model_factories = {factory._meta.model: factory for factory in DjangoModelFactory.__subclasses__()}
 

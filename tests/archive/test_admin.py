@@ -2,9 +2,19 @@ from pathlib import Path
 
 import pytest
 from django.urls import reverse
+from factories import SuperUserFactory
 from webtest import Upload
 
 from hope_ocr.ocr.engine import MatchMode
+
+
+@pytest.fixture
+def app(django_app_factory, mocked_responses):
+    django_app = django_app_factory(csrf_checks=False)
+    admin_user = SuperUserFactory(username="superuser")
+    django_app.set_user(admin_user)
+    django_app._user = admin_user
+    return django_app
 
 
 @pytest.fixture
@@ -14,10 +24,11 @@ def document1(images_dir):
         return Upload(str(image_file.absolute()), f.read(), "image/png")
 
 
-def test_scan_image_find(django_app, admin_user, document1):
+@pytest.mark.django_db
+def test_scan_image_find(app, admin_user, document1):
     url = reverse("admin:archive_documentrule_scan_image")
 
-    res = django_app.get(url, user=admin_user)
+    res = app.get(url, user=admin_user)
     res.forms["scan-form"]["image"] = document1
 
     res = res.forms["scan-form"].submit()
@@ -25,10 +36,11 @@ def test_scan_image_find(django_app, admin_user, document1):
     assert b"Document processed" in res.content
 
 
-def test_scan_image_search_found(django_app, admin_user, document1):
+@pytest.mark.django_db
+def test_scan_image_search_found(app, admin_user, document1):
     url = reverse("admin:archive_documentrule_scan_image")
 
-    res = django_app.get(url, user=admin_user)
+    res = app.get(url, user=admin_user)
     res.forms["scan-form"]["image"] = document1
     res.forms["scan-form"]["target"] = "MO1699252K"
     res.forms["scan-form"]["max_errors"] = "5"
@@ -38,10 +50,11 @@ def test_scan_image_search_found(django_app, admin_user, document1):
     assert b"Text found" in res.content, res.showbrowser()
 
 
-def test_scan_image_search_not_found(django_app, admin_user, document1):
+@pytest.mark.django_db
+def test_scan_image_search_not_found(app, admin_user, document1):
     url = reverse("admin:archive_documentrule_scan_image")
 
-    res = django_app.get(url, user=admin_user)
+    res = app.get(url, user=admin_user)
     res.forms["scan-form"]["image"] = document1
     res.forms["scan-form"]["target"] = "---"
     res.forms["scan-form"]["max_errors"] = "0"
@@ -51,19 +64,21 @@ def test_scan_image_search_not_found(django_app, admin_user, document1):
     assert b"Text not found" in res.content
 
 
-def test_scan_image_form_invalid(django_app, admin_user, document1):
+@pytest.mark.django_db
+def test_scan_image_form_invalid(app, admin_user, document1):
     url = reverse("admin:archive_documentrule_scan_image")
 
-    res = django_app.get(url, user=admin_user)
+    res = app.get(url, user=admin_user)
     res = res.forms["scan-form"].submit()
     assert res.status_code == 200
     assert b"This field is required." in res.content
 
 
-def test_scan_image_search_all(django_app, admin_user, document1):
+@pytest.mark.django_db
+def test_scan_image_search_all(app, admin_user, document1):
     url = reverse("admin:archive_documentrule_scan_image")
 
-    res = django_app.get(url, user=admin_user)
+    res = app.get(url, user=admin_user)
     res.forms["scan-form"]["image"] = document1
     res.forms["scan-form"]["target"] = "MO1699252K"
     res.forms["scan-form"]["mode"] = MatchMode.ALL.value

@@ -14,6 +14,7 @@ INSTALLED_APPS = [
     "hope_documents.apps.Config",
     "hope_documents.api",
     "hope_documents.modules.security",
+    "hope_ocr.archive",
     "unfold",  # before django.contrib.admin
     "unfold.contrib.filters",  # optional, if special filters are needed
     "unfold.contrib.forms",  # optional, if special form elements are needed
@@ -193,7 +194,7 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         # See: https://docs.djangoproject.com/en/dev/ref/settings/#template-dirs
         "DIRS": [
-            str(PACKAGE_DIR / "ui/templates"),
+            str(PACKAGE_DIR / "templates"),
         ],
         "OPTIONS": {
             # See: https://docs.djangoproject.com/en/dev/ref/settings/#template-debug
@@ -210,6 +211,7 @@ TEMPLATES = [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.i18n",
                 "django.template.context_processors.media",
                 "django.template.context_processors.static",
@@ -344,3 +346,6 @@ GDAL_LIBRARY_PATH = env("GDAL_LIBRARY_PATH")
 GEOS_LIBRARY_PATH = env("GEOS_LIBRARY_PATH")
 
 from .fragments import *  # noqa
+
+
+MESSAGE_STORAGE = "django.contrib.messages.storage.session.SessionStorage"

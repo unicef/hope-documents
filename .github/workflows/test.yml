@@ -6,12 +6,6 @@ on:
     branches: [ "main" ]
     tags-ignore: [ "**" ]
   pull_request:
-#  schedule:
-#    - cron: "0 8 * * *"
-
-concurrency:
-  group: "${{ github.workflow }}-${{ github.ref }}-test"
-  cancel-in-progress: true
 
 jobs:
   changes:
@@ -24,10 +18,10 @@ jobs:
       run_tests: ${{ steps.changes.outputs.run_tests }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - id: changes
         name: Check for file changes
-        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        uses: dorny/paths-filter@v3
         with:
           base: ${{ github.ref }}
           token: ${{ github.token }}
@@ -38,6 +32,14 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.run_tests == 'true'
     runs-on: ubuntu-latest
     services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672
       db:
         image: postgres:14
         env:
@@ -45,26 +47,22 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USERNAME: postgres
         ports:
-          - 15432:5432
+          - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      rabbitmq:
-        image: rabbitmq:3-management
-        ports:
-          - 10000:5672
-          - 10001:15672
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg: ["d52-py313", "d42-py312"]
     env:
-      STREAMING_BROKER_URL: rabbit://guest:guest@localhost:10000?exchange=hope_live
-      DATABASE_URL: postgres://postgres:postgres@localhost:15432/demo
+      DOCKER_DEFAULT_PLATFORM: linux/amd64
+      DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/dedup_engine
+      STREAMING_BROKER_URL: rabbit://guest:guest@localhost:5672?exchange=hope_live
+      CELERY_BROKER_URL: redis://localhost:6379/1
+      CACHE_URL: redis://localhost:6379/2
+      DOCKER_BUILDKIT: 1
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -89,13 +87,13 @@ jobs:
         run: uv tool install --python-preference only-managed --python 3.13 tox --with tox-uv --with tox-gh-actions
 
       - name: Setup test suite
-        run: tox run -vv --notest --skip-missing-interpreters false -e ${{ matrix.cfg }}
+        run: tox run -vv --notest --skip-missing-interpreters false -e tests
 
-      - name: Run test suite ${{ matrix.cfg }}
-        run: tox -e ${{ matrix.cfg }}
+      - name: Run test suite tests
+        run: tox -e tests
 
       - name: Archive selenium results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: selenium-log-report
@@ -103,9 +101,9 @@ jobs:
           retention-days: 5
 
       - name: Upload pytest test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
-          name: pytest-results-${{ matrix.cfg }}
+          name: pytest-results-tests
           path: junit.xml
         if: ${{ always() }}
 
