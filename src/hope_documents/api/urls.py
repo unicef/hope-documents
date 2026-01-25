@@ -6,7 +6,7 @@ from drf_spectacular.views import (
 )
 
 from .router import Router
-from .viewsets import GroupViewSet, UserViewSet
+from .viewsets import ExtractView, GroupViewSet, UserViewSet
 
 app_name = "api"
 
@@ -23,5 +23,6 @@ urlpatterns = [
         name="swagger-ui",
     ),
     path("schema/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    path("upload/", ExtractView.as_view(), name="file-upload"),
     path("", include(router.urls)),
 ]
