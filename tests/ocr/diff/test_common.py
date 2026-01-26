@@ -1,6 +1,6 @@
 import pytest
 
-from hope_documents.ocr.diff.common import _normalize_homoglyphs
+from hope_ocr.ocr.diff.common import _normalize_homoglyphs
 
 
 @pytest.mark.parametrize(

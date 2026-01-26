@@ -1,6 +1,6 @@
 import pytest
-from demo.factories import get_factory_for_model
 from django.apps import apps
+from factories import get_factory_for_model
 
 
 @pytest.mark.django_db

@@ -7,8 +7,8 @@ import pytest
 from PIL import Image
 from pytesseract import TesseractError
 
-from hope_documents.exceptions import ExtractionError
-from hope_documents.ocr.loaders import (
+from hope_ocr.exceptions import ExtractionError
+from hope_ocr.ocr.loaders import (
     BWLoader,
     CV2Loader,
     EnhancedLoader,
@@ -17,7 +17,7 @@ from hope_documents.ocr.loaders import (
     PILLoader,
     SmartLoader,
 )
-from hope_documents.ocr.reader import Reader
+from hope_ocr.ocr.reader import Reader
 
 images_dir = Path(__file__).parent.parent / "images"
 

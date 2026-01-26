@@ -1,5 +1,5 @@
-from hope_documents.ocr.diff.common import Match
-from hope_documents.ocr.diff.impl1 import find_similar
+from hope_ocr.ocr.diff.common import Match
+from hope_ocr.ocr.diff.impl1 import find_similar
 
 
 def test_find_similar_with_distance_debug():

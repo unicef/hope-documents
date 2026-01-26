@@ -4,9 +4,9 @@ from unittest import mock
 
 import pytest
 
-from hope_documents.ocr.__cli__ import load_expectations
-from hope_documents.ocr.engine import CV2Config, MatchMode, Processor, TSConfig
-from hope_documents.utils.image import get_image
+from hope_ocr.ocr.__cli__ import load_expectations
+from hope_ocr.ocr.engine import CV2Config, MatchMode, Processor, TSConfig
+from hope_ocr.utils.image import get_image
 
 images_dirs = [Path(__file__).parent.parent / "images/and/"]
 
@@ -15,7 +15,7 @@ EXPECTATIONS = load_expectations(str(Path(__file__).parent / "expectations.csv")
 
 def sample_images():
     """Fixture that collects test parameters from the 'data' folder."""
-    from hope_documents.ocr.engine import Scanner
+    from hope_ocr.ocr.engine import Scanner
 
     scanner = Scanner(images_dirs)
     for f in scanner.files:
