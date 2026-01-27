@@ -1,13 +1,12 @@
-import os
 from pathlib import Path
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 from django.core.files.storage import Storage
 from django.http import Http404, StreamingHttpResponse
 from django.test import override_settings
 
-from hope_documents.utils.media import resource_path, download_media
+from hope_documents.utils.media import download_media, resource_path
 
 
 @override_settings(PACKAGE_DIR="/test/package/dir")

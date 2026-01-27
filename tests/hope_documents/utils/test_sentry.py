@@ -14,4 +14,3 @@ def test_capture_exception(mock_capture_exception):
 def test_capture_exception_with_none():
     """Test that capture_exception can be called with None."""
     capture_exception(None)
-

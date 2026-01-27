@@ -54,8 +54,8 @@ def test_classproperty():
         _value = "class_value"
 
         @classproperty
-        def value(cls):
-            return cls._value
+        def value(self):
+            return self._value
 
     assert MyClass.value == "class_value"
     assert MyClass().value == "class_value"

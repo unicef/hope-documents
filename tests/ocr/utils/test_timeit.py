@@ -6,21 +6,22 @@ from hope_ocr.utils._timeit import format_elapsed_time, time_it
 
 
 @pytest.mark.parametrize(
-    ("seconds", "expected_str"),
+    ("seconds", "hours", "expected_str"),
     [
-        (0, "00:00:00:000"),
-        (0.123, "00:00:00:123"),
-        (1, "00:00:01:000"),
-        (59.999, "00:00:59:999"),
-        (60, "00:01:00:000"),
-        (61.5, "00:01:01:500"),
-        (3600, "01:00:00:000"),
-        (3661.101, "01:01:01:101"),
+        (0, True, "00:00:00:000"),
+        (0.123, True, "00:00:00:123"),
+        (1, True, "00:00:01:000"),
+        (59.999, True, "00:00:59:999"),
+        (60, True, "00:01:00:000"),
+        (61.5, True, "00:01:01:500"),
+        (3600, True, "01:00:00:000"),
+        (3661.101, True, "01:01:01:101"),
+        (3661.101, False, "01:01:101"),
     ],
 )
-def test_format_elapsed_time(seconds, expected_str):
+def test_format_elapsed_time(seconds, hours, expected_str):
     """Test that format_elapsed_time correctly formats durations."""
-    assert format_elapsed_time(seconds) == expected_str
+    assert format_elapsed_time(seconds, hours) == expected_str
 
 
 def test_time_it_context_manager():

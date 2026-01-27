@@ -1,14 +1,13 @@
-from unittest.mock import patch, MagicMock
-
-from django.test import TestCase
+from unittest.mock import patch
 
 
 @patch("django.conf.settings")
 @patch("os.environ.setdefault")
 @patch("celery.Celery")
-def test_celery_app_setup(mock_celery_class, mock_setdefault, mock_settings): # Note argument order
+def test_celery_app_setup(mock_celery_class, mock_setdefault, mock_settings):  # Note argument order
     # Clear the module from sys.modules to ensure a fresh import
     import sys
+
     if "hope_documents.celery" in sys.modules:
         del sys.modules["hope_documents.celery"]
 
@@ -16,11 +15,9 @@ def test_celery_app_setup(mock_celery_class, mock_setdefault, mock_settings): # 
     mock_settings.CELERY_BROKER_URL = "redis://localhost:6379/0"
 
     # Import celery to trigger the module-level code with mocks active
-    from hope_documents import celery # noqa: F401
+    from hope_documents import celery  # noqa: F401
 
-    mock_setdefault.assert_called_once_with(
-        "DJANGO_SETTINGS_MODULE", "hope_documents.config.settings"
-    )
+    mock_setdefault.assert_called_once_with("DJANGO_SETTINGS_MODULE", "hope_documents.config.settings")
 
     mock_celery_class.assert_called_once_with(
         "hope_documents",

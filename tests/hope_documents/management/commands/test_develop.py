@@ -3,9 +3,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.conf import settings
 from django.test import override_settings
-
 from flags.models import FlagState
-from hope_documents.management.commands.develop import Command, DEFAULT_GROUP_NAME
+
+from hope_documents.management.commands.develop import DEFAULT_GROUP_NAME, Command
 
 
 @pytest.fixture
@@ -22,9 +22,7 @@ def command():
 @patch("hope_documents.management.commands.develop.config")
 @patch("hope_documents.management.commands.develop.FlagState.objects.bulk_create")
 @override_settings(DEBUG=True, FLAGS=["FLAG1", "FLAG2"])
-def test_handle_debug_true(
-    mock_bulk_create, mock_config, mock_group, mock_site, mock_call_command, command
-):
+def test_handle_debug_true(mock_bulk_create, mock_config, mock_group, mock_site, mock_call_command, command):
     """Test develop command when DEBUG is True."""
     # Setup mocks
     mock_site.objects.update_or_create.return_value = (MagicMock(), True)
@@ -54,9 +52,7 @@ def test_handle_debug_true(
     assert flag_states[1].value == "127.0.0.1,localhost"
     assert kwargs["ignore_conflicts"] is True
 
-    command.stdout.write.assert_any_call(
-        "Starting configuring development environment", command.style.WARNING
-    )
+    command.stdout.write.assert_any_call("Starting configuring development environment", command.style.WARNING)
     command.stdout.write.assert_any_call("Configuring site settings")
     command.stdout.write.assert_any_call("Creating default group")
     command.stdout.write.assert_any_call("Setting up flags")
@@ -68,18 +64,12 @@ def test_handle_debug_true(
 @patch("hope_documents.management.commands.develop.config")
 @patch("hope_documents.management.commands.develop.FlagState.objects.bulk_create")
 @override_settings(DEBUG=False, FLAGS=["FLAG1", "FLAG2"])
-def test_handle_debug_false(
-    mock_bulk_create, mock_config, mock_group, mock_site, mock_call_command, command
-):
+def test_handle_debug_false(mock_bulk_create, mock_config, mock_group, mock_site, mock_call_command, command):
     """Test develop command when DEBUG is False."""
     command.handle()
 
-    command.stdout.write.assert_any_call(
-        "Starting configuring development environment", command.style.WARNING
-    )
-    command.stdout.write.assert_any_call(
-        "This command can be used only if DEBUG is True", command.style.ERROR
-    )
+    command.stdout.write.assert_any_call("Starting configuring development environment", command.style.WARNING)
+    command.stdout.write.assert_any_call("This command can be used only if DEBUG is True", command.style.ERROR)
     mock_call_command.assert_not_called()
     mock_site.objects.update_or_create.assert_not_called()
     mock_site.objects.clear_cache.assert_not_called()
