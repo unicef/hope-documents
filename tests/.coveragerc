@@ -1,11 +1,12 @@
 [run]
 branch = True
-source = hope_documents
+source = src
 
 omit =
     */tests/**
     */migrations/*,
-    */hope_documents/version.py
+    */hope_documents/version.py,
+    */hope_ocr/version.py
 
 
 [report]
