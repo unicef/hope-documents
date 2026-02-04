@@ -96,7 +96,7 @@ def test_handle_all_options_true_no_admin(
             call("check", deploy=True, verbosity=0),
             call("collectstatic", no_input=True, verbosity=0, stdout=command.stdout),
             call("migrate", no_input=True, verbosity=0, stdout=command.stdout),
-            call("create_extra_permissions"),
+            call("create_extra_permissions", no_input=True, verbosity=0, stdout=command.stdout),
             call("remove_stale_contenttypes", no_input=True, verbosity=0, stdout=command.stdout),
         ]
     )

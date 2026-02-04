@@ -123,7 +123,7 @@ class Command(BaseCommand):
             if self.migrate:
                 echo("Run migrations")
                 call_command("migrate", **extra)
-                call_command("create_extra_permissions")
+                call_command("create_extra_permissions", **extra)
 
             echo("Remove stale contenttypes")
             call_command("remove_stale_contenttypes", **extra)

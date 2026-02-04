@@ -5,6 +5,8 @@ from pathlib import Path
 import pytest
 import responses
 
+from factories import SuperUserFactory
+
 here = Path(__file__).parent
 sys.path.insert(0, str(here / "../src"))
 sys.path.insert(0, str(here / "_demoapp"))
@@ -50,3 +52,12 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "report" in item.keywords:
                 item.add_marker(skip_report)
+
+
+@pytest.fixture
+def app(django_app_factory, mocked_responses):
+    django_app = django_app_factory(csrf_checks=False)
+    admin_user = SuperUserFactory(username="superuser")
+    django_app.set_user(admin_user)
+    django_app._user = admin_user
+    return django_app

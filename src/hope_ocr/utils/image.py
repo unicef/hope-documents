@@ -16,7 +16,7 @@ def get_image_base64(input_data: Path | Image.Image | BufferedReader) -> str:
         image_file.seek(0)
         image_data = image_file.read()
     elif isinstance(input_data, BytesIO):
-        image_data = input_data
+        image_data = input_data.read()
     elif hasattr(input_data, "read"):
         image_data = input_data.read()
     else:
