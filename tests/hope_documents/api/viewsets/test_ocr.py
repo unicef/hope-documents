@@ -1,9 +1,11 @@
+import io
+
 import pytest
+from PIL import Image
 from django.urls import reverse
 from rest_framework import status
+
 from hope_ocr.ocr.engine import MatchMode
-from PIL import Image
-import io
 
 
 @pytest.fixture
@@ -59,7 +61,7 @@ def test_extract_with_non_image_file(app, image):
     url = reverse("api:file-upload")
     response = app.post(url, upload_files=[
             ("attachment", "test.txt", file_content),
-        ],)
+        ])
     assert response.status_code == status.HTTP_200_OK
     assert "file" in response.json
     assert response.json["file"] is None

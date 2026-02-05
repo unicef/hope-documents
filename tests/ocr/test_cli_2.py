@@ -1,20 +1,15 @@
-from unittest.mock import MagicMock, call, patch, mock_open, ANY
-import logging
-from pathlib import Path
 import csv
-import io
-import os
+import logging
 import tempfile
-import datetime
+from pathlib import Path
+from unittest.mock import ANY, MagicMock, patch
 
-import click
-from click.testing import CliRunner
-from jinja2 import Template
-
-from hope_ocr.ocr.__cli__ import cli, configure_logging, load_expectations, write_report, INFO_LINE
-from hope_ocr.ocr.engine import MatchMode, ScanEntryInfo, SearchInfo, Processor, CV2Config, TSConfig # Import necessary classes
-from hope_ocr.exceptions import InvalidImageError
 from PIL import Image
+from click.testing import CliRunner
+
+from hope_ocr.exceptions import InvalidImageError
+from hope_ocr.ocr.__cli__ import cli, configure_logging, load_expectations, write_report
+from hope_ocr.ocr.engine import MatchMode, ScanEntryInfo, SearchInfo  # Import necessary classes
 
 
 class TestCli:
@@ -134,7 +129,9 @@ class TestCli:
     @patch("hope_ocr.ocr.__cli__.Processor")
     @patch("hope_ocr.ocr.__cli__.get_image")
     @patch("hope_ocr.ocr.__cli__.click.echo")
-    def test_extract_command_no_pattern_success(self, mock_click_echo, mock_get_image, mock_processor_class, mock_scanner_class):
+    def test_extract_command_no_pattern_success(
+        self, mock_click_echo, mock_get_image, mock_processor_class, mock_scanner_class
+    ):
         with tempfile.TemporaryDirectory() as tmpdir:
             filepath = Path(tmpdir) / "test_image.png"
             filepath.touch() # Create a dummy file
@@ -159,18 +156,24 @@ class TestCli:
             mock_scanner_class.assert_called_once_with(str(filepath))
             mock_processor_class.assert_called_once()
             mock_processor_instance.process.assert_called_once_with(str(filepath), rotate=0)
-            mock_click_echo.assert_any_call('\x1b[33mConfig: \x1b[97m--oem 3  --psm 11 \x1b[39m') # Added this missing assertion
-            mock_click_echo.assert_any_call(f"\x1b[33mFile: \x1b[97m{str(filepath)}\x1b[39m") # Added this missing assertion
-            mock_click_echo.assert_any_call('\x1b[33mLoader: \x1b[97mtest_loader\x1b[39m')
-            mock_click_echo.assert_any_call('\x1b[32mextracted_text\x1b[39m')
-            mock_click_echo.assert_any_call('\x1b[97m========\x1b[39m') # Added this missing assertion
+            mock_click_echo.assert_any_call(
+                "\x1b[33mConfig: \x1b[97m--oem 3  --psm 11 \x1b[39m"
+            )
+            mock_click_echo.assert_any_call(
+                f"\x1b[33mFile: \x1b[97m{str(filepath)}\x1b[39m"
+            )
+            mock_click_echo.assert_any_call("\x1b[33mLoader: \x1b[97mtest_loader\x1b[39m")
+            mock_click_echo.assert_any_call("\x1b[32mextracted_text\x1b[39m")
+            mock_click_echo.assert_any_call("\x1b[97m========\x1b[39m") # Added this missing assertion
 
 
     @patch("hope_ocr.ocr.__cli__.Scanner")
     @patch("hope_ocr.ocr.__cli__.Processor")
     @patch("hope_ocr.ocr.__cli__.get_image")
     @patch("hope_ocr.ocr.__cli__.click.echo")
-    def test_extract_command_with_pattern_success(self, mock_click_echo, mock_get_image, mock_processor_class, mock_scanner_class):
+    def test_extract_command_with_pattern_success(
+        self, mock_click_echo, mock_get_image, mock_processor_class, mock_scanner_class
+    ):
         with tempfile.TemporaryDirectory() as tmpdir:
             filepath = Path(tmpdir) / "test_image_with_pattern.png"
             filepath.touch() # Create a dummy file
@@ -200,13 +203,13 @@ class TestCli:
             mock_processor_instance.find_text.assert_called_once_with(
                 mock_get_image.return_value, test_pattern, rotations=[0], mode=MatchMode.FIRST
             )
-            mock_click_echo.assert_any_call('\x1b[33mConfig: \x1b[97m--oem 3  --psm 11 \x1b[39m')
+            mock_click_echo.assert_any_call("\x1b[33mConfig: \x1b[97m--oem 3  --psm 11 \x1b[39m")
             mock_click_echo.assert_any_call(f"\x1b[33mFile: \x1b[97m{str(filepath)}\x1b[39m")
-            mock_click_echo.assert_any_call('\x1b[33mLoader: \x1b[97mtest_loader\x1b[39m')
-            mock_click_echo.assert_any_call('Psm: \x1b[32m11\x1b[39m')
-            mock_click_echo.assert_any_call(f'Match: \x1b[32m{test_pattern}\x1b[39m')
-            mock_click_echo.assert_any_call('Distance: \x1b[32m0.0\x1b[39m')
-            mock_click_echo.assert_any_call('\x1b[97m========\x1b[39m')
+            mock_click_echo.assert_any_call("\x1b[33mLoader: \x1b[97mtest_loader\x1b[39m")
+            mock_click_echo.assert_any_call("Psm: \x1b[32m11\x1b[39m")
+            mock_click_echo.assert_any_call(f"Match: \x1b[32m{test_pattern}\x1b[39m")
+            mock_click_echo.assert_any_call("Distance: \x1b[32m0.0\x1b[39m")
+            mock_click_echo.assert_any_call("\x1b[97m========\x1b[39m")
 
     @patch("hope_ocr.ocr.__cli__.Scanner")
     @patch("hope_ocr.ocr.__cli__.Processor")

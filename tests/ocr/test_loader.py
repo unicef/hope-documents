@@ -7,7 +7,6 @@ from hope_ocr.exceptions import InvalidImageError
 from hope_ocr.ocr.loaders import (
     BWLoader,
     CV2Loader,
-    EnhancedLoader,
     ImprovedLoader,
     Loader,
     PILLoader,

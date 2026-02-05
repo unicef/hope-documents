@@ -89,7 +89,7 @@ def test_handle_all_options_true_no_admin(
     mock_path.return_value = mock_path_instance
     mock_path_instance.exists.return_value = False
 
-    with patch.dict('os.environ', {}, clear=True):
+    with patch.dict("os.environ", {}, clear=True):
         command.handle(**options)
 
     assert mock_call_command.call_count == 5
@@ -135,7 +135,7 @@ def test_handle_create_admin_user(
 
     mock_user.objects.filter.return_value.exists.return_value = False  # Admin user does not exist
 
-    with patch.dict('os.environ', {}, clear=True):
+    with patch.dict("os.environ", {}, clear=True):
         command.handle(**options)
 
     mock_user.objects.filter.assert_called_once_with(email="test@example.com")
@@ -187,7 +187,7 @@ def test_handle_admin_user_exists(
 
     mock_user.objects.filter.return_value.exists.return_value = True  # Admin user exists
 
-    with patch.dict('os.environ', {}, clear=True):
+    with patch.dict("os.environ", {}, clear=True):
         command.handle(**options)
 
     mock_user.objects.filter.assert_called_once_with(email="test@example.com")
@@ -231,7 +231,7 @@ def test_handle_verbosity_zero(
     mock_path.return_value = mock_path_instance
     mock_path_instance.exists.return_value = False
 
-    with patch.dict('os.environ', {}, clear=True):
+    with patch.dict("os.environ", {}, clear=True):
         command.handle(**options)
 
     # In verbosity=0, echo is a lambda that does nothing, so stdout.write should not be called
@@ -281,8 +281,8 @@ def test_handle_validation_error(
     # Mock validate_email to raise ValidationError
     mock_validate_email.side_effect = ValidationError("Invalid email")
 
-    with patch.dict('os.environ', {}, clear=True):
-        with pytest.raises(Exception) as excinfo: # Expect Exception to be re-raised
+    with patch.dict("os.environ", {}, clear=True):
+        with pytest.raises(ValidationError) as excinfo:  # Expect Exception to be re-raised
             command.handle(**options)
         # Verify the exception message
         assert "Invalid email" in str(excinfo.value)
@@ -323,8 +323,8 @@ def test_handle_general_exception(
     mock_path.return_value = mock_path_instance
     mock_path_instance.exists.return_value = False
 
-    with patch.dict('os.environ', {}, clear=True):
-        with pytest.raises(Exception) as excinfo: # Expect generic Exception to be re-raised
+    with patch.dict("os.environ", {}, clear=True):
+        with pytest.raises(Exception, match="Generic error") as excinfo: # Expect generic Exception to be re-raised
             command.handle(**options)
         # Verify the exception message
         assert "Generic error" in str(excinfo.value)

@@ -15,9 +15,7 @@ def get_image_base64(input_data: Path | Image.Image | BufferedReader) -> str:
         input_data.save(image_file, format="PNG")
         image_file.seek(0)
         image_data = image_file.read()
-    elif isinstance(input_data, BytesIO):
-        image_data = input_data.read()
-    elif hasattr(input_data, "read"):
+    elif isinstance(input_data, BytesIO) or hasattr(input_data, "read"):
         image_data = input_data.read()
     else:
         raise ValueError(f"Unsupported input type: {type(input_data)}")

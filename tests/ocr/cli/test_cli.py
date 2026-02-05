@@ -1,7 +1,5 @@
 import csv
 import logging
-import os
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
@@ -32,9 +30,7 @@ def test_write_report(mock_echo, mock_template, tmp_path):
     template_content = "Hello {{ content }}"
     mock_template.return_value.render.return_value = "Hello World"
     # we need to mock the reading of the template file
-    with patch(
-        "hope_ocr.ocr.__cli__.Path.read_text", return_value=template_content
-    ) as mock_read:
+    with patch("hope_ocr.ocr.__cli__.Path.read_text", return_value=template_content):
         write_report(str(output_file), "dummy_template.html", {"content": "World"})
 
     mock_echo.assert_called_with(f"Writing report to {output_file}")

@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 import responses
-
 from factories import SuperUserFactory
 
 here = Path(__file__).parent

@@ -1,14 +1,22 @@
-from unittest.mock import MagicMock, patch
-from pathlib import Path
 import tempfile
-import os
-import itertools
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
-
-from hope_ocr.ocr.engine import Scanner, CV2Config, TSConfig, Processor, MatchMode, ScanEntryInfo, SearchInfo, ScanInfo, SEARCH_TEST_PATTERN
-from hope_ocr.exceptions import InvalidImageError, ExtractionError
 from PIL import Image
+
+from hope_ocr.exceptions import ExtractionError, InvalidImageError
+from hope_ocr.ocr.engine import (
+    SEARCH_TEST_PATTERN,
+    CV2Config,
+    MatchMode,
+    Processor,
+    ScanEntryInfo,
+    ScanInfo,
+    Scanner,
+    SearchInfo,
+    TSConfig,
+)
 
 
 class TestScanner:
@@ -114,53 +122,53 @@ class TestProcessor:
     @patch("hope_ocr.ocr.engine.ImprovedLoader")
     def test_loaders_property(
         self,
-        MockImprovedLoader,
-        MockBWLoader,
-        MockSmartLoader,
-        MockCV2Loader,
-        MockEnhancedLoader,
-        MockPILLoader,
-        MockLoader,
+        mock_improved_loader,
+        mock_bw_loader,
+        mock_smart_loader,
+        mock_cv2_loader,
+        mock_enhanced_loader,
+        mock_pil_loader,
+        mock_loader,
         mock_ts_config,
         mock_cv2_config,
     ):
         mock_cv2_config.as_dict.return_value = {"threshold": 100}
         processor = Processor(mock_ts_config, mock_cv2_config)
-        
+
         loaders = processor.loaders
-        
+
         # Check that each loader class was instantiated with the cv2_config
-        MockLoader.assert_called_once_with(threshold=100)
-        MockPILLoader.assert_called_once_with(threshold=100)
-        MockEnhancedLoader.assert_called_once_with(threshold=100)
-        MockCV2Loader.assert_called_once_with(threshold=100)
-        MockSmartLoader.assert_called_once_with(threshold=100)
-        MockBWLoader.assert_called_once_with(threshold=100)
-        MockImprovedLoader.assert_called_once_with(threshold=100)
-        
+        mock_loader.assert_called_once_with(threshold=100)
+        mock_pil_loader.assert_called_once_with(threshold=100)
+        mock_enhanced_loader.assert_called_once_with(threshold=100)
+        mock_cv2_loader.assert_called_once_with(threshold=100)
+        mock_smart_loader.assert_called_once_with(threshold=100)
+        mock_bw_loader.assert_called_once_with(threshold=100)
+        mock_improved_loader.assert_called_once_with(threshold=100)
+
         # Check that there are instances of these mocks in the loaders list
-        assert MockLoader.return_value in loaders
-        assert MockPILLoader.return_value in loaders
-        assert MockEnhancedLoader.return_value in loaders
-        assert MockCV2Loader.return_value in loaders
-        assert MockSmartLoader.return_value in loaders
-        assert MockBWLoader.return_value in loaders
-        assert MockImprovedLoader.return_value in loaders
-        
+        assert mock_loader.return_value in loaders
+        assert mock_pil_loader.return_value in loaders
+        assert mock_enhanced_loader.return_value in loaders
+        assert mock_cv2_loader.return_value in loaders
+        assert mock_smart_loader.return_value in loaders
+        assert mock_bw_loader.return_value in loaders
+        assert mock_improved_loader.return_value in loaders
+
         # Check cached_property works (second access doesn't call __init__ again)
         _ = processor.loaders
-        MockLoader.assert_called_once()
+        mock_loader.assert_called_once()
 
 
     @patch("hope_ocr.ocr.engine.Reader")
-    def test_reader_property(self, MockReader, mock_ts_config, mock_cv2_config):
+    def test_reader_property(self, mock_reader, mock_ts_config, mock_cv2_config):
         processor = Processor(mock_ts_config, mock_cv2_config)
         reader = processor.reader
-        MockReader.assert_called_once_with(mock_ts_config)
-        assert reader == MockReader.return_value
+        mock_reader.assert_called_once_with(mock_ts_config)
+        assert reader == mock_reader.return_value
         # Check cached_property works
         _ = processor.reader
-        MockReader.assert_called_once()
+        mock_reader.assert_called_once()
 
     @patch("hope_ocr.ocr.engine.find_similar")
     def test_find_single_success(self, mock_find_similar, mock_ts_config, mock_cv2_config):
@@ -276,7 +284,9 @@ class TestProcessor:
         mock_reader.config = MagicMock()
         processor.reader = mock_reader # Inject mock reader
 
-        processor.find_single = MagicMock(side_effect=InvalidImageError("Test Image Error")) # Mock find_single to raise error
+        processor.find_single = MagicMock(
+            side_effect=InvalidImageError("Test Image Error")
+        )
 
         mock_time_it_instance = MagicMock()
         mock_time_it_instance.__enter__.return_value.get_partial.return_value = 1.0 # Elapsed time
@@ -291,7 +301,7 @@ class TestProcessor:
 
     @patch("hope_ocr.ocr.engine.time_it")
     @patch("hope_ocr.ocr.engine.format_elapsed_time", return_value="2s")
-    def test_processor_find_text_all_mode_success(
+    def test_processor_find_text_all_mode_success(  # noqa: PLR0915
         self, mock_format_elapsed_time, mock_time_it, mock_ts_config, mock_cv2_config
     ):
         processor = Processor(mock_ts_config, mock_cv2_config)
@@ -325,7 +335,9 @@ class TestProcessor:
         ])
 
         mock_time_it_instance = MagicMock()
-        mock_time_it_instance.__enter__.return_value.get_partial.side_effect = [i * 0.1 for i in range(1, 101)] # Sufficiently long list
+        mock_time_it_instance.__enter__.return_value.get_partial.side_effect = [
+            i * 0.1 for i in range(1, 101)
+        ]
         mock_time_it.return_value = mock_time_it_instance
 
         original_image = MagicMock(spec=Image.Image)
@@ -400,7 +412,9 @@ class TestProcessor:
         ])
 
         mock_time_it_instance = MagicMock()
-        mock_time_it_instance.__enter__.return_value.get_partial.side_effect = [i * 0.1 for i in range(1, 101)] # Sufficiently long list
+        mock_time_it_instance.__enter__.return_value.get_partial.side_effect = [
+            i * 0.1 for i in range(1, 101)
+        ]
         mock_time_it.return_value = mock_time_it_instance
 
         original_image = MagicMock(spec=Image.Image)
@@ -442,7 +456,9 @@ class TestProcessor:
         ])
 
         mock_time_it_instance = MagicMock()
-        mock_time_it_instance.__enter__.return_value.get_partial.side_effect = [i * 0.1 for i in range(1, 101)] # Sufficiently long list
+        mock_time_it_instance.__enter__.return_value.get_partial.side_effect = [
+            i * 0.1 for i in range(1, 101)
+        ]
         mock_time_it.return_value = mock_time_it_instance
 
         original_image = MagicMock(spec=Image.Image)

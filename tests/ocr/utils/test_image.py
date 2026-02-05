@@ -1,6 +1,5 @@
 import base64
 from io import BytesIO
-from pathlib import Path
 
 import pytest
 from PIL import Image
@@ -47,7 +46,7 @@ def test_get_image_base64_from_bytesio():
 
 def test_get_image_base64_unsupported_type():
     """Test get_image_base64 with an unsupported input type."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unsupported"):
         get_image_base64(123)
 
 

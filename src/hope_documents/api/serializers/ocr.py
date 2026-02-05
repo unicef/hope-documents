@@ -18,9 +18,3 @@ class ExtractSerializer(serializers.Serializer):
     psm = serializers.IntegerField(help_text="TS Page segmentation mode [0..13]", default=11, required=False)
     oem = serializers.IntegerField(help_text="TS OCR Engine mode [0..3]", default=3, required=False)
 
-
-class InspectSerializer(serializers.Serializer):
-    attachment = serializers.FileField()
-    mode = serializers.ChoiceField(
-        help_text="cv2 threshold [0..255]", default=MatchMode.FIRST.name, choices=MatchMode.choices()
-    )

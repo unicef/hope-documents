@@ -1,6 +1,7 @@
 import pytest
-from hope_documents.admin.flags import FlagStateForm
 from unfold.widgets import CHECKBOX_CLASSES, INPUT_CLASSES
+
+from hope_documents.admin.flags import FlagStateForm
 
 
 @pytest.mark.django_db
