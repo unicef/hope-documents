@@ -210,7 +210,9 @@ class Processor:
                         image = image.rotate(rotate, expand=True)
                     text = self.reader.extract(image)
                     ret.text = text
-                ret.time = m.human
             except (InvalidImageError, ExtractionError) as e:
                 ret.error = f"{e.__class__.__name__}: {str(e)}"
+            finally: # Ensure m.human is accessed if m was assigned
+                if m:
+                    ret.time = m.human
             yield ret
