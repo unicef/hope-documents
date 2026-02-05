@@ -87,7 +87,7 @@ dev = [
   "pytest-factoryboy>=2.8.1",
   "pytest-xdist>=3.8",
   "responses>=0.25.8",
-  "ruff==0.13.1",                # must be aligned with .pre-commit-config.yaml
+  "ruff==0.15.0",                # must be aligned with .pre-commit-config.yaml
   "tox>=4.30.2",
 ]
 docs = [
