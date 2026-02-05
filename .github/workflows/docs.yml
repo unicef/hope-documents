@@ -3,21 +3,21 @@ name: "Documentation"
 on:
   push:
     branches:
-      - main
+      - develop
     paths:
       - 'docs/**'
       - 'mkdocs.yaml'
-      - 'github/workflows/docs.yml'
+      - './.github/workflows/docs.yml'
   pull_request:
     branches:
-      - main
+      - develop
     types:
       - opened
       - synchronize
     paths:
       - 'docs/**'
       - 'mkdocs.yaml'
-      - 'github/workflows/docs.yml'
+      - './.github/workflows/docs.yml'
 
 #  schedule:
 #    - cron: '37 23 * * 2'
@@ -59,7 +59,7 @@ jobs:
       PYTHONPATH: src/
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
       - run: pip install tox
@@ -67,7 +67,7 @@ jobs:
         run: tox -e docs -- -d docs-output
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: ./docs-output
 

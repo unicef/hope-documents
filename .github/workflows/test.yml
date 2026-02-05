@@ -3,7 +3,7 @@ name: Test
 on:
   workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches: [ "develop" ]
     tags-ignore: [ "**" ]
   pull_request:
 
@@ -32,6 +32,19 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.run_tests == 'true'
     runs-on: ubuntu-latest
     services:
+      db:
+        image: postgres:15
+        env:
+          POSTGRES_DB: hope_documents
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
       redis:
         image: redis:7
         ports:
@@ -40,34 +53,25 @@ jobs:
         image: rabbitmq:3-management
         ports:
           - 5672:5672
-      db:
-        image: postgres:14
-        env:
-          POSTGRES_DATABASE: demo
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USERNAME: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     env:
       DOCKER_DEFAULT_PLATFORM: linux/amd64
       DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/dedup_engine
-      STREAMING_BROKER_URL: rabbit://guest:guest@localhost:5672?exchange=hope_live
-      CELERY_BROKER_URL: redis://localhost:6379/1
-      CACHE_URL: redis://localhost:6379/2
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/hope_documents
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CACHE_URL: redis://redis:6379/2
       DOCKER_BUILDKIT: 1
+      STREAMING_BROKER_URL: "rabbit://guest:guest@localhost:5672?exchange=hope_live"
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg: [ "tests" ]
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v6
         with:
           version: "latest"
           enable-cache: true
