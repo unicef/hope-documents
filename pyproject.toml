@@ -47,7 +47,7 @@ dependencies = [
   "django-streaming>=0.8",
   "django-unfold",
   "djangorestframework",
-  "drf-spectacular<0.29",
+  "drf-spectacular<0.30",
   "drf-spectacular-sidecar",
   "humanize>=4.14",
   "jinja2>=3.1.6",
