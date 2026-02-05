@@ -2,19 +2,9 @@ from pathlib import Path
 
 import pytest
 from django.urls import reverse
-from factories import SuperUserFactory
 from webtest import Upload
 
 from hope_ocr.ocr.engine import MatchMode
-
-
-@pytest.fixture
-def app(django_app_factory, mocked_responses):
-    django_app = django_app_factory(csrf_checks=False)
-    admin_user = SuperUserFactory(username="superuser")
-    django_app.set_user(admin_user)
-    django_app._user = admin_user
-    return django_app
 
 
 @pytest.fixture
