@@ -11,11 +11,9 @@ def test_celery_app_setup(mock_celery_class, mock_setdefault, mock_settings):  #
     if "hope_documents.celery" in sys.modules:
         del sys.modules["hope_documents.celery"]
 
-    # Mock settings values on the patched settings object
     mock_settings.CELERY_BROKER_URL = "redis://localhost:6379/0"
 
-    # Import celery to trigger the module-level code with mocks active
-    from hope_documents import celery  # noqa: F401
+    from hope_documents.config import celery  # noqa: F401
 
     mock_setdefault.assert_called_once_with("DJANGO_SETTINGS_MODULE", "hope_documents.config.settings")
 

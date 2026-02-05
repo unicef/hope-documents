@@ -52,9 +52,9 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: 3.12
+          python-version: 3.13
           architecture: 'x64'
-      - uses: yezz123/setup-uv@v4
+      - uses: astral-sh/setup-uv@v7
 
       - name: Install deps
         run: uv sync --all-groups
