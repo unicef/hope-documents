@@ -31,7 +31,7 @@ class TestCli:
             mock_ch_instance = mock_stream_handler.return_value
             mock_ch_instance.setFormatter.assert_called_once_with(mock_formatter_instance)
             mock_logger_instance = mock_get_logger.return_value
-            mock_logger_instance.handlers = [] # Reset handlers for clean assertion
+            mock_logger_instance.handlers = []  # Reset handlers for clean assertion
             mock_logger_instance.setLevel.assert_called_once_with(logging.DEBUG)
             mock_logger_instance.addHandler.assert_called_once_with(mock_ch_instance)
 
@@ -43,7 +43,7 @@ class TestCli:
             # Test with debug=False
             configure_logging(False)
             mock_logger_instance = mock_get_logger.return_value
-            mock_logger_instance.handlers = [] # Reset handlers for clean assertion
+            mock_logger_instance.handlers = []  # Reset handlers for clean assertion
             mock_logger_instance.setLevel.assert_not_called()
             mock_logger_instance.addHandler.assert_not_called()
 
@@ -62,11 +62,11 @@ class TestCli:
 
         # Mock for the 'report' variable: Path(".") / output_filename
         mock_report_path_instance = MagicMock()
-        mock_open_file = MagicMock() # Re-added this line
+        mock_open_file = MagicMock()  # Re-added this line
         mock_report_path_instance.open.return_value.__enter__.return_value = mock_open_file
-        mock_report_path_instance.__str__.return_value = mock_output_file # Control its string representation
+        mock_report_path_instance.__str__.return_value = mock_output_file  # Control its string representation
 
-        mock_path_dot.__truediv__.return_value = mock_report_path_instance # Path(".") / output_filename
+        mock_path_dot.__truediv__.return_value = mock_report_path_instance  # Path(".") / output_filename
 
         mock_path_file.parent = mock_path_file_parent
         mock_path_file_parent.__truediv__.return_value = mock_template_path
@@ -76,7 +76,7 @@ class TestCli:
             mock_path_class.side_effect = [
                 mock_path_dot,  # First call: Path(".")
                 mock_path_file,  # Call for Path(__file__)
-                mock_report_path_instance, # Third call: Path(report)
+                mock_report_path_instance,  # Third call: Path(report)
             ]
 
             mock_template_instance = MagicMock()
@@ -91,7 +91,6 @@ class TestCli:
             mock_report_path_instance.open.assert_called_once_with("w", encoding="utf-8")
             mock_open_file.write.assert_called_once_with("rendered content")
 
-
     @patch("hope_ocr.ocr.__cli__.csv.reader")
     @patch("hope_ocr.ocr.__cli__.Path")
     def test_load_expectations(self, mock_path_class, mock_csv_reader):
@@ -105,7 +104,6 @@ class TestCli:
         mock_path_instance = MagicMock()
         mock_path_class.return_value = mock_path_instance
         mock_path_instance.open.return_value.__enter__.return_value = MagicMock()
-
 
         expected = {
             "file1.png": ("text1", True, 0.1),
@@ -134,7 +132,7 @@ class TestCli:
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
             filepath = Path(tmpdir) / "test_image.png"
-            filepath.touch() # Create a dummy file
+            filepath.touch()  # Create a dummy file
 
             # Mock Scanner
             mock_scanner_instance = MagicMock()
@@ -156,16 +154,11 @@ class TestCli:
             mock_scanner_class.assert_called_once_with(str(filepath))
             mock_processor_class.assert_called_once()
             mock_processor_instance.process.assert_called_once_with(str(filepath), rotate=0)
-            mock_click_echo.assert_any_call(
-                "\x1b[33mConfig: \x1b[97m--oem 3  --psm 11 \x1b[39m"
-            )
-            mock_click_echo.assert_any_call(
-                f"\x1b[33mFile: \x1b[97m{str(filepath)}\x1b[39m"
-            )
+            mock_click_echo.assert_any_call("\x1b[33mConfig: \x1b[97m--oem 3  --psm 11 \x1b[39m")
+            mock_click_echo.assert_any_call(f"\x1b[33mFile: \x1b[97m{str(filepath)}\x1b[39m")
             mock_click_echo.assert_any_call("\x1b[33mLoader: \x1b[97mtest_loader\x1b[39m")
             mock_click_echo.assert_any_call("\x1b[32mextracted_text\x1b[39m")
-            mock_click_echo.assert_any_call("\x1b[97m========\x1b[39m") # Added this missing assertion
-
+            mock_click_echo.assert_any_call("\x1b[97m========\x1b[39m")  # Added this missing assertion
 
     @patch("hope_ocr.ocr.__cli__.Scanner")
     @patch("hope_ocr.ocr.__cli__.Processor")
@@ -176,7 +169,7 @@ class TestCli:
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
             filepath = Path(tmpdir) / "test_image_with_pattern.png"
-            filepath.touch() # Create a dummy file
+            filepath.touch()  # Create a dummy file
             test_pattern = "find_me"
 
             # Mock Scanner
@@ -186,7 +179,7 @@ class TestCli:
 
             # Mock Processor
             mock_processor_instance = MagicMock()
-            mock_match = MagicMock() # Mock the Match object returned by find_similar
+            mock_match = MagicMock()  # Mock the Match object returned by find_similar
             mock_match.text = test_pattern
             mock_match.distance = 0.0
             mock_search_info = SearchInfo(loader="test_loader", match=mock_match, angle=0, psm=11, attempts=1)
@@ -199,7 +192,7 @@ class TestCli:
             assert result.exit_code == 0
             mock_scanner_class.assert_called_once_with(str(filepath))
             mock_processor_class.assert_called_once()
-            mock_get_image.assert_called_once() # get_image is called when pattern is provided
+            mock_get_image.assert_called_once()  # get_image is called when pattern is provided
             mock_processor_instance.find_text.assert_called_once_with(
                 mock_get_image.return_value, test_pattern, rotations=[0], mode=MatchMode.FIRST
             )
@@ -219,10 +212,10 @@ class TestCli:
     @patch("hope_ocr.ocr.__cli__.get_image_base64")
     @patch("hope_ocr.ocr.__cli__.click.echo")
     @patch("hope_ocr.ocr.__cli__.time_it")
-    @patch("os.getcwd") # Patch os.getcwd
+    @patch("os.getcwd")  # Patch os.getcwd
     def test_report_command_success(
         self,
-        mock_os_getcwd, # New mock argument
+        mock_os_getcwd,  # New mock argument
         mock_time_it,
         mock_click_echo,
         mock_get_image_base64,
@@ -233,7 +226,7 @@ class TestCli:
         mock_scanner_class,
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
-            mock_os_getcwd.return_value = tmpdir # Set os.getcwd to tmpdir
+            mock_os_getcwd.return_value = tmpdir  # Set os.getcwd to tmpdir
             filepath = Path(tmpdir) / "test_report_image.png"
             filepath.touch()  # Create a dummy file
 
@@ -260,7 +253,7 @@ class TestCli:
             # Mock get_image and get_image_base64
             mock_image_instance = MagicMock()
             mock_image_instance.size = (100, 200)
-            mock_image_instance.getexif.return_value = {} # Mock getexif
+            mock_image_instance.getexif.return_value = {}  # Mock getexif
             mock_get_image.return_value = mock_image_instance
             mock_get_image_base64.return_value = "base64_image_data"
 
@@ -286,7 +279,7 @@ class TestCli:
                 mock_image_instance, "expected_text", mode=MatchMode.FIRST, debug=True
             )
             mock_write_report.assert_called_once()
-            mock_click_echo.assert_called_with(ANY) # Assert "Done in..." is called
+            mock_click_echo.assert_called_with(ANY)  # Assert "Done in..." is called
 
     @patch("hope_ocr.ocr.__cli__.Scanner")
     @patch("hope_ocr.ocr.__cli__.Processor")
@@ -296,7 +289,7 @@ class TestCli:
     @patch("hope_ocr.ocr.__cli__.get_image_base64")
     @patch("hope_ocr.ocr.__cli__.click.echo")
     @patch("hope_ocr.ocr.__cli__.time_it")
-    @patch("os.getcwd") # Patch os.getcwd
+    @patch("os.getcwd")  # Patch os.getcwd
     def test_report_command_invalid_image(
         self,
         mock_os_getcwd,
@@ -310,7 +303,7 @@ class TestCli:
         mock_scanner_class,
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
-            mock_os_getcwd.return_value = tmpdir # Set os.getcwd to tmpdir
+            mock_os_getcwd.return_value = tmpdir  # Set os.getcwd to tmpdir
             filepath = Path(tmpdir) / "invalid_image.png"
             filepath.touch()  # Create a dummy file
 
@@ -347,12 +340,12 @@ class TestCli:
             # Invoke the command
             result = self.runner.invoke(cli, ["report", str(filepath), "-e", str(expectations_filepath)])
 
-            assert result.exit_code == 0 # Command should still exit with 0 as it handles the error gracefully
+            assert result.exit_code == 0  # Command should still exit with 0 as it handles the error gracefully
             mock_scanner_class.assert_called_once_with(str(filepath))
             mock_load_expectations.assert_called_once_with(str(expectations_filepath))
             mock_get_image.assert_called_once_with(str(filepath))
             mock_get_image_base64.assert_not_called()
-            mock_processor_instance.find_text.assert_not_called() # find_text should not be called
+            mock_processor_instance.find_text.assert_not_called()  # find_text should not be called
 
             # Assert write_report context contains error info
             mock_write_report.assert_called_once()
@@ -368,7 +361,7 @@ class TestCli:
             # However, the overall error handling in the report implies that the error would be logged
             # or somehow reflected in the report. For now, the None checks are sufficient.
 
-            mock_click_echo.assert_called_with(ANY) # Assert "Done in..." is called
+            mock_click_echo.assert_called_with(ANY)  # Assert "Done in..." is called
 
     @patch("hope_ocr.ocr.__cli__.Scanner")
     @patch("hope_ocr.ocr.__cli__.Processor")
@@ -378,7 +371,7 @@ class TestCli:
     @patch("hope_ocr.ocr.__cli__.get_image_base64")
     @patch("hope_ocr.ocr.__cli__.click.echo")
     @patch("hope_ocr.ocr.__cli__.time_it")
-    @patch("os.getcwd") # Patch os.getcwd
+    @patch("os.getcwd")  # Patch os.getcwd
     def test_report_command_no_match(
         self,
         mock_os_getcwd,
@@ -392,7 +385,7 @@ class TestCli:
         mock_scanner_class,
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
-            mock_os_getcwd.return_value = tmpdir # Set os.getcwd to tmpdir
+            mock_os_getcwd.return_value = tmpdir  # Set os.getcwd to tmpdir
             filepath = Path(tmpdir) / "test_report_image_no_match.png"
             filepath.touch()  # Create a dummy file
 
@@ -419,7 +412,7 @@ class TestCli:
             # Mock get_image and get_image_base64
             mock_image_instance = MagicMock()
             mock_image_instance.size = (100, 200)
-            mock_image_instance.getexif.return_value = {} # Mock getexif
+            mock_image_instance.getexif.return_value = {}  # Mock getexif
             mock_get_image.return_value = mock_image_instance
             mock_get_image_base64.return_value = "base64_image_data_no_match"
 
@@ -432,7 +425,6 @@ class TestCli:
             # Mock debug_info for the 'else' branch where si = processor.debug_info.iterations[-1]
             mock_processor_instance.debug_info = MagicMock()
             mock_processor_instance.debug_info.iterations = [mock_search_info]
-
 
             # Invoke the command
             result = self.runner.invoke(cli, ["report", str(filepath), "-e", str(expectations_filepath)])
@@ -453,11 +445,11 @@ class TestCli:
             context = args[2]
             assert "lines" in context
             assert len(context["lines"]) == 1
-            assert context["lines"][0]["si"] == mock_search_info # si should be the SearchInfo object with no match
-            assert len(context["errors"]) == 1 # This case should add to errors list
-            assert context["errors"][0][0] == mock_search_info # Check the error list content
+            assert context["lines"][0]["si"] == mock_search_info  # si should be the SearchInfo object with no match
+            assert len(context["errors"]) == 1  # This case should add to errors list
+            assert context["errors"][0][0] == mock_search_info  # Check the error list content
 
-            mock_click_echo.assert_called_with(ANY) # Assert "Done in..." is called
+            mock_click_echo.assert_called_with(ANY)  # Assert "Done in..." is called
 
     @patch("hope_ocr.ocr.__cli__.Scanner")
     @patch("hope_ocr.ocr.__cli__.Processor")
@@ -467,7 +459,7 @@ class TestCli:
     @patch("hope_ocr.ocr.__cli__.get_image_base64")
     @patch("hope_ocr.ocr.__cli__.click.echo")
     @patch("hope_ocr.ocr.__cli__.time_it")
-    @patch("os.getcwd") # Patch os.getcwd
+    @patch("os.getcwd")  # Patch os.getcwd
     def test_inspect_command_success(
         self,
         mock_os_getcwd,
@@ -478,10 +470,10 @@ class TestCli:
         mock_load_expectations,
         mock_write_report,
         mock_processor_class,
-        mock_scanner_class, # This is not used in inspect, but keeping for consistency if it gets added in future
+        mock_scanner_class,  # This is not used in inspect, but keeping for consistency if it gets added in future
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
-            mock_os_getcwd.return_value = tmpdir # Set os.getcwd to tmpdir
+            mock_os_getcwd.return_value = tmpdir  # Set os.getcwd to tmpdir
             filepath = Path(tmpdir) / "test_inspect_image.png"
             filepath.touch()  # Create a dummy file
 
@@ -501,9 +493,9 @@ class TestCli:
             }
 
             # Mock get_image and get_image_base64
-            mock_image_instance = MagicMock(spec=Image.Image) # Use spec to ensure proper PIL Image mock
+            mock_image_instance = MagicMock(spec=Image.Image)  # Use spec to ensure proper PIL Image mock
             mock_image_instance.size = (100, 200)
-            mock_image_instance.getexif.return_value = {} # Mock getexif
+            mock_image_instance.getexif.return_value = {}  # Mock getexif
             mock_get_image.return_value = mock_image_instance
             mock_get_image_base64.return_value = "base64_image_data_inspect"
 
@@ -511,14 +503,13 @@ class TestCli:
             mock_processor_instance = MagicMock()
             mock_loader_instance = MagicMock()
             mock_loader_instance.__class__.__name__ = "TestLoader"
-            mock_loader_instance.rotate.return_value = [(mock_image_instance, 0)] # Simulate one rotated image
+            mock_loader_instance.rotate.return_value = [(mock_image_instance, 0)]  # Simulate one rotated image
             mock_processor_instance.loaders = [mock_loader_instance]
 
             mock_match = MagicMock()
             mock_match.text = "found_text"
             mock_processor_instance.find_single.return_value = ("found_text_from_processor", mock_match)
             mock_processor_class.return_value = mock_processor_instance
-
 
             # Invoke the command
             result = self.runner.invoke(cli, ["inspect", str(filepath), "-e", str(expectations_filepath)])
@@ -527,7 +518,7 @@ class TestCli:
             mock_load_expectations.assert_called_once_with(str(expectations_filepath))
             mock_get_image.assert_called_once_with(str(filepath))
             mock_processor_class.assert_called_once()
-            assert mock_get_image_base64.call_count == 2 # Called twice: once for image, once for original
+            assert mock_get_image_base64.call_count == 2  # Called twice: once for image, once for original
             mock_processor_instance.find_single.assert_called_once_with(mock_image_instance, "expected_text")
             mock_write_report.assert_called_once()
 
@@ -547,7 +538,7 @@ class TestCli:
             assert "original" in context
             assert "image_info" in context
 
-            mock_click_echo.assert_called_with(ANY) # Assert "Done in..." is called
+            mock_click_echo.assert_called_with(ANY)  # Assert "Done in..." is called
 
     @patch("hope_ocr.ocr.__cli__.Processor")
     @patch("hope_ocr.ocr.__cli__.write_report")
@@ -593,6 +584,6 @@ class TestCli:
             mock_load_expectations.assert_called_once_with(str(expectations_filepath))
             mock_get_image.assert_called_once_with(str(filepath))
             mock_get_image_base64.assert_not_called()
-            mock_processor_class.assert_not_called() # Processor should not be initialized
+            mock_processor_class.assert_not_called()  # Processor should not be initialized
             mock_write_report.assert_not_called()
-            mock_click_echo.assert_not_called() # No normal echoes
+            mock_click_echo.assert_not_called()  # No normal echoes

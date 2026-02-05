@@ -13,9 +13,7 @@ def test_check_dirs_both_exist(tmp_path):
     static_root.mkdir()
 
     with patch("hope_documents.checks.env") as mock_env:
-        mock_env.side_effect = lambda key: (
-            str(media_root) if key == "MEDIA_ROOT" else str(static_root)
-        )
+        mock_env.side_effect = lambda key: (str(media_root) if key == "MEDIA_ROOT" else str(static_root))
         errors = check_dirs()
         assert len(errors) == 0
 
@@ -28,9 +26,7 @@ def test_check_dirs_one_does_not_exist(tmp_path):
     static_root.mkdir()
 
     with patch("hope_documents.checks.env") as mock_env:
-        mock_env.side_effect = lambda key: (
-            str(media_root) if key == "MEDIA_ROOT" else str(static_root)
-        )
+        mock_env.side_effect = lambda key: (str(media_root) if key == "MEDIA_ROOT" else str(static_root))
         errors = check_dirs()
         assert len(errors) == 1
         assert isinstance(errors[0], Error)
@@ -44,9 +40,7 @@ def test_check_dirs_both_do_not_exist(tmp_path):
     static_root = tmp_path / "static"
 
     with patch("hope_documents.checks.env") as mock_env:
-        mock_env.side_effect = lambda key: (
-            str(media_root) if key == "MEDIA_ROOT" else str(static_root)
-        )
+        mock_env.side_effect = lambda key: (str(media_root) if key == "MEDIA_ROOT" else str(static_root))
         errors = check_dirs()
         assert len(errors) == 2
         assert isinstance(errors[0], Error)

@@ -16,9 +16,7 @@ from hope_ocr.ocr.loaders import (
 
 images_dir = Path(__file__).parent / "images"
 
-valid_images = [
-    p for p in images_dir.rglob("*.png") if not p.is_dir() and not p.name.startswith("_")
-]
+valid_images = [p for p in images_dir.rglob("*.png") if not p.is_dir() and not p.name.startswith("_")]
 invalid_images = [
     images_dir / "_invalid/_empty.png",
     images_dir / "_invalid/_text.txt",
@@ -74,18 +72,14 @@ def test_cv2_loader_process():
     assert processed_image.mode == "L"
 
 
-@pytest.mark.parametrize(
-    "img", valid_images, ids=[str(p.relative_to(images_dir)) for p in valid_images]
-)
+@pytest.mark.parametrize("img", valid_images, ids=[str(p.relative_to(images_dir)) for p in valid_images])
 def test_load_valid(loader, img, caplog):
     image = loader.load(str(img))
     assert image is not None
     assert isinstance(image, Image.Image)
 
 
-@pytest.mark.parametrize(
-    "filename", valid_images, ids=[str(p.relative_to(images_dir)) for p in valid_images]
-)
+@pytest.mark.parametrize("filename", valid_images, ids=[str(p.relative_to(images_dir)) for p in valid_images])
 def test_rotate_valid(loader, filename, caplog):
     """Test the rotate method of loaders."""
     img = Image.open(filename)

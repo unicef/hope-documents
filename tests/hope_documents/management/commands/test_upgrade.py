@@ -200,6 +200,7 @@ def test_handle_admin_user_exists(
         ]
     )
 
+
 @patch("hope_documents.management.commands.upgrade.call_command")
 @patch("hope_documents.management.commands.upgrade.env", return_value="")
 @patch("hope_documents.management.commands.upgrade.logger")
@@ -239,13 +240,14 @@ def test_handle_verbosity_zero(
     assert mock_call_command.call_count == 5
     mock_call_command.assert_has_calls(
         [
-            call("check", deploy=True, verbosity=-1), # verbosity-1 is -1 when verbosity is 0
+            call("check", deploy=True, verbosity=-1),  # verbosity-1 is -1 when verbosity is 0
             call("collectstatic", no_input=True, verbosity=-1, stdout=command.stdout),
             call("migrate", no_input=True, verbosity=-1, stdout=command.stdout),
             call("create_extra_permissions", no_input=True, verbosity=-1, stdout=command.stdout),
             call("remove_stale_contenttypes", no_input=True, verbosity=-1, stdout=command.stdout),
         ]
     )
+
 
 @patch("hope_documents.management.commands.upgrade.call_command")
 @patch("hope_documents.management.commands.upgrade.env", return_value="")
@@ -268,8 +270,8 @@ def test_handle_validation_error(
         "prompt": True,
         "static": True,
         "migrate": True,
-        "debug": True, # Set debug to True
-        "admin_email": "invalid-email", # This will cause validate_email to fail
+        "debug": True,  # Set debug to True
+        "admin_email": "invalid-email",  # This will cause validate_email to fail
         "admin_password": "password",
     }
 
@@ -309,11 +311,11 @@ def test_handle_general_exception(
 
     options = {
         "verbosity": 1,
-        "checks": True, # This will trigger the first call_command
+        "checks": True,  # This will trigger the first call_command
         "prompt": True,
         "static": True,
         "migrate": True,
-        "debug": True, # Set debug to True
+        "debug": True,  # Set debug to True
         "admin_email": "",
         "admin_password": "",
     }
@@ -324,7 +326,7 @@ def test_handle_general_exception(
     mock_path_instance.exists.return_value = False
 
     with patch.dict("os.environ", {}, clear=True):
-        with pytest.raises(Exception, match="Generic error") as excinfo: # Expect generic Exception to be re-raised
+        with pytest.raises(Exception, match="Generic error") as excinfo:  # Expect generic Exception to be re-raised
             command.handle(**options)
         # Verify the exception message
         assert "Generic error" in str(excinfo.value)

@@ -87,4 +87,3 @@ class ExtractView(OCRView):
                 }
         data["params"] = self._set_params(serializer)
         return Response(data, status=status.HTTP_200_OK)
-

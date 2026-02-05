@@ -17,4 +17,3 @@ class ExtractSerializer(serializers.Serializer):
     number_only = serializers.BooleanField(help_text="Only extract numbers", default=False, required=False)
     psm = serializers.IntegerField(help_text="TS Page segmentation mode [0..13]", default=11, required=False)
     oem = serializers.IntegerField(help_text="TS OCR Engine mode [0..3]", default=3, required=False)
-

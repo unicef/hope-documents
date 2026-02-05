@@ -12,4 +12,3 @@ def test_flag_state_form_fields_have_css_classes():
     assert form.fields["condition"].widget.attrs["class"] == " ".join(INPUT_CLASSES)
     assert form.fields["value"].widget.attrs["class"] == " ".join(INPUT_CLASSES)
     assert form.fields["required"].widget.attrs["class"] == " ".join(CHECKBOX_CLASSES)
-

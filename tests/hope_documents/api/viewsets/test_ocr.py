@@ -59,9 +59,12 @@ def test_extract_with_pattern(app, image):
 def test_extract_with_non_image_file(app, image):
     file_content = b"this is not an image"
     url = reverse("api:file-upload")
-    response = app.post(url, upload_files=[
+    response = app.post(
+        url,
+        upload_files=[
             ("attachment", "test.txt", file_content),
-        ])
+        ],
+    )
     assert response.status_code == status.HTTP_200_OK
     assert "file" in response.json
     assert response.json["file"] is None

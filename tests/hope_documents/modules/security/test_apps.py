@@ -35,9 +35,7 @@ def test_on_login_superuser_by_email():
 @override_settings(SUPERUSERS=["super"])
 def test_on_login_superuser_by_username():
     """Test that a user becomes a superuser if their username is in SUPERUSERS."""
-    user = User.objects.create_user(
-        username="super", email="super@example.com", is_superuser=False, is_staff=False
-    )
+    user = User.objects.create_user(username="super", email="super@example.com", is_superuser=False, is_staff=False)
     on_login(sender=Mock(), user=user)
     user.refresh_from_db()
     assert user.is_superuser

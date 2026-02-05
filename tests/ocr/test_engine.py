@@ -78,7 +78,7 @@ class TestDataclasses:
         assert info.time == ""
 
     def test_search_info_repr(self):
-        mock_match = MagicMock() # Removed spec=MatchMode
+        mock_match = MagicMock()  # Removed spec=MatchMode
         info = SearchInfo(loader="TestLoader", match=mock_match, angle=90, psm=6, attempts=3)
         info.time = "1s"
         assert repr(info) == "SearchInfo(TestLoader):<MagicMock id='{}'>:90:'1s'".format(id(mock_match))
@@ -93,6 +93,7 @@ class TestDataclasses:
     def test_scan_info_repr(self):
         info = ScanInfo()
         assert repr(info) == "ScanInfo([])"
+
 
 class TestProcessor:
     @pytest.fixture
@@ -159,7 +160,6 @@ class TestProcessor:
         _ = processor.loaders
         mock_loader.assert_called_once()
 
-
     @patch("hope_ocr.ocr.engine.Reader")
     def test_reader_property(self, mock_reader, mock_ts_config, mock_cv2_config):
         processor = Processor(mock_ts_config, mock_cv2_config)
@@ -174,9 +174,9 @@ class TestProcessor:
     def test_find_single_success(self, mock_find_similar, mock_ts_config, mock_cv2_config):
         mock_reader = MagicMock()
         mock_reader.extract.return_value = "extracted text"
-        mock_ts_config.return_value = MagicMock() # Mock TSConfig initialization if needed
+        mock_ts_config.return_value = MagicMock()  # Mock TSConfig initialization if needed
         processor = Processor(mock_ts_config, mock_cv2_config)
-        processor.reader = mock_reader # Inject mock reader
+        processor.reader = mock_reader  # Inject mock reader
 
         mock_image = MagicMock(spec=Image.Image)
         mock_match = MagicMock()
@@ -193,9 +193,9 @@ class TestProcessor:
     def test_find_single_extraction_error(self, mock_find_similar, mock_ts_config, mock_cv2_config):
         mock_reader = MagicMock()
         mock_reader.extract.return_value = "extracted text"
-        mock_ts_config.return_value = MagicMock() # Mock TSConfig initialization if needed
+        mock_ts_config.return_value = MagicMock()  # Mock TSConfig initialization if needed
         processor = Processor(mock_ts_config, mock_cv2_config)
-        processor.reader = mock_reader # Inject mock reader
+        processor.reader = mock_reader  # Inject mock reader
 
         mock_image = MagicMock(spec=Image.Image)
 
@@ -210,9 +210,9 @@ class TestProcessor:
     def test_find_single_invalid_image_error(self, mock_find_similar, mock_ts_config, mock_cv2_config):
         mock_reader = MagicMock()
         mock_reader.extract.return_value = "extracted text"
-        mock_ts_config.return_value = MagicMock() # Mock TSConfig initialization if needed
+        mock_ts_config.return_value = MagicMock()  # Mock TSConfig initialization if needed
         processor = Processor(mock_ts_config, mock_cv2_config)
-        processor.reader = mock_reader # Inject mock reader
+        processor.reader = mock_reader  # Inject mock reader
 
         mock_image = MagicMock(spec=Image.Image)
 
@@ -232,18 +232,18 @@ class TestProcessor:
 
         mock_loader = MagicMock()
         mock_loader.__class__.__name__ = "TestLoader"
-        mock_loader.rotate.return_value = [(MagicMock(spec=Image.Image), 0)] # Simulate one rotated image
-        processor.loaders = [mock_loader] # Inject mock loaders
+        mock_loader.rotate.return_value = [(MagicMock(spec=Image.Image), 0)]  # Simulate one rotated image
+        processor.loaders = [mock_loader]  # Inject mock loaders
 
         mock_reader = MagicMock()
         mock_reader.config = MagicMock()
-        processor.reader = mock_reader # Inject mock reader
+        processor.reader = mock_reader  # Inject mock reader
 
         mock_find_single_return = ("extracted text", MagicMock())
-        processor.find_single = MagicMock(return_value=mock_find_single_return) # Mock find_single
+        processor.find_single = MagicMock(return_value=mock_find_single_return)  # Mock find_single
 
         mock_time_it_instance = MagicMock()
-        mock_time_it_instance.__enter__.return_value.get_partial.return_value = 1.0 # Elapsed time
+        mock_time_it_instance.__enter__.return_value.get_partial.return_value = 1.0  # Elapsed time
         mock_time_it.return_value = mock_time_it_instance
 
         original_image = MagicMock(spec=Image.Image)
@@ -262,7 +262,7 @@ class TestProcessor:
         assert result.attempts == 1
         assert result.time == "1s"
         assert result.error == ""
-        assert processor.reader.config.psm == 11 # Default psm
+        assert processor.reader.config.psm == 11  # Default psm
         processor.find_single.assert_called_once_with(mock_loader.rotate.return_value[0][0], target_text, max_errors=5)
         mock_loader.rotate.assert_called_once_with(original_image)
         mock_format_elapsed_time.assert_called_once_with(1.0)
@@ -277,19 +277,17 @@ class TestProcessor:
 
         mock_loader = MagicMock()
         mock_loader.__class__.__name__ = "TestLoader"
-        mock_loader.rotate.return_value = [(MagicMock(spec=Image.Image), 0)] # Simulate one rotated image
-        processor.loaders = [mock_loader] # Inject mock loaders
+        mock_loader.rotate.return_value = [(MagicMock(spec=Image.Image), 0)]  # Simulate one rotated image
+        processor.loaders = [mock_loader]  # Inject mock loaders
 
         mock_reader = MagicMock()
         mock_reader.config = MagicMock()
-        processor.reader = mock_reader # Inject mock reader
+        processor.reader = mock_reader  # Inject mock reader
 
-        processor.find_single = MagicMock(
-            side_effect=InvalidImageError("Test Image Error")
-        )
+        processor.find_single = MagicMock(side_effect=InvalidImageError("Test Image Error"))
 
         mock_time_it_instance = MagicMock()
-        mock_time_it_instance.__enter__.return_value.get_partial.return_value = 1.0 # Elapsed time
+        mock_time_it_instance.__enter__.return_value.get_partial.return_value = 1.0  # Elapsed time
         mock_time_it.return_value = mock_time_it_instance
 
         original_image = MagicMock(spec=Image.Image)
@@ -318,26 +316,26 @@ class TestProcessor:
         mock_reader.config = MagicMock()
         processor.reader = mock_reader
 
-        mock_match1 = MagicMock(distance=0.1) # Loader1, angle 0, psm 11
-        mock_match2 = MagicMock(distance=0.2) # Loader1, angle 90, psm 11
-        mock_match3 = MagicMock(distance=0.3) # Loader1, angle 0, psm 6
-        mock_match4 = MagicMock(distance=0.4) # Loader1, angle 90, psm 6
-        mock_match5 = MagicMock(distance=0.5) # Loader2, angle 0, psm 11
-        mock_match6 = MagicMock(distance=0.6) # Loader2, angle 0, psm 6
+        mock_match1 = MagicMock(distance=0.1)  # Loader1, angle 0, psm 11
+        mock_match2 = MagicMock(distance=0.2)  # Loader1, angle 90, psm 11
+        mock_match3 = MagicMock(distance=0.3)  # Loader1, angle 0, psm 6
+        mock_match4 = MagicMock(distance=0.4)  # Loader1, angle 90, psm 6
+        mock_match5 = MagicMock(distance=0.5)  # Loader2, angle 0, psm 11
+        mock_match6 = MagicMock(distance=0.6)  # Loader2, angle 0, psm 6
 
-        processor.find_single = MagicMock(side_effect=[
-            ("text1", mock_match1),
-            ("text2", mock_match2),
-            ("text3", mock_match3),
-            ("text4", mock_match4),
-            ("text5", mock_match5),
-            ("text6", mock_match6),
-        ])
+        processor.find_single = MagicMock(
+            side_effect=[
+                ("text1", mock_match1),
+                ("text2", mock_match2),
+                ("text3", mock_match3),
+                ("text4", mock_match4),
+                ("text5", mock_match5),
+                ("text6", mock_match6),
+            ]
+        )
 
         mock_time_it_instance = MagicMock()
-        mock_time_it_instance.__enter__.return_value.get_partial.side_effect = [
-            i * 0.1 for i in range(1, 101)
-        ]
+        mock_time_it_instance.__enter__.return_value.get_partial.side_effect = [i * 0.1 for i in range(1, 101)]
         mock_time_it.return_value = mock_time_it_instance
 
         original_image = MagicMock(spec=Image.Image)
@@ -403,18 +401,18 @@ class TestProcessor:
         processor.reader = mock_reader
 
         mock_match1 = MagicMock(distance=0.5)
-        mock_match2 = MagicMock(distance=0.1) # Best match
-        processor.find_single = MagicMock(side_effect=[
-            ("text1", mock_match1),
-            ("text2", mock_match2),
-            ("text3", MagicMock(distance=0.3)),
-            ("text4", MagicMock(distance=0.4)),
-        ])
+        mock_match2 = MagicMock(distance=0.1)  # Best match
+        processor.find_single = MagicMock(
+            side_effect=[
+                ("text1", mock_match1),
+                ("text2", mock_match2),
+                ("text3", MagicMock(distance=0.3)),
+                ("text4", MagicMock(distance=0.4)),
+            ]
+        )
 
         mock_time_it_instance = MagicMock()
-        mock_time_it_instance.__enter__.return_value.get_partial.side_effect = [
-            i * 0.1 for i in range(1, 101)
-        ]
+        mock_time_it_instance.__enter__.return_value.get_partial.side_effect = [i * 0.1 for i in range(1, 101)]
         mock_time_it.return_value = mock_time_it_instance
 
         original_image = MagicMock(spec=Image.Image)
@@ -428,7 +426,7 @@ class TestProcessor:
         assert result.match == mock_match2
         assert result.angle == 90
         assert result.psm == 11
-        assert result.time == "2s" # Final time
+        assert result.time == "2s"  # Final time
 
     @patch("hope_ocr.ocr.engine.time_it")
     @patch("hope_ocr.ocr.engine.format_elapsed_time", return_value="2s")
@@ -447,18 +445,18 @@ class TestProcessor:
         processor.reader = mock_reader
 
         mock_match1 = MagicMock(distance=0.5)
-        mock_match2 = MagicMock(distance=0.0) # Zero distance, should stop
-        processor.find_single = MagicMock(side_effect=[
-            ("text1", mock_match1),
-            ("text2", mock_match2),
-            ("text3", MagicMock(distance=0.3)), # Added
-            ("text4", MagicMock(distance=0.4)), # Added
-        ])
+        mock_match2 = MagicMock(distance=0.0)  # Zero distance, should stop
+        processor.find_single = MagicMock(
+            side_effect=[
+                ("text1", mock_match1),
+                ("text2", mock_match2),
+                ("text3", MagicMock(distance=0.3)),  # Added
+                ("text4", MagicMock(distance=0.4)),  # Added
+            ]
+        )
 
         mock_time_it_instance = MagicMock()
-        mock_time_it_instance.__enter__.return_value.get_partial.side_effect = [
-            i * 0.1 for i in range(1, 101)
-        ]
+        mock_time_it_instance.__enter__.return_value.get_partial.side_effect = [i * 0.1 for i in range(1, 101)]
         mock_time_it.return_value = mock_time_it_instance
 
         original_image = MagicMock(spec=Image.Image)
@@ -474,7 +472,7 @@ class TestProcessor:
         assert result.psm == 11
         assert result.time == "2s"
 
-        assert processor.find_single.call_count == 2 # Only two calls before stopping
+        assert processor.find_single.call_count == 2  # Only two calls before stopping
 
     @patch("hope_ocr.ocr.engine.time_it")
     @patch("hope_ocr.ocr.engine.format_elapsed_time", return_value="1s")
@@ -546,15 +544,13 @@ class TestProcessor:
 
     @patch("hope_ocr.ocr.engine.time_it")
     @patch("hope_ocr.ocr.engine.format_elapsed_time", return_value="1s")
-    def test_processor_process_success(
-        self, mock_format_elapsed_time, mock_time_it, mock_ts_config, mock_cv2_config
-    ):
+    def test_processor_process_success(self, mock_format_elapsed_time, mock_time_it, mock_ts_config, mock_cv2_config):
         processor = Processor(mock_ts_config, mock_cv2_config)
 
         mock_loader = MagicMock()
         mock_loader.__class__.__name__ = "TestLoader"
-        mock_loader.load.return_value = MagicMock(spec=Image.Image) # Mock loaded image
-        mock_loader.load.return_value.rotate.return_value = MagicMock(spec=Image.Image) # Mock rotated image
+        mock_loader.load.return_value = MagicMock(spec=Image.Image)  # Mock loaded image
+        mock_loader.load.return_value.rotate.return_value = MagicMock(spec=Image.Image)  # Mock rotated image
         processor.loaders = [mock_loader]
 
         mock_reader = MagicMock()
@@ -592,7 +588,7 @@ class TestProcessor:
         mock_loader.__class__.__name__ = "TestLoader"
         mock_loaded_image = MagicMock(spec=Image.Image)
         mock_rotated_image = MagicMock(spec=Image.Image)
-        mock_loaded_image.rotate.return_value = mock_rotated_image # Mock rotate method
+        mock_loaded_image.rotate.return_value = mock_rotated_image  # Mock rotate method
         mock_loader.load.return_value = mock_loaded_image
         processor.loaders = [mock_loader]
 
@@ -613,7 +609,7 @@ class TestProcessor:
         result = results[0]
         assert isinstance(result, ScanEntryInfo)
         assert result.loader == "TestLoader"
-        assert result.text == mock_reader.extract.return_value # Changed this line
+        assert result.text == mock_reader.extract.return_value  # Changed this line
         assert result.error == ""
         assert result.time == "0.7s"
 
@@ -630,7 +626,7 @@ class TestProcessor:
 
         mock_loader = MagicMock()
         mock_loader.__class__.__name__ = "TestLoader"
-        mock_loader.load.side_effect = InvalidImageError("Broken image") # Mock load to raise error
+        mock_loader.load.side_effect = InvalidImageError("Broken image")  # Mock load to raise error
         processor.loaders = [mock_loader]
 
         mock_reader = MagicMock()

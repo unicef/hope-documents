@@ -64,9 +64,7 @@ def test_extract_command(mock_processor, mock_scanner, tmp_path):
     image_file.touch()
 
     mock_scanner.return_value.files = [str(image_file)]
-    mock_processor.return_value.process.return_value = [
-        MagicMock(text="extracted text", error="")
-    ]
+    mock_processor.return_value.process.return_value = [MagicMock(text="extracted text", error="")]
 
     result = runner.invoke(cli, ["extract", str(image_file)])
     assert result.exit_code == 0
@@ -109,9 +107,7 @@ def test_report_command(
     image_mock.size = (100, 100)
     mock_get_image.return_value = image_mock
 
-    result = runner.invoke(
-        cli, ["report", str(image_file), "--expectations", str(expectations_file)]
-    )
+    result = runner.invoke(cli, ["report", str(image_file), "--expectations", str(expectations_file)])
     assert result.exit_code == 0
     assert mock_write_report.called
 
@@ -143,8 +139,6 @@ def test_inspect_command(
     mock_get_image.return_value = MagicMock()
     mock_get_image.return_value.getexif.return_value = {}
 
-    result = runner.invoke(
-        cli, ["inspect", str(image_file), "--expectations", str(expectations_file)]
-    )
+    result = runner.invoke(cli, ["inspect", str(image_file), "--expectations", str(expectations_file)])
     assert result.exit_code == 0
     assert mock_write_report.called
