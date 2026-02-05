@@ -151,7 +151,7 @@ class Command(BaseCommand):
             echo("Setup base security")
             echo("Upgrade completed", style_func=self.style.SUCCESS)
         except ValidationError as e:  # pragma: no cover
-            self.halt(Exception("\n- ".join(["Wrong argument(s):", *e.messages])))
+            self.halt(ValidationError(f"Wrong argument(s):\n- {'\n- '.join(e.messages)}"))
         except Exception as e:  # pragma: no cover
             self.stdout.write(str(e), style_func=self.style.ERROR)
             logger.exception(e)
