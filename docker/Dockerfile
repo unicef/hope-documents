@@ -11,6 +11,12 @@ RUN set -x \
     libmagic1 \
     libxml2 \
     libldap-2.5-0 \
+    libglib2.0-0 \
+    libglib2.0-bin \
+    libglib2.0-data \
+    libgl1 \
+    libxcb1 \
+    libx11-6 \
   " \
   && buildDeps=" \
 wget \
@@ -71,6 +77,12 @@ RUN uv venv $VIRTUAL_ENV \
     && uv sync --frozen --no-editable
 
 FROM base_os AS dist
+
+RUN apt-get update && apt-get install -y \
+    tesseract-ocr \
+    libtesseract-dev \
+ && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 ADD docker/conf /conf/
 ADD docker/bin/* /usr/local/bin/
 
@@ -100,6 +112,6 @@ LABEL org.opencontainers.image.description="Hope Payment Gateway"
 LABEL org.opencontainers.image.licenses="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/${SOURCE_COMMIT:-master}/LICENSE"
 LABEL org.opencontainers.image.revision=$GIT_SHA
 LABEL org.opencontainers.image.source="https://github.com/unicef/hope-documents/tree/${GIT_SHA:-develop}/"
-LABEL org.opencontainers.image.title="Hope Payment Gateway"
+LABEL org.opencontainers.image.title="Hope Documents"
 LABEL org.opencontainers.image.version="$VERSION"
 LABEL org.opencontainers.image.vendor="UNICEF"

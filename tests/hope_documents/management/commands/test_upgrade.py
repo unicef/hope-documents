@@ -98,7 +98,7 @@ def test_handle_all_options_true_no_admin(
             call("check", deploy=True, verbosity=0),
             call("collectstatic", no_input=True, verbosity=0, stdout=command.stdout),
             call("migrate", no_input=True, verbosity=0, stdout=command.stdout),
-            call("create_extra_permissions", no_input=True, verbosity=0, stdout=command.stdout),
+            call("create_extra_permissions"),
             call("remove_stale_contenttypes", no_input=True, verbosity=0, stdout=command.stdout),
         ]
     )
@@ -243,7 +243,7 @@ def test_handle_verbosity_zero(
             call("check", deploy=True, verbosity=-1),  # verbosity-1 is -1 when verbosity is 0
             call("collectstatic", no_input=True, verbosity=-1, stdout=command.stdout),
             call("migrate", no_input=True, verbosity=-1, stdout=command.stdout),
-            call("create_extra_permissions", no_input=True, verbosity=-1, stdout=command.stdout),
+            call("create_extra_permissions"),
             call("remove_stale_contenttypes", no_input=True, verbosity=-1, stdout=command.stdout),
         ]
     )

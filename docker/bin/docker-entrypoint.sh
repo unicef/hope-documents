@@ -6,6 +6,8 @@ export STATIC_ROOT="${STATIC_ROOT:-/var/run/app/static}"
 export UWSGI_PROCESSES="${UWSGI_PROCESSES:-"4"}"
 export DJANGO_SETTINGS_MODULE="hope_documents.config.settings"
 
+mkdir -p /var/run ${MEDIA_ROOT} ${STATIC_ROOT}
+
 chown -R hope:unicef /var
 
 case "$1" in

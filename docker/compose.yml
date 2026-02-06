@@ -13,9 +13,6 @@ x-env: &env
     - DJANGO_SETTINGS_MODULE=hope_documents.config.settings
     - FERNET_KEY=123
     - LOGGING_LEVEL=DEBUG
-    - POSTGRES_DB=auroora
-    - POSTGRES_HOST_AUTH_METHOD=trust
-    - POSTGRES_USER=postgres
     - SECRET_KEY=super-secret-key-just-for-testing
     - SESSION_COOKIE_DOMAIN=http://localhost:8000
     - SOCIAL_AUTH_REDIRECT_IS_HTTPS=False
@@ -34,16 +31,23 @@ services:
       timeout: 5s
       retries: 5
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   db:
     image: postgres:16
-    <<: [ *env ]
     restart: always
     platform: linux/amd64
+    environment:
+      POSTGRES_DB: hope_documents
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "postgres", "-d", "auroora" ]
+      test: [ "CMD", "pg_isready", "-U", "postgres", "-d", "hope_documents" ]
       start_period: 5s
       start_interval: 1s
       interval: 5s
@@ -55,3 +59,6 @@ services:
     platform: linux/amd64
     <<: [ *env ]
     restart: always
+
+volumes:
+  postgres_data:
