@@ -11,6 +11,7 @@ PROJECT_DIR = SOURCE_DIR.parent
 ALLOWED_HOSTS = ["*"]
 INSTALLED_APPS = [
     # Default apps:
+    "unicef_security",
     "hope_documents.apps.Config",
     "hope_documents.api",
     "hope_documents.modules.security",
