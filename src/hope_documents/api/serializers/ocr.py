@@ -9,11 +9,7 @@ class ExtractSerializer(serializers.Serializer):
         help_text="Pattern to search, if blank will perform analysis", default="", required=False
     )
     threshold = serializers.IntegerField(
-        help_text="cv2 threshold [0..255]",
-        default=128,
-        required=False,
-        min_value=0,
-        max_value=255
+        help_text="cv2 threshold [0..255]", default=128, required=False, min_value=0, max_value=255
     )
     mode = serializers.ChoiceField(
         help_text="Modality: Best, First, All", default=MatchMode.FIRST.name, choices=MatchMode.choices()
@@ -27,7 +23,7 @@ class ExtractSerializer(serializers.Serializer):
         default=11,
         initial=11,
         required=False,
-        allow_null=False
+        allow_null=False,
     )
     oem = serializers.ChoiceField(
         choices=OcrEngineMode.choices(),
@@ -35,5 +31,5 @@ class ExtractSerializer(serializers.Serializer):
         default=OcrEngineMode.DEFAULT.value,
         initial=OcrEngineMode.DEFAULT.value,
         required=False,
-        allow_null=False
+        allow_null=False,
     )
