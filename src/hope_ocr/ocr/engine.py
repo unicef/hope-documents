@@ -112,6 +112,23 @@ class MatchMode(Enum):
         return tuple((i.value, i.name) for i in cls)
 
 
+class OcrEngineMode(Enum):
+    LEGACY = 0
+    LSTM = 1
+    BOTH = 2
+    DEFAULT = 3
+
+    @classmethod
+    def choices(cls) -> tuple:
+        labels = {
+            cls.LEGACY: "Legacy engine only",
+            cls.LSTM: "Neural nets LSTM only",
+            cls.BOTH: "Legacy + LSTM",
+            cls.DEFAULT: "Default (based on what is available)",
+        }
+        return tuple((i.value, labels[i]) for i in cls)
+
+
 class Processor:
     def __init__(self, ts_config: TSConfig, cv2_config: CV2Config, loaders: list[type[Loader]] | None = None) -> None:
         self.loader_classes = loaders or [

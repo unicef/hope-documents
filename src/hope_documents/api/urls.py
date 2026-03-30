@@ -16,13 +16,13 @@ router.register(r"groups", GroupViewSet, basename="group")
 
 
 urlpatterns = [
-    path("schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("rest/", SpectacularAPIView.as_view(), name="schema"),
     path(
-        "schema/swagger-ui/",
+        "rest/swagger/",
         SpectacularSwaggerView.as_view(url_name="schema"),
-        name="swagger-ui",
+        name="swagger",
     ),
-    path("schema/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    path("rest/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
     path("upload/", ExtractView.as_view(), name="file-upload"),
     path("", include(router.urls)),
 ]
