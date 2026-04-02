@@ -13,9 +13,9 @@ def setting(anchor: str) -> str:
 DEFAULTS = {
     "ADMIN_EMAIL": (str, "", "admin", True, "Initial user created at first deploy"),
     "ADMIN_PASSWORD": (str, "", "", True, "Password for initial user created at first deploy"),
-    "AZURE_CLIENT_KEY": (str, ""),
+    "AZURE_CLIENT_ID": (str, ""),
     "AZURE_CLIENT_SECRET": (str, ""),
-    "AZURE_TENANT_ID": (str, ""),
+    "AZURE_TENANT_KEY": (str, ""),
     "ALLOWED_HOSTS": (list, [], ["127.0.0.1", "localhost"], True, setting("allowed-hosts")),
     "ANYMAIL_IGNORE_RECIPIENT_STATUS": (
         bool,
