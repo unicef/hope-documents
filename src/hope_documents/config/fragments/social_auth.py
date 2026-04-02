@@ -1,3 +1,9 @@
+from .. import env
+
+AZURE_CLIENT_ID = env("AZURE_CLIENT_ID")
+AZURE_CLIENT_SECRET = env("AZURE_CLIENT_SECRET")
+AZURE_TENANT_KEY = env("AZURE_TENANT_KEY")
+
 SOCIAL_AUTH_ADMIN_USER_SEARCH_FIELDS = [
     "username",
     "first_name",
