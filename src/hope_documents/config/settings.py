@@ -219,6 +219,7 @@ TEMPLATES = [
                 "django.template.context_processors.tz",
                 "social_django.context_processors.backends",
                 "social_django.context_processors.login_redirect",
+                "unicef_security.context_processors.current_state",
             ],
         },
     },
