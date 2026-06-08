@@ -2,18 +2,17 @@ import os
 from typing import Any
 
 from PIL import Image
+from hope_api_auth.views import TokenRequiredView
 from rest_framework import request, serializers, status
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from hope_documents.api.serializers.ocr import ExtractSerializer
+from hope_documents.grants import Grant
 from hope_ocr.ocr.engine import CV2Config, MatchMode, Processor, TSConfig
 
 
 class OCRView(APIView):
-    permission_classes = (IsAuthenticated,)
-
     @classmethod
     def _set_params(cls, serializer: serializers.Serializer) -> dict[str, Any]:
         params: dict[str, Any] = {}
@@ -30,8 +29,9 @@ class OCRView(APIView):
         return params
 
 
-class ExtractView(OCRView):
+class ExtractView(OCRView, TokenRequiredView):
     serializer_class = ExtractSerializer
+    permission = Grant.API_OCR_EXTRACT
 
     def post(self, request: request.Request, *args: Any, **kwargs: Any) -> Response:
         serializer = self.serializer_class(data=request.data)
