@@ -8,19 +8,11 @@ from rest_framework.test import APIClient
 from hope_documents.grants import Grant
 
 
-@pytest.fixture
-def token_client():
-    token = APITokenFactory(grants=[Grant.API_PLAN_MANAGE.value])
-    client = APIClient()
-    client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
-    return client
-
-
 @pytest.mark.django_db
-def test_list_groups(token_client):
+def test_list_groups(plan_manage_token_client):
     GroupFactory.create_batch(3)
     url = reverse("api:group-list")
-    response = token_client.get(url)
+    response = plan_manage_token_client.get(url)
     assert response.status_code == status.HTTP_200_OK
 
 
