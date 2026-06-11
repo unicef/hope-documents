@@ -13,7 +13,7 @@ def test_api_root_unauthenticated():
     response = client.get(url)
 
     assert response.status_code == 401
-    assert response.json() == {}
+    assert response.json() == {"detail": "Authentication credentials were not provided."}
 
 
 @pytest.mark.django_db

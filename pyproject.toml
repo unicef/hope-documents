@@ -48,7 +48,7 @@ dependencies = [
   "djangorestframework",
   "drf-spectacular",
   "drf-spectacular-sidecar",
-  "hope-api-auth",
+  "hope-api-auth==0.1.1",
   "humanize>=4.14",
   "jinja2>=3.1.6",
   "matplotlib>=3.10.7",
