@@ -626,6 +626,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/02/09/f510713bb0d7f539b320579e2432d9aa8c02a7561bb9e3cdd37c658427d8/django-regex-0.5.0.tar.gz", hash = "sha256:6af1add11ae5232f133a42754c9291f9113996b1294b048305d9f1a427bca27c", size = 26248, upload-time = "2022-03-30T22:46:45.859Z" }
 
 [[package]]
+name = "django-smart-admin"
+version = "3.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django-admin-extra-buttons" },
+    { name = "django-adminfilters" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3a/a3/03cff8509b92ec28e82d0bdd9c9414fad8bcbfd2bbada908d28f99332c75/django_smart_admin-3.1.tar.gz", hash = "sha256:b412c540b54832ec3f368891c5301b0740f8cf299c5334e7902120fda41f6f59", size = 26104, upload-time = "2026-03-31T08:28:00.227Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/97/09/71ae13f463574a38c697c50a723b79782e3d5baa1c8f94004183bc4bd5e5/django_smart_admin-3.1-py3-none-any.whl", hash = "sha256:efe4997682cabca1ea212017619614cfb3fa2aee999089602809e503cd01bad4", size = 47902, upload-time = "2026-03-31T08:27:59.107Z" },
+]
+
+[[package]]
 name = "django-smart-env"
 version = "1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -872,6 +885,24 @@ wheels = [
 ]
 
 [[package]]
+name = "hope-api-auth"
+version = "0.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "django-admin-extra-buttons" },
+    { name = "django-adminfilters" },
+    { name = "django-smart-admin" },
+    { name = "djangorestframework" },
+    { name = "psycopg2-binary" },
+    { name = "swapper" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2d/34/43feb73012bbf6008b99398b4bbcea0df88b3a57dd8b9d2e0fff4c964d3b/hope_api_auth-0.1.1.tar.gz", hash = "sha256:59fc5f99ae354dabea3642dd963227dd07bc1c026eae422ccffbfa6acbce6be9", size = 5908, upload-time = "2026-06-10T14:55:21.823Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/30/da/eae5ff52bb0def1caadc7f42566219a37a1c7f0fc80470c189fc564226d4/hope_api_auth-0.1.1-py2.py3-none-any.whl", hash = "sha256:2eda8bb1bcccf897ed5b1b3d0b805147939a66a9b12966b1ce9ed98d33a9f9a1", size = 8215, upload-time = "2026-06-10T14:55:20.768Z" },
+]
+
+[[package]]
 name = "hope-documents"
 source = { editable = "." }
 dependencies = [
@@ -889,12 +920,14 @@ dependencies = [
     { name = "django-filter" },
     { name = "django-flags" },
     { name = "django-regex" },
+    { name = "django-smart-admin" },
     { name = "django-smart-env" },
     { name = "django-streaming" },
     { name = "django-unfold" },
     { name = "djangorestframework" },
     { name = "drf-spectacular" },
     { name = "drf-spectacular-sidecar" },
+    { name = "hope-api-auth" },
     { name = "humanize" },
     { name = "jinja2" },
     { name = "matplotlib" },
@@ -979,12 +1012,14 @@ requires-dist = [
     { name = "django-filter" },
     { name = "django-flags" },
     { name = "django-regex", specifier = ">=0.5" },
+    { name = "django-smart-admin" },
     { name = "django-smart-env" },
     { name = "django-streaming", specifier = ">=0.8" },
     { name = "django-unfold" },
     { name = "djangorestframework" },
     { name = "drf-spectacular" },
     { name = "drf-spectacular-sidecar" },
+    { name = "hope-api-auth", specifier = "==0.1.1" },
     { name = "humanize", specifier = ">=4.14" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "matplotlib", specifier = ">=3.10.7" },
@@ -2620,6 +2655,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/e0/de/a0c3d1244912c260638f0f925e190e493ccea37ecaea9bbad7c14413b803/super_collections-0.6.2.tar.gz", hash = "sha256:0c8d8abacd9fad2c7c1c715f036c29f5db213f8cac65f24d45ecba12b4da187a", size = 31315, upload-time = "2025-09-30T00:37:08.067Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/17/43/47c7cf84b3bd74a8631b02d47db356656bb8dff6f2e61a4c749963814d0d/super_collections-0.6.2-py3-none-any.whl", hash = "sha256:291b74d26299e9051d69ad9d89e61b07b6646f86a57a2f5ab3063d206eee9c56", size = 16173, upload-time = "2025-09-30T00:37:07.104Z" },
+]
+
+[[package]]
+name = "swapper"
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9b/3b/98ea1cfc04dc9805d58c5a96dd006f5d88a5a32b7b05e1f5a1c00363bb9a/swapper-1.4.0.tar.gz", hash = "sha256:9e083af114ee0593241a7b877e3e0e7d3a580454f5d59016c667a5563306f8fe", size = 12668, upload-time = "2024-08-14T19:36:07.539Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e9/53/c59363308ef97507a680372471e25e1ebab2e706a45a7c416eea6474c928/swapper-1.4.0-py2.py3-none-any.whl", hash = "sha256:57b8378aad234242542fe32dc6e8cff0ed24b63493d20b3c88ee01f894b9345e", size = 7106, upload-time = "2024-08-14T19:36:06.247Z" },
 ]
 
 [[package]]

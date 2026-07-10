@@ -3,10 +3,11 @@
 
 export MEDIA_ROOT="${MEDIA_ROOT:-/var/run/app/media}"
 export STATIC_ROOT="${STATIC_ROOT:-/var/run/app/static}"
+export MPLCONFIGDIR="${MPLCONFIGDIR:-/var/run/app/.matplotlib}"
 export UWSGI_PROCESSES="${UWSGI_PROCESSES:-"4"}"
 export DJANGO_SETTINGS_MODULE="hope_documents.config.settings"
 
-mkdir -p /var/run ${MEDIA_ROOT} ${STATIC_ROOT}
+mkdir -p /var/run ${MEDIA_ROOT} ${STATIC_ROOT} ${MPLCONFIGDIR}
 
 chown -R hope:unicef /var
 

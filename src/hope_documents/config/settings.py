@@ -12,6 +12,7 @@ ALLOWED_HOSTS = ["*"]
 INSTALLED_APPS = [
     # Default apps:
     "unicef_security",
+    "hope_api_auth",
     "hope_documents.apps.Config",
     "hope_documents.api",
     "hope_documents.modules.security",
@@ -32,6 +33,7 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.postgres",
     "django.forms",
     # security
     "csp",

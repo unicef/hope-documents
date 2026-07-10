@@ -4,13 +4,13 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
+from rest_framework.routers import DefaultRouter
 
-from .router import Router
 from .viewsets import ExtractView, GroupViewSet, UserViewSet
 
 app_name = "api"
 
-router = Router()
+router = DefaultRouter()
 router.register(r"users", UserViewSet, basename="user")
 router.register(r"groups", GroupViewSet, basename="group")
 
