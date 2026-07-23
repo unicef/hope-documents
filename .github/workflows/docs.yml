@@ -59,7 +59,7 @@ jobs:
       PYTHONPATH: src/
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
       - run: pip install tox
       - name: Check Python Package structure
         run: tox -e docs -- -d docs-output
