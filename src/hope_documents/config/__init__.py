@@ -223,7 +223,7 @@ DEFAULTS = {
         False,
         "The root directory for static files.",
     ),
-    "STREAMING_BROKER_URL": (str, "", "", False, "The URL of the streaming broker."),
+    "STREAMING_BROKER_URL": (str, "console://", "console://", False, "The URL of the streaming broker."),
     "SUPERUSERS": (
         list,
         [],

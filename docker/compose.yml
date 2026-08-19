@@ -13,6 +13,7 @@ x-env: &env
     - DJANGO_SETTINGS_MODULE=hope_documents.config.settings
     - FERNET_KEY=123
     - FILE_STORAGE_HOPE=storages.backends.azure_storage.AzureStorage?azure_container=hope&connection_string=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+    - STREAMING_BROKER_URL=rabbit://guest:guest@rabbitmq:5672/?vhost=/&exchange=hope_live
     - LOGGING_LEVEL=DEBUG
     - SECRET_KEY=super-secret-key-just-for-testing
     - SESSION_COOKIE_DOMAIN=http://localhost:8000
@@ -37,6 +38,8 @@ services:
       redis:
         condition: service_started
       azurite:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   azurite:
@@ -76,6 +79,53 @@ services:
     platform: linux/amd64
     <<: [ *env ]
     restart: always
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      start_period: 10s
+      start_interval: 1s
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    image: unicef/hope_documents:local
+    <<: [ *env ]
+    platform: linux/amd64
+    command: "worker"
+    volumes:
+      - ./bin/docker-entrypoint.sh:/usr/local/bin/docker-entrypoint.sh:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      azurite:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  stream_listener:
+    image: unicef/hope_documents:local
+    <<: [ *env ]
+    platform: linux/amd64
+    command: "streaming"
+    volumes:
+      - ./bin/docker-entrypoint.sh:/usr/local/bin/docker-entrypoint.sh:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
 
 volumes:
   postgres_data:
