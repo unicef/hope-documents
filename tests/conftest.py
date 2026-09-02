@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -13,6 +14,9 @@ sys.path.insert(0, str(here / "_extras"))
 
 
 def pytest_configure(config):
+    os.environ.setdefault("STREAMING_BROKER_URL", "console://")
+    os.environ.setdefault("CELERY_TASK_ALWAYS_EAGER", "1")
+    os.environ["FILE_STORAGE_HOPE"] = "django.core.files.storage.FileSystemStorage?location=./~tests/storage/hope"
     for silenced in ["faker", "PIL", "matplotlib", "pytesseract", "factory"]:
         logger = logging.getLogger(silenced)
         logger.handlers.clear()
