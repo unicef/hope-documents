@@ -10,5 +10,9 @@ from hope_documents.stream.publish import OCR_RESULT_ROUTING_KEY, publish
 def process_ocr_batch(payload: dict[str, Any]) -> dict[str, Any]:
     """OCR every document in a batch and publish ocr.result."""
     result = run_ocr_batch(payload)
-    publish(OCR_RESULT_ROUTING_KEY, result)
+    if not publish(OCR_RESULT_ROUTING_KEY, result):
+        raise RuntimeError(
+            f"ocr.result: publish failed correlation_id={result.get('correlation_id')} "
+            f"batch_id={result.get('batch_id')}"
+        )
     return result

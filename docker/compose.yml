@@ -19,14 +19,22 @@ x-env: &env
     - SESSION_COOKIE_DOMAIN=http://localhost:8000
     - SOCIAL_AUTH_REDIRECT_IS_HTTPS=False
 
+x-app: &app
+  image: unicef/hope_documents:local
+  <<: [ *env ]
+  platform: linux/amd64
+  # Circus config + entrypoint mounted so local edits apply without rebuild
+  volumes:
+    - ./bin/docker-entrypoint.sh:/usr/local/bin/docker-entrypoint.sh:ro
+    - ./bin/run-uwsgi.sh:/usr/local/bin/run-uwsgi.sh:ro
+    - ./conf:/conf:ro
+
 services:
   app:
-    image: unicef/hope_documents:local
-    <<: [ *env ]
+    <<: *app
     ports:
       - 8000:8000
-    platform: linux/amd64
-    command: "run"
+    command: ["web"]
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/healthcheck" ]
       interval: 10s
@@ -95,12 +103,8 @@ services:
       retries: 10
 
   worker:
-    image: unicef/hope_documents:local
-    <<: [ *env ]
-    platform: linux/amd64
-    command: "worker"
-    volumes:
-      - ./bin/docker-entrypoint.sh:/usr/local/bin/docker-entrypoint.sh:ro
+    <<: *app
+    command: ["worker"]
     depends_on:
       db:
         condition: service_healthy
@@ -112,17 +116,33 @@ services:
         condition: service_healthy
 
   stream_listener:
-    image: unicef/hope_documents:local
-    <<: [ *env ]
-    platform: linux/amd64
-    command: "streaming"
-    volumes:
-      - ./bin/docker-entrypoint.sh:/usr/local/bin/docker-entrypoint.sh:ro
+    <<: *app
+    command: ["streaming"]
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    # Optional STREAM_N_* overrides, e.g.:
+    # environment:
+    #   - STREAM_1_QUEUES=hope_documents
+    #   - STREAM_1_CALLBACK=hope_documents.stream.callbacks.handle_event
+
+  # One container: web + celery + streaming
+  all-in-one:
+    <<: *app
+    ports:
+      - 8000:8000
+    command: ["web", "worker", "streaming"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      azurite:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
 

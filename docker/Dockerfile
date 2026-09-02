@@ -103,7 +103,7 @@ ENV PATH=/venv/bin:/usr/local/bin/:/usr/bin:/bin:/usr/sbin \
 
 EXPOSE 8000
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["run"]
+CMD ["web"]
 
 
 LABEL org.opencontainers.image.authors="hope@unicef.org"
