@@ -6,7 +6,7 @@ from streaming.utils import make_event
 
 logger = logging.getLogger(__name__)
 
-OCR_RESULT_ROUTING_KEY = "ocr.result"
+OCR_RESULT_ROUTING_KEY = "hcw.ocr.result"
 
 
 def publish(routing_key: str, payload: dict[str, Any]) -> bool:

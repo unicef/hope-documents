@@ -4,7 +4,9 @@ from streaming.manager import ChangeManager, initialize_engine
 from streaming.utils import check_callback, make_event
 
 from hope_documents.stream.callbacks import handle_event
-from hope_documents.stream.publish import publish
+from hope_documents.stream.publish import OCR_RESULT_ROUTING_KEY, publish
+
+OCR_REQUESTS_QUEUE = "ocr_requests"
 
 
 def test_handle_event_is_a_valid_callback():
@@ -12,7 +14,7 @@ def test_handle_event_is_a_valid_callback():
 
 
 def test_publish_succeeds_on_console_backend():
-    assert publish("ocr.result", {"hello": "hd"}) is True
+    assert publish(OCR_RESULT_ROUTING_KEY, {"hello": "hd"}) is True
 
 
 def test_engine_uses_configured_manager_class(settings):
@@ -21,11 +23,11 @@ def test_engine_uses_configured_manager_class(settings):
     assert manager.backend.client_name == settings.STREAMING["CLIENT_NAME"]
 
 
-def test_hope_documents_queue_uses_binding_keys(settings):
+def test_ocr_requests_queue_uses_binding_keys(settings):
     queues = settings.STREAMING["QUEUES"]
-    assert "binding_keys" in queues["hope_documents"]
-    assert queues["hope_documents"]["binding_keys"] == ["ocr.request"]
-    assert "routing" not in queues["hope_documents"]
+    assert "binding_keys" in queues["ocr_requests"]
+    assert queues["ocr_requests"]["binding_keys"] == ["hd.ocr.request"]
+    assert "routing" not in queues["ocr_requests"]
 
 
 @patch("hope_documents.stream.callbacks.process_ocr_batch.delay")
@@ -34,7 +36,7 @@ def test_handle_event_enqueues_task_and_does_not_run_ocr(mock_delay, request_pay
     body = make_event(request_payload).marshall()
 
     with patch("hope_documents.stream.ocr.Processor") as mock_processor:
-        assert handle_event("hope_documents", ch, method, properties, body) is True
+        assert handle_event(OCR_REQUESTS_QUEUE, ch, method, properties, body) is True
 
     mock_delay.assert_called_once_with(request_payload)
     mock_processor.assert_not_called()
@@ -45,7 +47,7 @@ def test_handle_event_acks_invalid_payload_without_enqueue(mock_delay, pika_args
     ch, method, properties = pika_args
     body = make_event({"not": "an ocr request"}).marshall()
 
-    assert handle_event("hope_documents", ch, method, properties, body) is True
+    assert handle_event(OCR_REQUESTS_QUEUE, ch, method, properties, body) is True
     mock_delay.assert_not_called()
 
 
@@ -53,7 +55,7 @@ def test_handle_event_acks_invalid_payload_without_enqueue(mock_delay, pika_args
 def test_handle_event_acks_malformed_body_without_enqueue(mock_delay, pika_args):
     ch, method, properties = pika_args
 
-    assert handle_event("hope_documents", ch, method, properties, b"not-json") is True
+    assert handle_event(OCR_REQUESTS_QUEUE, ch, method, properties, b"not-json") is True
     mock_delay.assert_not_called()
 
 
@@ -63,5 +65,5 @@ def test_handle_event_enqueues_empty_documents_batch(mock_delay, request_payload
     request_payload["documents"] = []
     body = make_event(request_payload).marshall()
 
-    assert handle_event("hope_documents", ch, method, properties, body) is True
+    assert handle_event(OCR_REQUESTS_QUEUE, ch, method, properties, body) is True
     mock_delay.assert_called_once_with(request_payload)

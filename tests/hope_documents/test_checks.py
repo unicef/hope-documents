@@ -12,14 +12,6 @@ class _BoomStorage:
         raise ValueError("bad options")
 
 
-class _FakeAzureStorage:
-    def __init__(self, **kwargs: object) -> None:
-        self.client = kwargs.get("client")
-
-
-_FakeAzureStorage.__module__ = "storages.backends.azure_storage"
-
-
 class _LazyClientAzureStorage:
     def __init__(self, **kwargs: object) -> None:
         self._client_error = kwargs["client_error"]
@@ -93,10 +85,14 @@ class _FakeAzureBlobClient:
 class _FakeAzureStorage:
     """Stand-in for AzureStorage so checks can run without calling Azure."""
 
-    __module__ = "storages.backends.azure_storage.fake"
+    __module__ = "storages.backends.azure_storage"
 
     def __init__(self, **options: object) -> None:
-        self.client = _FakeAzureBlobClient(exists_error=options.get("exists_error"))
+        client = options.get("client")
+        if client is not None:
+            self.client = client
+        else:
+            self.client = _FakeAzureBlobClient(exists_error=options.get("exists_error"))
 
 
 def test_check_hope_storage_reports_error_when_alias_not_configured(settings):

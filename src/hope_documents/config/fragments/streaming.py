@@ -11,8 +11,8 @@ STREAMING = {
     "MANAGER_CLASS": "streaming.manager.ChangeManager",
     "LISTEN_CALLBACK": "hope_documents.stream.callbacks.handle_event",
     "QUEUES": {
-        "hope_documents": {
-            "binding_keys": ["ocr.request"],
+        "ocr_requests": {
+            "binding_keys": ["hd.ocr.request"],
         },
     },
 }
