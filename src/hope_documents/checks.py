@@ -12,14 +12,64 @@ from .config import env
 logger = logging.getLogger(__name__)
 
 HOPE_STORAGE_ALIAS = "hope"
+_AZURE_NETWORK_ERROR_NAMES = frozenset(
+    {
+        "ServiceRequestError",
+        "ServiceResponseError",
+        "ServiceRequestTimeoutError",
+        "ServiceResponseTimeoutError",
+    }
+)
 
 
 def _is_azure_backend(backend: type[Any]) -> bool:
     return backend.__module__.startswith("storages.backends.azure_storage")
 
 
-def _check_hope_azure_backend(backend: type[Any], options: dict[str, Any]) -> list[CheckMessage]:
-    if not options:
+def _is_azure_network_error(exc: BaseException) -> bool:
+    if isinstance(exc, (TimeoutError, OSError)):
+        return True
+    return type(exc).__name__ in _AZURE_NETWORK_ERROR_NAMES and type(exc).__module__.startswith("azure.")
+
+
+def _probe_azure_container(storage: Any) -> list[CheckMessage]:
+    client = getattr(storage, "client", None)
+    if client is None or not hasattr(client, "exists"):
+        return []
+
+    try:
+        exists = client.exists()
+    except Exception as exc:  # noqa: BLE001
+        if _is_azure_network_error(exc):
+            return [
+                CheckWarning(
+                    f"STORAGES['hope'] could not reach Azure: {exc}",
+                    hint="A transient network issue should not block deploy; retry if it persists.",
+                    id="hope_documents.storages.W002",
+                )
+            ]
+        return [
+            Error(
+                f"STORAGES['hope'] could not connect to Azure: {exc}",
+                hint="Verify FILE_STORAGE_HOPE credentials and container name.",
+                id="hope_documents.storages.E003",
+            )
+        ]
+
+    if not exists:
+        return [
+            Error(
+                "STORAGES['hope'] Azure container does not exist.",
+                hint="Create the container or correct FILE_STORAGE_HOPE.",
+                id="hope_documents.storages.E003",
+            )
+        ]
+    return []
+
+
+def _check_hope_backend(backend: type[Any], options: dict[str, Any]) -> list[CheckMessage]:
+    is_azure = _is_azure_backend(backend)
+    if is_azure and not options:
         return [
             Error(
                 "STORAGES['hope'] uses AzureStorage but has empty OPTIONS.",
@@ -30,18 +80,25 @@ def _check_hope_azure_backend(backend: type[Any], options: dict[str, Any]) -> li
 
     try:
         storage = backend(**options)
-        client = getattr(storage, "client", None)
-        if client is not None and hasattr(client, "exists"):
-            client.exists()
     except Exception as exc:  # noqa: BLE001
         return [
             Error(
-                f"STORAGES['hope'] could not connect to Azure: {exc}",
-                hint="Verify FILE_STORAGE_HOPE credentials, container name, and network access.",
-                id="hope_documents.storages.E003",
+                f"STORAGES['hope'] could not be constructed: {exc}",
+                hint="Verify BACKEND and OPTIONS for STORAGES['hope'].",
+                id="hope_documents.storages.E005",
             )
         ]
-    return []
+
+    if is_azure:
+        return _probe_azure_container(storage)
+
+    return [
+        CheckWarning(
+            "STORAGES['hope'] is not backed by Azure blob storage.",
+            hint="Set FILE_STORAGE_HOPE to storages.backends.azure_storage.AzureStorage in deployed environments.",
+            id="hope_documents.storages.W001",
+        )
+    ]
 
 
 @register(deploy=True)
@@ -70,27 +127,7 @@ def check_hope_storage(*args: Any, **kwargs: Any) -> list[CheckMessage]:
             )
         ]
 
-    if _is_azure_backend(backend):
-        return _check_hope_azure_backend(backend, options)
-
-    try:
-        backend(**options)
-    except Exception as exc:  # noqa: BLE001
-        return [
-            Error(
-                f"STORAGES['hope'] could not be constructed: {exc}",
-                hint="Verify BACKEND and OPTIONS for STORAGES['hope'].",
-                id="hope_documents.storages.E005",
-            )
-        ]
-
-    return [
-        CheckWarning(
-            "STORAGES['hope'] is not backed by Azure blob storage.",
-            hint="Set FILE_STORAGE_HOPE to storages.backends.azure_storage.AzureStorage in deployed environments.",
-            id="hope_documents.storages.W001",
-        )
-    ]
+    return _check_hope_backend(backend, options)
 
 
 @register(deploy=True)
