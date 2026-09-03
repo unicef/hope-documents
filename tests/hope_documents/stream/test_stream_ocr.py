@@ -7,6 +7,7 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage
 
 from hope_documents.stream.ocr import hope_storage, process_document, run_ocr_batch
+from hope_documents.stream.publish import OCR_RESULT_ROUTING_KEY
 from hope_documents.stream.tasks import process_ocr_batch
 from hope_ocr.ocr.diff import Match
 from hope_ocr.ocr.engine import SearchInfo
@@ -43,7 +44,7 @@ def test_process_ocr_batch_copies_envelope_and_publishes(mock_process_document, 
             "error": None,
         }
     ]
-    mock_publish.assert_called_once_with("ocr.result", result)
+    mock_publish.assert_called_once_with(OCR_RESULT_ROUTING_KEY, result)
 
 
 @patch("hope_documents.stream.ocr._open_image")
@@ -109,7 +110,7 @@ def test_empty_batch_publishes_empty_documents(mock_publish, request_payload):
 
     assert result["documents"] == []
     assert result["correlation_id"] == "corr-1"
-    mock_publish.assert_called_once_with("ocr.result", result)
+    mock_publish.assert_called_once_with(OCR_RESULT_ROUTING_KEY, result)
 
 
 @patch("hope_documents.stream.ocr.process_document")
