@@ -33,11 +33,11 @@ def _is_azure_network_error(exc: BaseException) -> bool:
 
 
 def _probe_azure_container(storage: Any) -> list[CheckMessage]:
-    client = getattr(storage, "client", None)
-    if client is None or not hasattr(client, "exists"):
-        return []
-
     try:
+        # AzureStorage.client is lazy and can raise on invalid config.
+        client = getattr(storage, "client", None)
+        if client is None or not hasattr(client, "exists"):
+            return []
         exists = client.exists()
     except Exception as exc:  # noqa: BLE001
         if _is_azure_network_error(exc):

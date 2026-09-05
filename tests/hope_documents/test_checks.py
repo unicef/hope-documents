@@ -20,6 +20,18 @@ class _FakeAzureStorage:
 _FakeAzureStorage.__module__ = "storages.backends.azure_storage"
 
 
+class _LazyClientAzureStorage:
+    def __init__(self, **kwargs: object) -> None:
+        self._client_error = kwargs["client_error"]
+
+    @property
+    def client(self) -> None:
+        raise self._client_error
+
+
+_LazyClientAzureStorage.__module__ = "storages.backends.azure_storage"
+
+
 def test_check_dirs_both_exist(tmp_path):
     """Test check_dirs when both MEDIA_ROOT and STATIC_ROOT exist."""
     media_root = tmp_path / "media"
@@ -182,3 +194,26 @@ def test_check_hope_storage_azure_without_client():
         override_settings(STORAGES=_hope_storages("azure", {"account_name": "dev"})),
     ):
         assert check_hope_storage() == []
+
+
+def test_check_hope_storage_azure_lazy_client_config_error():
+    with (
+        patch("hope_documents.checks.import_string", return_value=_LazyClientAzureStorage),
+        override_settings(STORAGES=_hope_storages("azure", {"client_error": ValueError("invalid account")})),
+    ):
+        errors = check_hope_storage()
+    assert len(errors) == 1
+    assert isinstance(errors[0], Error)
+    assert errors[0].id == "hope_documents.storages.E003"
+    assert "invalid account" in errors[0].msg
+
+
+def test_check_hope_storage_azure_lazy_client_network_error():
+    with (
+        patch("hope_documents.checks.import_string", return_value=_LazyClientAzureStorage),
+        override_settings(STORAGES=_hope_storages("azure", {"client_error": ConnectionError("timed out")})),
+    ):
+        messages = check_hope_storage()
+    assert len(messages) == 1
+    assert isinstance(messages[0], CheckWarning)
+    assert messages[0].id == "hope_documents.storages.W002"
