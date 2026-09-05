@@ -23,8 +23,9 @@ help:
 
 
 build: ## build docker image
-	@cd .. && uv build
-	DOCKER_BUILDKIT=1 cd .. && docker build \
+	cd ..
+	uv build
+	DOCKER_BUILDKIT=1 docker build \
 			--progress=plain \
 			--build-arg VERSION=${VERSION} \
 			--build-arg GIT_SHA=${SOURCE_COMMIT} \

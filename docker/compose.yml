@@ -12,19 +12,29 @@ x-env: &env
     - DJANGO_ADMIN_URL=admin/
     - DJANGO_SETTINGS_MODULE=hope_documents.config.settings
     - FERNET_KEY=123
+    - FILE_STORAGE_HOPE=storages.backends.azure_storage.AzureStorage?azure_container=hope&connection_string=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+    - STREAMING_BROKER_URL=rabbit://guest:guest@rabbitmq:5672/?vhost=/&exchange=hope_live
     - LOGGING_LEVEL=DEBUG
     - SECRET_KEY=super-secret-key-just-for-testing
     - SESSION_COOKIE_DOMAIN=http://localhost:8000
     - SOCIAL_AUTH_REDIRECT_IS_HTTPS=False
 
+x-app: &app
+  image: unicef/hope_documents:local
+  <<: [ *env ]
+  platform: linux/amd64
+  # Circus config + entrypoint mounted so local edits apply without rebuild
+  volumes:
+    - ./bin/docker-entrypoint.sh:/usr/local/bin/docker-entrypoint.sh:ro
+    - ./bin/run-uwsgi.sh:/usr/local/bin/run-uwsgi.sh:ro
+    - ./conf:/conf:ro
+
 services:
   app:
-    image: unicef/hope_documents:local
-    <<: [ *env ]
+    <<: *app
     ports:
       - 8000:8000
-    platform: linux/amd64
-    command: "run"
+    command: ["web"]
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/healthcheck" ]
       interval: 10s
@@ -35,6 +45,24 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      azurite:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --skipApiVersionCheck --loose
+    volumes:
+      - azurite_data:/data
+    restart: always
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "127.0.0.1", "10000" ]
+      start_period: 5s
+      start_interval: 1s
+      interval: 5s
+      timeout: 4s
+      retries: 5
 
   db:
     image: postgres:16
@@ -60,5 +88,65 @@ services:
     <<: [ *env ]
     restart: always
 
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      start_period: 10s
+      start_interval: 1s
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    <<: *app
+    command: ["worker"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      azurite:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  stream_listener:
+    <<: *app
+    command: ["streaming"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    # Optional STREAM_N_* overrides, e.g.:
+    # environment:
+    #   - STREAM_1_QUEUES=hope_documents
+    #   - STREAM_1_CALLBACK=hope_documents.stream.callbacks.handle_event
+
+  # One container: web + celery + streaming
+  all-in-one:
+    <<: *app
+    ports:
+      - 8000:8000
+    command: ["web", "worker", "streaming"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      azurite:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+
 volumes:
   postgres_data:
+  azurite_data:

@@ -27,7 +27,8 @@ dynamic = [
   "version",
 ]
 dependencies = [
-  "celery",
+  "celery[redis]",
+  "circus>=0.19",
   "click>=8.3",
   "deskew>=1.5.3",
   "django<6",
@@ -43,6 +44,7 @@ dependencies = [
   "django-regex>=0.5",
   "django-smart-admin",
   "django-smart-env",
+  "django-storages[azure]>=1.14.4",
   "django-streaming>=0.8",
   "django-unfold",
   "djangorestframework",

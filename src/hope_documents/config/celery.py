@@ -11,3 +11,4 @@ app = celery.Celery(
     broker=settings.CELERY_BROKER_URL,
 )
 app.config_from_object("django.conf:settings", namespace="CELERY", force=True)
+app.autodiscover_tasks()
