@@ -9,6 +9,7 @@ from django.core.files.storage import FileSystemStorage
 from hope_documents.stream.ocr import hope_storage, process_document, run_ocr_batch
 from hope_documents.stream.publish import OCR_RESULT_ROUTING_KEY
 from hope_documents.stream.tasks import process_ocr_batch
+from hope_ocr.exceptions import ExtractionError
 from hope_ocr.ocr.diff import Match
 from hope_ocr.ocr.engine import SearchInfo
 
@@ -16,6 +17,20 @@ from hope_ocr.ocr.engine import SearchInfo
 def _finding(*, found: bool) -> SearchInfo:
     match = Match(text="ID-987654", distance=0.0) if found else None
     return SearchInfo(loader="PILLoader", match=match)
+
+
+def _failed_attempt(error: str = "ExtractionError: ") -> SearchInfo:
+    attempt = SearchInfo(loader="PILLoader")
+    attempt.error = error
+    return attempt
+
+
+def _storage_with_image(tmp_path, key: str) -> FileSystemStorage:
+    storage = FileSystemStorage(location=str(tmp_path))
+    buf = io.BytesIO()
+    Image.new("RGB", (80, 50), color="white").save(buf, format="PNG")
+    storage.save(key, ContentFile(buf.getvalue()))
+    return storage
 
 
 @patch("hope_documents.stream.tasks.publish")
@@ -66,13 +81,46 @@ def test_process_document_found_true(mock_processor_cls, mock_open_image):
 @patch("hope_documents.stream.ocr._open_image")
 @patch("hope_documents.stream.ocr.Processor")
 def test_process_document_found_false_is_ok(mock_processor_cls, mock_open_image):
-    mock_processor_cls.return_value.find_text.return_value = []
+    processor = mock_processor_cls.return_value
+    processor.find_text.return_value = []
+    processor.debug_info.iterations = [_finding(found=False), _finding(found=False)]
 
     result = process_document("media/456.jpg", "ID-987654", storage=MagicMock())
 
     assert result["status"] == "ok"
     assert result["found"] is False
     assert result["match"] is None
+    assert result["error"] is None
+
+
+@patch("hope_documents.stream.ocr._open_image")
+@patch("hope_documents.stream.ocr.Processor")
+def test_process_document_all_attempts_failed_is_error(mock_processor_cls, mock_open_image):
+    processor = mock_processor_cls.return_value
+    processor.find_text.return_value = []
+    processor.debug_info.iterations = [
+        _failed_attempt("ExtractionError: "),
+        _failed_attempt("ExtractionError: timeout"),
+    ]
+
+    result = process_document("media/456.jpg", "ID-987654", storage=MagicMock())
+
+    assert result["status"] == "error"
+    assert result["found"] is False
+    assert result["match"] is None
+    assert result["error"] == "ExtractionError: timeout"
+
+
+@patch("hope_documents.stream.ocr._open_image")
+@patch("hope_documents.stream.ocr.Processor")
+def test_process_document_partial_attempt_failure_is_ok(mock_processor_cls, mock_open_image):
+    processor = mock_processor_cls.return_value
+    processor.find_text.return_value = []
+    processor.debug_info.iterations = [_failed_attempt(), _finding(found=False)]
+
+    result = process_document("media/456.jpg", "ID-987654", storage=MagicMock())
+
+    assert result["status"] == "ok"
     assert result["error"] is None
 
 
@@ -153,11 +201,8 @@ def test_process_document_retries_missing_azure_blob(mock_open_image):
 
 @patch("hope_documents.stream.ocr.Processor")
 def test_process_document_opens_cw_blob_key(mock_processor_cls, tmp_path):
-    storage = FileSystemStorage(location=str(tmp_path))
     key = "AFG/CP-2024/CW_ind_456_national_id_photo.png"
-    buf = io.BytesIO()
-    Image.new("RGB", (1, 1), color="white").save(buf, format="PNG")
-    storage.save(key, ContentFile(buf.getvalue()))
+    storage = _storage_with_image(tmp_path, key)
     mock_processor_cls.return_value.find_text.return_value = [_finding(found=True)]
 
     result = process_document(key, "ID-987654", storage=storage)
@@ -168,3 +213,21 @@ def test_process_document_opens_cw_blob_key(mock_processor_cls, tmp_path):
         "match": ["ID-987654", 0.0],
         "error": None,
     }
+
+
+@patch("hope_ocr.ocr.reader.Reader.extract", side_effect=ExtractionError("tesseract unavailable"))
+def test_real_engine_failing_on_every_attempt_is_error(mock_extract, tmp_path):
+    """Drives the real engine: find_text swallows extraction errors and yields nothing."""
+    result = process_document("doc.png", "ID-987654", storage=_storage_with_image(tmp_path, "doc.png"))
+
+    assert result["status"] == "error"
+    assert "tesseract unavailable" in result["error"]
+
+
+@patch("hope_ocr.ocr.reader.Reader.extract", return_value="some unrelated text")
+def test_real_engine_reading_without_a_match_is_ok(mock_extract, tmp_path):
+    result = process_document("doc.png", "ID-987654", storage=_storage_with_image(tmp_path, "doc.png"))
+
+    assert result["status"] == "ok"
+    assert result["found"] is False
+    assert result["error"] is None
