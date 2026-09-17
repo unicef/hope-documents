@@ -40,7 +40,7 @@ def envelope_from(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def process_document(filename: str, pattern: str, *, storage: Storage | None = None) -> dict[str, Any]:
-    """OCR one document. Retry once on engine/IO failure; a clean miss is ok."""
+    """OCR one document. Retry once on IO failure; a clean miss is ok."""
     backend = storage if storage is not None else hope_storage()
     last_error: str | None = None
     for _attempt in range(MAX_OCR_ATTEMPTS):
@@ -77,9 +77,9 @@ def _is_valid_document(item: object) -> bool:
 def _ocr_once(filename: str, pattern: str, storage: Storage) -> dict[str, Any]:
     image = _open_image(filename, storage)
     processor = Processor(ts_config=TSConfig(), cv2_config=CV2Config())
-    findings = list(processor.find_text(image, pattern, mode=MatchMode.FIRST))
+    findings = list(processor.find_text(image, pattern, mode=MatchMode.FIRST, debug=True))
     if not findings:
-        return {"status": "ok", "found": False, "match": None, "error": None}
+        return _miss_or_error(processor)
     finding = findings[0]
     if finding.match:
         return {
@@ -88,6 +88,19 @@ def _ocr_once(filename: str, pattern: str, storage: Storage) -> dict[str, Any]:
             "match": [finding.match.text, finding.match.distance],
             "error": None,
         }
+    return {"status": "ok", "found": False, "match": None, "error": None}
+
+
+def _miss_or_error(processor: Processor) -> dict[str, Any]:
+    """Tell a clean miss apart from a scan where every attempt failed.
+
+    find_text() records extraction errors on each attempt instead of raising, and
+    in FIRST mode it yields nothing unless it matched, so both outcomes reach us
+    as an empty result. debug=True is what keeps the per-attempt errors around.
+    """
+    attempts = processor.debug_info.iterations
+    if attempts and all(attempt.error for attempt in attempts):
+        return {"status": "error", "found": False, "match": None, "error": attempts[-1].error}
     return {"status": "ok", "found": False, "match": None, "error": None}
 
 
