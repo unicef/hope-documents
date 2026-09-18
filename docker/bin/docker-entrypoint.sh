@@ -32,6 +32,13 @@ is_role() {
   esac
 }
 
+if [ -n "${ROLES:-}" ] && { [ "$#" -eq 0 ] || { [ "$#" -eq 1 ] && [ "${1}" = "web" ]; }; }; then
+  # shellcheck disable=SC2086
+  set -- ${ROLES}
+elif [ "$#" -eq 0 ]; then
+  set -- web
+fi
+
 # Passthrough for shell, check.sh, django-admin, etc.
 if ! is_role "$1"; then
   exec "$@"
