@@ -12,14 +12,6 @@ class _BoomStorage:
         raise ValueError("bad options")
 
 
-class _FakeAzureStorage:
-    def __init__(self, **kwargs: object) -> None:
-        self.client = kwargs.get("client")
-
-
-_FakeAzureStorage.__module__ = "storages.backends.azure_storage"
-
-
 class _LazyClientAzureStorage:
     def __init__(self, **kwargs: object) -> None:
         self._client_error = kwargs["client_error"]
@@ -74,6 +66,108 @@ def test_check_dirs_both_do_not_exist(tmp_path):
         assert isinstance(errors[1], Error)
         assert "MEDIA_ROOT" in errors[0].msg
         assert "STATIC_ROOT" in errors[1].msg
+
+
+def _error_ids(messages) -> set[str]:
+    return {message.id for message in messages}
+
+
+class _FakeAzureBlobClient:
+    def __init__(self, exists_error: Exception | None = None) -> None:
+        self._exists_error = exists_error
+
+    def exists(self) -> bool:
+        if self._exists_error is not None:
+            raise self._exists_error
+        return True
+
+
+class _FakeAzureStorage:
+    """Stand-in for AzureStorage so checks can run without calling Azure."""
+
+    __module__ = "storages.backends.azure_storage"
+
+    def __init__(self, **options: object) -> None:
+        client = options.get("client")
+        if client is not None:
+            self.client = client
+        else:
+            self.client = _FakeAzureBlobClient(exists_error=options.get("exists_error"))
+
+
+def test_check_hope_storage_reports_error_when_alias_not_configured(settings):
+    settings.STORAGES = {k: v for k, v in settings.STORAGES.items() if k != "hope"}
+
+    errors = check_hope_storage()
+
+    assert "hope_documents.storages.E001" in _error_ids(errors)
+
+
+def test_check_hope_storage_reports_error_when_backend_is_invalid(settings):
+    settings.STORAGES = {
+        **settings.STORAGES,
+        "hope": {"BACKEND": "hope_documents.does.not.exist.FakeStorage", "OPTIONS": {}},
+    }
+
+    errors = check_hope_storage()
+
+    assert "hope_documents.storages.E004" in _error_ids(errors)
+
+
+def test_check_hope_storage_warns_when_hope_is_not_azure_backed(settings, tmp_path):
+    settings.STORAGES = {
+        **settings.STORAGES,
+        "hope": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+            "OPTIONS": {"location": str(tmp_path)},
+        },
+    }
+
+    errors = check_hope_storage()
+
+    assert "hope_documents.storages.W001" in _error_ids(errors)
+
+
+def test_check_hope_storage_reports_error_when_azure_options_are_empty(settings):
+    settings.STORAGES = {
+        **settings.STORAGES,
+        "hope": {"BACKEND": f"{__name__}._FakeAzureStorage", "OPTIONS": {}},
+    }
+
+    errors = check_hope_storage()
+
+    assert "hope_documents.storages.E002" in _error_ids(errors)
+
+
+def test_check_hope_storage_reports_error_when_azure_connection_fails(settings):
+    settings.STORAGES = {
+        **settings.STORAGES,
+        "hope": {
+            "BACKEND": f"{__name__}._FakeAzureStorage",
+            "OPTIONS": {"exists_error": RuntimeError("boom")},
+        },
+    }
+
+    errors = check_hope_storage()
+
+    assert "hope_documents.storages.E003" in _error_ids(errors)
+
+
+def test_check_hope_storage_passes_for_valid_azure_backend(settings):
+    settings.STORAGES = {
+        **settings.STORAGES,
+        "hope": {"BACKEND": f"{__name__}._FakeAzureStorage", "OPTIONS": {"azure_container": "hope"}},
+    }
+
+    errors = check_hope_storage()
+
+    assert not _error_ids(errors) & {
+        "hope_documents.storages.E001",
+        "hope_documents.storages.E002",
+        "hope_documents.storages.E003",
+        "hope_documents.storages.E004",
+        "hope_documents.storages.W001",
+    }
 
 
 def _hope_storages(backend: str, options: dict | None = None) -> dict:
