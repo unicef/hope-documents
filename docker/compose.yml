@@ -12,6 +12,7 @@ x-env: &env
     - DJANGO_ADMIN_URL=admin/
     - DJANGO_SETTINGS_MODULE=hope_documents.config.settings
     - FERNET_KEY=123
+    - FILE_STORAGE_HOPE=storages.backends.azure_storage.AzureStorage?azure_container=hope&connection_string=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
     - LOGGING_LEVEL=DEBUG
     - SECRET_KEY=super-secret-key-just-for-testing
     - SESSION_COOKIE_DOMAIN=http://localhost:8000
@@ -35,6 +36,22 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      azurite:
+        condition: service_healthy
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --skipApiVersionCheck --loose
+    volumes:
+      - azurite_data:/data
+    restart: always
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "127.0.0.1", "10000" ]
+      start_period: 5s
+      start_interval: 1s
+      interval: 5s
+      timeout: 4s
+      retries: 5
 
   db:
     image: postgres:16
@@ -62,3 +79,4 @@ services:
 
 volumes:
   postgres_data:
+  azurite_data:
