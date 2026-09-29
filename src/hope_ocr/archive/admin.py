@@ -67,14 +67,49 @@ class TestImageForm(forms.Form):
 
 @admin.register(models.Country)
 class CountryAdmin(admin.ModelAdmin[models.Country]):
-    list_display = ["name", "code2", "code3", "number"]
-    search_fields = ["code2", "code3", "number", "name"]
+    list_display = ["name", "code2", "code3", "number", "full_name", "iso_code2", "iso_code3", "un_code"]
+    search_fields = ["code2", "code3", "number", "name", "full_name", "iso_code2", "iso_code3", "un_code"]
 
 
 @admin.register(models.DocumentType)
 class DocumentTypeAdmin(admin.ModelAdmin[models.DocumentType]):
-    list_display = ["code", "name"]
+    list_display = ["code", "name", "description"]
     search_fields = ["code", "name"]
+
+
+@admin.register(models.Attribute)
+class AttributeAdmin(admin.ModelAdmin[models.Attribute]):
+    list_display = ["name", "description", "system"]
+    search_fields = ["name"]
+    list_filter = ["system"]
+
+    def get_readonly_fields(self, request: HttpRequest, obj: models.Attribute | None = None) -> list[str]:
+        if obj and obj.system:
+            return ["name", "system"]
+        return ["system"]
+
+
+class DocumentAttributeInline(admin.TabularInline):
+    model = models.DocumentAttribute
+    extra = 1
+    autocomplete_fields = ["attribute"]
+
+
+@admin.register(models.Document)
+class DocumentAdmin(admin.ModelAdmin[models.Document]):
+    list_display = ["document_type", "country", "version"]
+    search_fields = ["document_type__name", "country__name", "version"]
+    list_filter = ["document_type", "country"]
+    autocomplete_fields = ["document_type", "country"]
+    inlines = [DocumentAttributeInline]
+
+
+@admin.register(models.DocumentAttribute)
+class DocumentAttributeAdmin(admin.ModelAdmin[models.DocumentAttribute]):
+    list_display = ["document", "attribute", "region"]
+    search_fields = ["document__document_type__name", "document__country__name", "attribute__name"]
+    list_filter = ["document__document_type", "document__country", "attribute"]
+    autocomplete_fields = ["document", "attribute"]
 
 
 @admin.register(models.DocumentRule)

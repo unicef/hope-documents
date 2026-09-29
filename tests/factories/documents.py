@@ -2,7 +2,7 @@ import factory.fuzzy
 import pycountry
 
 from factories.base import AutoRegisterModelFactory
-from hope_ocr.archive.models import Country, DocumentRule, DocumentType
+from hope_ocr.archive.models import Attribute, Country, Document, DocumentAttribute, DocumentRule, DocumentType
 
 all_countries = list(pycountry.countries)
 
@@ -39,3 +39,33 @@ class DocumentRuleFactory(AutoRegisterModelFactory):
     type = factory.SubFactory(DocumentTypeFactory)
     match_regex = ".*"
     number_regex = ".*"
+
+
+class AttributeFactory(AutoRegisterModelFactory):
+    class Meta:
+        model = Attribute
+        django_get_or_create = ("name",)
+
+    name = factory.Sequence(lambda n: f"attr_{n}")
+    description = ""
+    system = False
+
+
+class DocumentFactory(AutoRegisterModelFactory):
+    class Meta:
+        model = Document
+        django_get_or_create = ("document_type", "country", "version")
+
+    document_type = factory.SubFactory(DocumentTypeFactory)
+    country = factory.SubFactory(CountryFactory)
+    version = factory.Sequence(lambda n: f"v{n}")
+
+
+class DocumentAttributeFactory(AutoRegisterModelFactory):
+    class Meta:
+        model = DocumentAttribute
+        django_get_or_create = ("document", "attribute")
+
+    document = factory.SubFactory(DocumentFactory)
+    attribute = factory.SubFactory(AttributeFactory)
+    region = None
