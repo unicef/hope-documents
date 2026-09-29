@@ -11,10 +11,30 @@ class Country(models.Model):
     code2 = models.CharField(max_length=2, validators=[RegexValidator("^[A-Z]{2}$")], unique=True)
     code3 = models.CharField(max_length=3, validators=[RegexValidator("^[A-Z]{3}$")], unique=True)
     number = models.CharField(max_length=3, validators=[RegexValidator("^[0-9]{3}$")], unique=True)
-    full_name = models.CharField(max_length=255, blank=True)
-    iso_code2 = models.CharField(max_length=2, blank=True)
-    iso_code3 = models.CharField(max_length=3, blank=True)
-    un_code = models.CharField(max_length=10, blank=True)
+    full_name = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_("full_name"),
+        help_text=_("Official full name of the country."),
+    )
+    iso_code2 = models.CharField(
+        max_length=2,
+        blank=True,
+        verbose_name=_("iso_code2"),
+        help_text=_("Supplementary ISO 3166-1 alpha-2 two-letter code."),
+    )
+    iso_code3 = models.CharField(
+        max_length=3,
+        blank=True,
+        verbose_name=_("iso_code3"),
+        help_text=_("Supplementary ISO 3166-1 alpha-3 three-letter code."),
+    )
+    un_code = models.CharField(
+        max_length=10,
+        blank=True,
+        verbose_name=_("un_code"),
+        help_text=_("Supplementary UN/numeric country code."),
+    )
 
     class Meta:
         verbose_name_plural = _("Countries")
@@ -27,7 +47,11 @@ class Country(models.Model):
 class DocumentType(models.Model):
     code = models.CharField(max_length=4, validators=[RegexValidator("^[A-Z]{3,4}$")], unique=True)
     name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
+    description = models.TextField(
+        blank=True,
+        verbose_name=_("description"),
+        help_text=_("Optional human-readable description of this document type."),
+    )
 
     class Meta:
         verbose_name_plural = _("Document Types")
@@ -38,9 +62,22 @@ class DocumentType(models.Model):
 
 
 class Attribute(models.Model):
-    name = models.CharField(max_length=255, unique=True)
-    description = models.TextField(blank=True)
-    system = models.BooleanField(default=False)
+    name = models.CharField(
+        max_length=255,
+        unique=True,
+        verbose_name=_("name"),
+        help_text=_("Unique identifier for this extractable field."),
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name=_("description"),
+        help_text=_("Human-readable description of what this attribute represents."),
+    )
+    system = models.BooleanField(
+        default=False,
+        verbose_name=_("system"),
+        help_text=_("Built-in system attributes (first_name, last_name, number) cannot be renamed or deleted."),
+    )
 
     class Meta:
         ordering = ("name",)
@@ -61,9 +98,26 @@ class Attribute(models.Model):
 
 
 class Document(models.Model):
-    document_type = models.ForeignKey(DocumentType, on_delete=models.CASCADE)
-    country = models.ForeignKey(Country, on_delete=models.CASCADE)
-    version = models.CharField(max_length=255)
+    document_type = models.ForeignKey(
+        DocumentType,
+        on_delete=models.CASCADE,
+        verbose_name=_("document_type"),
+        help_text=_("The type of document this configuration applies to."),
+    )
+    country = models.ForeignKey(
+        Country,
+        on_delete=models.CASCADE,
+        verbose_name=_("country"),
+        help_text=_("The country this document configuration applies to."),
+    )
+    version = models.CharField(
+        max_length=255,
+        verbose_name=_("version"),
+        help_text=_(
+            "Free-text version label grouping the attribute set for this document type and country. "
+            "Can be a year (e.g. '2019') or an iteration label (e.g. 'v2')."
+        ),
+    )
 
     class Meta:
         ordering = ("document_type__name", "country__name", "version")
@@ -74,12 +128,23 @@ class Document(models.Model):
 
 
 class DocumentAttribute(models.Model):
-    document = models.ForeignKey(Document, on_delete=models.CASCADE)
-    attribute = models.ForeignKey(Attribute, on_delete=models.CASCADE)
+    document = models.ForeignKey(
+        Document,
+        on_delete=models.CASCADE,
+        verbose_name=_("document"),
+        help_text=_("The document configuration this attribute belongs to."),
+    )
+    attribute = models.ForeignKey(
+        Attribute,
+        on_delete=models.CASCADE,
+        verbose_name=_("attribute"),
+        help_text=_("The extractable field from the Attributes catalog."),
+    )
     region = models.JSONField(
         null=True,
         blank=True,
-        help_text='Bounding box, e.g. {"x": 10, "y": 20, "width": 100, "height": 50}',
+        verbose_name=_("region"),
+        help_text=_('Bounding box, e.g. {"x": 10, "y": 20, "width": 100, "height": 50}'),
     )
 
     class Meta:

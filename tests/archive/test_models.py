@@ -40,6 +40,12 @@ def custom_attribute():
 
 
 @pytest.mark.django_db
+def test_clean_on_new_attribute_is_noop():
+    attr = Attribute(name="new_attr", system=False)
+    attr.full_clean()
+
+
+@pytest.mark.django_db
 def test_document_attribute_duplicate_blocked(document_attribute):
     with pytest.raises(IntegrityError):
         DocumentAttribute.objects.create(document=document_attribute.document, attribute=document_attribute.attribute)
