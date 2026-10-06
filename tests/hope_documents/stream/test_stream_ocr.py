@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from hope_documents.stream.ocr import is_valid_ocr_request, process_document, run_ocr_batch
+from hope_documents.stream.ocr import is_valid_ocr_request, ocr_request_error, process_document, run_ocr_batch
 from hope_documents.stream.publish import OCR_RESULT_ROUTING_KEY
 from hope_documents.stream.tasks import process_ocr_batch
 from hope_ocr.exceptions import ExtractionError
@@ -213,3 +213,47 @@ def test_is_valid_ocr_request_rejects_non_string_content(request_payload):
     request_payload["documents"][0]["content"] = None
 
     assert is_valid_ocr_request(request_payload) is False
+
+
+def test_ocr_request_error_is_none_for_valid_request(request_payload):
+    assert ocr_request_error(request_payload) is None
+
+
+def test_ocr_request_error_reports_non_object_payload():
+    assert ocr_request_error(["not", "a", "dict"]) == "payload is list, expected object"
+
+
+def test_ocr_request_error_lists_missing_envelope_keys(request_payload):
+    del request_payload["batch_id"], request_payload["rdp_id"]
+
+    assert ocr_request_error(request_payload) == "missing envelope keys: rdp_id, batch_id"
+
+
+def test_ocr_request_error_reports_documents_not_a_list(request_payload):
+    request_payload["documents"] = "nope"
+
+    assert ocr_request_error(request_payload) == "documents is not a list"
+
+
+def test_ocr_request_error_reports_non_object_document(request_payload):
+    request_payload["documents"] = ["nope"]
+
+    assert ocr_request_error(request_payload) == "documents[0]: is str, expected object"
+
+
+def test_ocr_request_error_reports_missing_document_keys(request_payload):
+    del request_payload["documents"][0]["content"]
+
+    assert ocr_request_error(request_payload) == "documents[0]: missing keys: content"
+
+
+def test_ocr_request_error_reports_non_string_content(request_payload):
+    request_payload["documents"][0]["content"] = 42
+
+    assert ocr_request_error(request_payload) == "documents[0]: content is not a string"
+
+
+def test_ocr_request_error_never_includes_image_content(request_payload):
+    request_payload["documents"][0]["pattern"] = None
+
+    assert request_payload["documents"][0]["content"] not in ocr_request_error(request_payload)

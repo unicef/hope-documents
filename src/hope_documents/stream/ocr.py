@@ -20,16 +20,28 @@ OCR_RETRY_EXC = (OSError, InvalidImageError, ExtractionError)
 IMAGE_DECODE_EXC = (ValueError, OSError, Image.DecompressionBombError)
 
 
-def is_valid_ocr_request(payload: object) -> bool:
-    """Return True when the payload matches the ocr.request contract."""
+def ocr_request_error(payload: object) -> str | None:
+    """Return why the payload breaks the ocr.request contract, or None when it is valid.
+
+    The reason names keys and positions only, never values: documents carry the
+    base64 image, which must not end up in logs.
+    """
     if not isinstance(payload, dict):
-        return False
-    if any(key not in payload for key in ENVELOPE_KEYS):
-        return False
+        return f"payload is {type(payload).__name__}, expected object"
+    if missing := [key for key in ENVELOPE_KEYS if key not in payload]:
+        return f"missing envelope keys: {', '.join(missing)}"
     documents = payload.get("documents")
     if not isinstance(documents, list):
-        return False
-    return all(_is_valid_document(item) for item in documents)
+        return "documents is not a list"
+    for index, item in enumerate(documents):
+        if reason := _document_error(item):
+            return f"documents[{index}]: {reason}"
+    return None
+
+
+def is_valid_ocr_request(payload: object) -> bool:
+    """Return True when the payload matches the ocr.request contract."""
+    return ocr_request_error(payload) is None
 
 
 def envelope_from(payload: dict[str, Any]) -> dict[str, Any]:
@@ -70,12 +82,16 @@ def run_ocr_batch(payload: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _is_valid_document(item: object) -> bool:
+def _document_error(item: object) -> str | None:
     if not isinstance(item, dict):
-        return False
-    if any(key not in item for key in DOCUMENT_KEYS):
-        return False
-    return isinstance(item["content"], str) and isinstance(item["pattern"], str)
+        return f"is {type(item).__name__}, expected object"
+    if missing := [key for key in DOCUMENT_KEYS if key not in item]:
+        return f"missing keys: {', '.join(missing)}"
+    if not isinstance(item["content"], str):
+        return "content is not a string"
+    if not isinstance(item["pattern"], str):
+        return "pattern is not a string"
+    return None
 
 
 def _error(error: str | None) -> dict[str, Any]:

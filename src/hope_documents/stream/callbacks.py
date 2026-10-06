@@ -6,7 +6,7 @@ from pika.adapters.blocking_connection import BlockingChannel
 from pika.spec import Basic, BasicProperties
 from streaming.event import Event
 
-from hope_documents.stream.ocr import is_valid_ocr_request
+from hope_documents.stream.ocr import ocr_request_error
 from hope_documents.stream.tasks import process_ocr_batch
 
 logger = logging.getLogger(__name__)
@@ -30,12 +30,15 @@ def handle_event(
         )
         return True
 
-    if not is_valid_ocr_request(payload):
+    if reason := ocr_request_error(payload):
+        # Never log the payload: documents carry the base64 image.
         logger.error(
-            "Invalid ocr.request payload queue=%s routing_key=%s payload=%r",
+            "Invalid ocr.request queue=%s routing_key=%s correlation_id=%s batch_id=%s reason=%s",
             queue_name,
             method.routing_key,
-            payload,
+            payload.get("correlation_id") if isinstance(payload, dict) else None,
+            payload.get("batch_id") if isinstance(payload, dict) else None,
+            reason,
         )
         return True
 
