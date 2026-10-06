@@ -1,6 +1,9 @@
+import base64
+import io
 from unittest.mock import MagicMock
 
 import pytest
+from PIL import Image
 from streaming.manager import initialize_engine
 
 CONSOLE_STREAMING = {
@@ -21,7 +24,15 @@ def streaming_console(settings):
 
 
 @pytest.fixture
-def request_payload():
+def image_b64() -> str:
+    """A tiny valid PNG, base64-encoded the way Country Workspace sends it."""
+    buf = io.BytesIO()
+    Image.new("RGB", (80, 50), color="white").save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode()
+
+
+@pytest.fixture
+def request_payload(image_b64):
     return {
         "correlation_id": "corr-1",
         "rdp_id": 123,
@@ -31,7 +42,7 @@ def request_payload():
         "documents": [
             {
                 "individual_id": 456,
-                "filename": "media/456.jpg",
+                "content": image_b64,
                 "pattern": "ID-987654",
             }
         ],
