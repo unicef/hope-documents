@@ -35,7 +35,7 @@ case "$1" in
       ;;
     worker)
       set -- tini -- "$@"
-      set -- gosu hope:unicef celery -A hope_documents.config.celery worker --statedb /var/worker --concurrency=4 -E --loglevel=ERROR
+      set -- gosu hope:unicef celery -A hope_documents.config.celery worker --statedb /var/worker --concurrency=4 -E --loglevel=INFO
       ;;
     beat)
       set -- tini -- "$@"
@@ -45,6 +45,11 @@ case "$1" in
       export DATABASE_URL="sqlite://:memory:"
       set -- tini -- "$@"
       set -- gosu hope:unicef celery -A hope_documents.config.celery flower
+      ;;
+    streaming|stream-listener)
+      stream configure --queues || echo "stream configure skipped"
+      set -- tini -- "$@"
+      set -- gosu hope:unicef stream listen --debug
       ;;
 esac
 
