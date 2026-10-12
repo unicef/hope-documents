@@ -6,7 +6,7 @@ from drf_spectacular.views import (
 )
 
 from .router import Router
-from .viewsets import ExtractView, GroupViewSet, UserViewSet
+from .viewsets import AnalyzeDetailView, AnalyzeView, ExtractView, GroupViewSet, UserViewSet
 
 app_name = "api"
 
@@ -24,5 +24,7 @@ urlpatterns = [
     ),
     path("rest/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
     path("upload/", ExtractView.as_view(), name="file-upload"),
+    path("analyze/", AnalyzeView.as_view(), name="analyze-create"),
+    path("analyze/<uuid:job_id>/", AnalyzeDetailView.as_view(), name="analyze-detail"),
     path("", include(router.urls)),
 ]
