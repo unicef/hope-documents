@@ -182,6 +182,7 @@ def test_detail_pending(app, document_type, country):
     assert data["document_type"] == document_type.code
     assert data["country"] == country.code2
     assert data["version"] is None
+    assert data["version_matched"] is None
     assert data["attributes"] is None
 
 
@@ -193,6 +194,7 @@ def test_detail_running(app, document_type, country):
     assert response.status_code == status.HTTP_200_OK
     assert response.json["status"] == "running"
     assert response.json["version"] is None
+    assert response.json["version_matched"] is None
     assert response.json["attributes"] is None
 
 
@@ -232,7 +234,7 @@ def test_detail_completed_no_version_match(app, document_type, country):
         result=[
             {"attribute_name": "first_name", "extracted_value": "John"},
             {"attribute_name": "last_name", "extracted_value": ""},
-            {"attribute_name": "number", "extracted_value": "AB123"},
+            {"attribute_name": "document_number", "extracted_value": "AB123"},
         ],
     )
     url = reverse("api:analyze-detail", kwargs={"job_id": str(job.id)})
@@ -301,8 +303,7 @@ def test_task_generic_fallback_no_documents(document_type, country, png_bytes):
     assert job.matched_version == ""
     assert job.result is not None
     system_names = {a["attribute_name"] for a in job.result}
-    # Should include system attributes (first_name, last_name, number seeded by migration)
-    assert len(system_names) > 0
+    assert system_names == {"first_name", "last_name", "document_number"}
 
 
 @pytest.mark.django_db
@@ -393,5 +394,70 @@ def test_task_no_callback_when_url_empty(document_type, country, png_bytes, mock
         process_analysis_job(str(job.id))
 
     assert len(mocked_responses.calls) == 0
+    job.refresh_from_db()
+    assert job.status == AnalysisJob.Status.COMPLETED
+
+
+@pytest.mark.django_db
+def test_upload_invalid_base64(app, document_type, country):
+    url = reverse("api:analyze-create")
+    response = app.post(
+        url,
+        params={
+            "document_type": document_type.code,
+            "country": country.code2,
+            "image_base64": "not-valid-base64!!!",
+        },
+        expect_errors=True,
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "image_base64" in response.json
+
+
+@pytest.mark.django_db
+def test_upload_base64_data_uri_prefix(app, png_bytes, document_type, country):
+    """base64 supplied as a full data-URI (data:image/png;base64,...) is accepted."""
+    b64 = "data:image/png;base64," + base64.b64encode(png_bytes).decode()
+    url = reverse("api:analyze-create")
+    with patch("hope_documents.api.viewsets.analyze.process_analysis_job"):
+        response = app.post(
+            url,
+            params={
+                "document_type": document_type.code,
+                "country": country.code2,
+                "image_base64": b64,
+            },
+        )
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+
+@pytest.mark.django_db
+def test_upload_url_fetch_failure(app, document_type, country, mocked_responses):
+    mocked_responses.add(mocked_responses.GET, "https://example.com/bad.png", status=404)
+    url = reverse("api:analyze-create")
+    response = app.post(
+        url,
+        params={
+            "document_type": document_type.code,
+            "country": country.code2,
+            "image_url": "https://example.com/bad.png",
+        },
+        expect_errors=True,
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+def test_task_callback_failure_does_not_fail_job(document_type, country, png_bytes):
+    """A failed callback POST is logged and swallowed — the job still completes."""
+    from hope_documents.tasks import process_analysis_job
+
+    job = _create_job_with_image(document_type, country, png_bytes, callback_url="https://example.com/hook")
+
+    with patch("hope_ocr.ocr.engine.Processor") as MockProc:
+        MockProc.return_value.find_single.return_value = ("", None)
+        with patch("requests.post", side_effect=ConnectionError("network error")):
+            process_analysis_job(str(job.id))
+
     job.refresh_from_db()
     assert job.status == AnalysisJob.Status.COMPLETED
