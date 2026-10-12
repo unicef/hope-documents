@@ -1,3 +1,5 @@
+import base64
+
 from rest_framework import serializers
 
 from hope_documents.models import AnalysisJob
@@ -18,6 +20,14 @@ class AnalyzeInputSerializer(serializers.Serializer):
             raise serializers.ValidationError("One of image_file, image_url, or image_base64 is required.")
         if len(provided) > 1:
             raise serializers.ValidationError("Only one of image_file, image_url, or image_base64 may be provided.")
+        if data.get("image_base64"):
+            raw = data["image_base64"]
+            if "," in raw:
+                raw = raw.split(",", 1)[1]
+            try:
+                base64.b64decode(raw, validate=True)
+            except Exception:
+                raise serializers.ValidationError({"image_base64": "Invalid base64 encoding."})
         try:
             data["document_type_obj"] = DocumentType.objects.get(code=data["document_type"])
         except DocumentType.DoesNotExist:
@@ -34,6 +44,7 @@ class AnalysisJobStatusSerializer(serializers.ModelSerializer):
     document_type = serializers.CharField(source="document_type.code")
     country = serializers.CharField(source="country.code2")
     version = serializers.SerializerMethodField()
+    version_matched = serializers.SerializerMethodField()
     attributes = serializers.SerializerMethodField()
     error = serializers.SerializerMethodField()
 
@@ -44,6 +55,11 @@ class AnalysisJobStatusSerializer(serializers.ModelSerializer):
     def get_version(self, obj: AnalysisJob) -> str | None:
         if obj.status == AnalysisJob.Status.COMPLETED:
             return obj.matched_version or None
+        return None
+
+    def get_version_matched(self, obj: AnalysisJob) -> bool | None:
+        if obj.status == AnalysisJob.Status.COMPLETED:
+            return obj.version_matched
         return None
 
     def get_attributes(self, obj: AnalysisJob) -> list | None:

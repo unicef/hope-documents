@@ -1,4 +1,5 @@
 import base64
+import pathlib
 from typing import Any
 
 import requests as http_client
@@ -15,6 +16,14 @@ from hope_documents.models import AnalysisJob
 from hope_documents.tasks import process_analysis_job
 
 
+_CONTENT_TYPE_EXT: dict[str, str] = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "image/gif": ".gif",
+}
+
+
 def _resolve_image(data: dict) -> Any:
     if data.get("image_file"):
         return data["image_file"]
@@ -22,15 +31,20 @@ def _resolve_image(data: dict) -> Any:
         try:
             resp = http_client.get(data["image_url"], timeout=10)
             resp.raise_for_status()
-            return ContentFile(resp.content, name="url_image.png")
+            ct = resp.headers.get("Content-Type", "").split(";")[0].strip()
+            ext = _CONTENT_TYPE_EXT.get(ct, ".png")
+            return ContentFile(resp.content, name=f"url_image{ext}")
         except Exception:
             return None
     if data.get("image_base64"):
         raw = data["image_base64"]
+        ext = ".png"
         if "," in raw:
-            raw = raw.split(",", 1)[1]
+            prefix, raw = raw.split(",", 1)
+            ct = prefix.split(":")[1].split(";")[0] if ":" in prefix else ""
+            ext = _CONTENT_TYPE_EXT.get(ct, ".png")
         content = base64.b64decode(raw)
-        return ContentFile(content, name="base64_image.png")
+        return ContentFile(content, name=f"base64_image{ext}")
     return None
 
 
@@ -53,7 +67,8 @@ class AnalyzeView(APIView):
             country=data["country_obj"],
             callback_url=data.get("callback_url", ""),
         )
-        job.image.save(f"{job.id}.png", image_file, save=True)
+        ext = pathlib.Path(image_file.name).suffix or ".png"
+        job.image.save(f"{job.id}{ext}", image_file, save=True)
         process_analysis_job.delay(str(job.id))
         return Response({"job_id": str(job.id)}, status=status.HTTP_202_ACCEPTED)
 

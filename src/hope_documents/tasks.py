@@ -15,10 +15,10 @@ def process_analysis_job(job_id: str) -> None:
     from hope_ocr.ocr.engine import CV2Config, Processor, TSConfig
 
     job = AnalysisJob.objects.select_related("document_type", "country").get(pk=job_id)
-    job.status = AnalysisJob.Status.RUNNING
-    job.save(update_fields=["status"])
 
     try:
+        job.status = AnalysisJob.Status.RUNNING
+        job.save(update_fields=["status"])
         with job.image.open("rb") as fh:
             pil_image = Image.open(fh)
             pil_image.load()
