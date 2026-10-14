@@ -7,6 +7,7 @@ CONTENT_SECURITY_POLICY = {
             "data:",
             "blob:",
             "'unsafe-inline'",
+            "'unsafe-eval'",
             "localhost:8000",
             "unpkg.com",
             "browser.sentry-cdn.com",
