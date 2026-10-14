@@ -1,10 +1,12 @@
+import json
+
 from PIL import Image
 from admin_extra_buttons.api import ExtraButtonsMixin, button
 from django import forms
 from django.contrib import admin, messages
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.utils.module_loading import import_string
 
 from ..ocr.engine import CV2Config, MatchMode, Processor, ScanEntryInfo, SearchInfo, TSConfig
@@ -13,6 +15,7 @@ from ..utils._timeit import time_it
 from ..utils.image import get_image_base64
 from ..utils.language import fqn
 from . import models
+from .region import BoundingBox
 
 PSM_CHOICES = (
     (0, "(0) Orientation and script detection (OSD) only."),
@@ -97,12 +100,50 @@ class DocumentAttributeInline(admin.TabularInline):
 
 
 @admin.register(models.Document)
-class DocumentAdmin(admin.ModelAdmin[models.Document]):
+class DocumentAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.Document]):
     list_display = ["document_type", "country", "version"]
     search_fields = ["document_type__name", "country__name", "version"]
     list_filter = ["document_type", "country"]
     autocomplete_fields = ["document_type", "country"]
     inlines = [DocumentAttributeInline]
+
+    @button(change=True)
+    def define_regions(self, request: HttpRequest, pk: str) -> HttpResponse:
+        document = get_object_or_404(models.Document, pk=pk)
+        doc_attrs = list(
+            models.DocumentAttribute.objects.filter(document=document)
+            .select_related("attribute")
+            .order_by("attribute__name")
+        )
+        ctx = self.get_common_context(request)
+        ctx["document"] = document
+
+        if request.method == "POST" and "image" not in request.FILES:
+            for da in doc_attrs:
+                x = request.POST.get(f"region_{da.pk}_x", "")
+                y = request.POST.get(f"region_{da.pk}_y", "")
+                w = request.POST.get(f"region_{da.pk}_width", "")
+                h = request.POST.get(f"region_{da.pk}_height", "")
+                if all(v.strip() for v in (x, y, w, h)):
+                    da.region = BoundingBox.from_rect(float(x), float(y), float(w), float(h))
+                else:
+                    da.region = None
+                da.save(update_fields=["region"])
+            self.message_user(request, "Regions saved.")
+
+        if request.method == "POST" and "image" in request.FILES:
+            ctx["image_src"] = get_image_base64(request.FILES["image"])
+
+        ctx["doc_attrs_json"] = json.dumps([
+            {
+                "pk": da.pk,
+                "name": da.attribute.name,
+                "region": da.region.to_dict() if da.region else None,
+            }
+            for da in doc_attrs
+        ])
+        ctx["doc_attrs"] = doc_attrs
+        return render(request, "hope_ocr/define_regions.html", ctx)
 
 
 @admin.register(models.DocumentAttribute)
