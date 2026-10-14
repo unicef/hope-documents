@@ -4,14 +4,21 @@ import uuid
 from unittest.mock import MagicMock, patch
 
 import pytest
+import requests
+from PIL import Image as PILImage
 from django.core.files.base import ContentFile
 from django.urls import reverse
-from PIL import Image as PILImage
+from factories.analysis import AnalysisJobFactory
+from factories.documents import (
+    AttributeFactory,
+    CountryFactory,
+    DocumentAttributeFactory,
+    DocumentFactory,
+    DocumentTypeFactory,
+)
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from factories.analysis import AnalysisJobFactory
-from factories.documents import AttributeFactory, CountryFactory, DocumentAttributeFactory, DocumentFactory, DocumentTypeFactory
 from hope_documents.models import AnalysisJob
 from hope_ocr.archive.models import Attribute
 
@@ -293,8 +300,8 @@ def test_task_generic_fallback_no_documents(document_type, country, png_bytes):
 
     job = _create_job_with_image(document_type, country, png_bytes)
 
-    with patch("hope_ocr.ocr.engine.Processor") as MockProc:
-        MockProc.return_value.find_single.return_value = ("John", MagicMock())
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        mock_proc.return_value.find_single.return_value = ("John", MagicMock())
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -317,8 +324,8 @@ def test_task_version_matched(document_type, country, png_bytes):
 
     job = _create_job_with_image(document_type, country, png_bytes)
 
-    with patch("hope_ocr.ocr.engine.Processor") as MockProc:
-        MockProc.return_value.find_single.return_value = ("John", MagicMock())
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        mock_proc.return_value.find_single.return_value = ("John", MagicMock())
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -339,9 +346,9 @@ def test_task_version_no_score_falls_back(document_type, country, png_bytes):
 
     job = _create_job_with_image(document_type, country, png_bytes)
 
-    with patch("hope_ocr.ocr.engine.Processor") as MockProc:
+    with patch("hope_documents.tasks.Processor") as mock_proc:
         # All extraction returns empty string
-        MockProc.return_value.find_single.return_value = ("", None)
+        mock_proc.return_value.find_single.return_value = ("", None)
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -356,7 +363,7 @@ def test_task_handles_exception(document_type, country, png_bytes):
 
     job = _create_job_with_image(document_type, country, png_bytes)
 
-    with patch("hope_ocr.ocr.engine.Processor", side_effect=RuntimeError("boom")):
+    with patch("hope_documents.tasks.Processor", side_effect=RuntimeError("boom")):
         with pytest.raises(RuntimeError):
             process_analysis_job(str(job.id))
 
@@ -373,8 +380,8 @@ def test_task_fires_callback(document_type, country, png_bytes, mocked_responses
     mocked_responses.add(mocked_responses.POST, "https://example.com/hook", status=200)
     job = _create_job_with_image(document_type, country, png_bytes, callback_url="https://example.com/hook")
 
-    with patch("hope_ocr.ocr.engine.Processor") as MockProc:
-        MockProc.return_value.find_single.return_value = ("", None)
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        mock_proc.return_value.find_single.return_value = ("", None)
         process_analysis_job(str(job.id))
 
     assert len(mocked_responses.calls) == 1
@@ -389,8 +396,8 @@ def test_task_no_callback_when_url_empty(document_type, country, png_bytes, mock
 
     job = _create_job_with_image(document_type, country, png_bytes, callback_url="")
 
-    with patch("hope_ocr.ocr.engine.Processor") as MockProc:
-        MockProc.return_value.find_single.return_value = ("", None)
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        mock_proc.return_value.find_single.return_value = ("", None)
         process_analysis_job(str(job.id))
 
     assert len(mocked_responses.calls) == 0
@@ -454,10 +461,59 @@ def test_task_callback_failure_does_not_fail_job(document_type, country, png_byt
 
     job = _create_job_with_image(document_type, country, png_bytes, callback_url="https://example.com/hook")
 
-    with patch("hope_ocr.ocr.engine.Processor") as MockProc:
-        MockProc.return_value.find_single.return_value = ("", None)
-        with patch("requests.post", side_effect=ConnectionError("network error")):
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        mock_proc.return_value.find_single.return_value = ("", None)
+        with patch("requests.post", side_effect=requests.RequestException("network error")):
             process_analysis_job(str(job.id))
 
     job.refresh_from_db()
     assert job.status == AnalysisJob.Status.COMPLETED
+
+
+def test_resolve_image_returns_none_for_empty_data():
+    """_resolve_image returns None when no image key is present in data."""
+    from hope_documents.api.viewsets.analyze import _resolve_image
+
+    assert _resolve_image({}) is None
+
+
+def test_resolve_image_base64_prefix_without_colon():
+    """_resolve_image handles a data-URI-style prefix that contains no colon."""
+    import base64 as _base64
+
+    from hope_documents.api.viewsets.analyze import _resolve_image
+
+    raw = b"\x89PNG\r\n"
+    payload = "nocoronprefix," + _base64.b64encode(raw).decode()
+    result = _resolve_image({"image_base64": payload})
+    assert result is not None
+
+
+def test_analysis_job_str(document_type, country):
+    job = AnalysisJobFactory(document_type=document_type, country=country)
+    assert str(job) == f"AnalysisJob({job.id}, {job.status})"
+
+
+@pytest.mark.django_db
+def test_task_lower_scoring_document_does_not_replace_best(document_type, country, png_bytes):
+    """When a second document scores lower it does not replace the best version."""
+    from hope_documents.tasks import process_analysis_job
+
+    attr = Attribute.objects.get(name="first_name")
+    doc1 = DocumentFactory(document_type=document_type, country=country, version="v1")
+    DocumentAttributeFactory(document=doc1, attribute=attr)
+    doc2 = DocumentFactory(document_type=document_type, country=country, version="v2")
+    DocumentAttributeFactory(document=doc2, attribute=AttributeFactory(name="rare_field"))
+
+    job = _create_job_with_image(document_type, country, png_bytes)
+
+    def _side_effect(image, name):
+        return ("John", MagicMock()) if name == "first_name" else ("", None)
+
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        mock_proc.return_value.find_single.side_effect = _side_effect
+        process_analysis_job(str(job.id))
+
+    job.refresh_from_db()
+    assert job.version_matched is True
+    assert job.matched_version == "v1"

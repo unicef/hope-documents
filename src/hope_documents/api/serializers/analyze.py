@@ -1,4 +1,5 @@
 import base64
+import binascii
 
 from rest_framework import serializers
 
@@ -26,16 +27,16 @@ class AnalyzeInputSerializer(serializers.Serializer):
                 raw = raw.split(",", 1)[1]
             try:
                 base64.b64decode(raw, validate=True)
-            except Exception:
-                raise serializers.ValidationError({"image_base64": "Invalid base64 encoding."})
+            except binascii.Error:
+                raise serializers.ValidationError({"image_base64": "Invalid base64 encoding."}) from None
         try:
             data["document_type_obj"] = DocumentType.objects.get(code=data["document_type"])
         except DocumentType.DoesNotExist:
-            raise serializers.ValidationError({"document_type": "No DocumentType with this code."})
+            raise serializers.ValidationError({"document_type": "No DocumentType with this code."}) from None
         try:
             data["country_obj"] = Country.objects.get(code2=data["country"])
         except Country.DoesNotExist:
-            raise serializers.ValidationError({"country": "No Country with this code2."})
+            raise serializers.ValidationError({"country": "No Country with this code2."}) from None
         return data
 
 

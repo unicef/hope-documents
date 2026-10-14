@@ -15,7 +15,6 @@ from hope_documents.api.serializers.analyze import AnalysisJobStatusSerializer, 
 from hope_documents.models import AnalysisJob
 from hope_documents.tasks import process_analysis_job
 
-
 _CONTENT_TYPE_EXT: dict[str, str] = {
     "image/jpeg": ".jpg",
     "image/png": ".png",
@@ -34,7 +33,7 @@ def _resolve_image(data: dict) -> Any:
             ct = resp.headers.get("Content-Type", "").split(";")[0].strip()
             ext = _CONTENT_TYPE_EXT.get(ct, ".png")
             return ContentFile(resp.content, name=f"url_image{ext}")
-        except Exception:
+        except http_client.RequestException:
             return None
     if data.get("image_base64"):
         raw = data["image_base64"]
