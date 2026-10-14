@@ -1,10 +1,34 @@
 from pathlib import Path
 
 import pytest
+from django.contrib.admin.sites import AdminSite
 from django.urls import reverse
+from factories.documents import AttributeFactory
 from webtest import Upload
 
+from hope_ocr.archive.admin import AttributeAdmin
+from hope_ocr.archive.models import Attribute
 from hope_ocr.ocr.engine import MatchMode
+
+
+@pytest.fixture
+def attribute_admin():
+    return AttributeAdmin(Attribute, AdminSite())
+
+
+@pytest.fixture
+def system_attr():
+    return AttributeFactory.create(system=True)
+
+
+@pytest.mark.django_db
+def test_attribute_admin_readonly_fields_for_system(attribute_admin, system_attr):
+    assert attribute_admin.get_readonly_fields(None, obj=system_attr) == ["name", "system"]
+
+
+@pytest.mark.django_db
+def test_attribute_admin_readonly_fields_for_new_object(attribute_admin):
+    assert attribute_admin.get_readonly_fields(None, obj=None) == ["system"]
 
 
 @pytest.fixture

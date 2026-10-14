@@ -4,6 +4,11 @@ from factories.user import UserFactory
 from rest_framework.test import APIClient
 
 
+@pytest.fixture
+def api_user():
+    return UserFactory.create()
+
+
 @pytest.mark.django_db
 def test_api_root_unauthenticated():
     """
@@ -21,15 +26,14 @@ def test_api_root_unauthenticated():
 
 
 @pytest.mark.django_db
-def test_api_root_authenticated():
+def test_api_root_authenticated(api_user):
     """
     GIVEN an authenticated user
     WHEN accessing the API root
     THEN a 200 OK response is returned with API endpoints.
     """
-    user = UserFactory()
     client = APIClient()
-    client.force_authenticate(user=user)
+    client.force_authenticate(user=api_user)
     url = reverse("api:api-root")
 
     response = client.get(url)
