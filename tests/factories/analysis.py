@@ -1,8 +1,8 @@
 import io
 
 import factory
-from django.core.files.base import ContentFile
 from PIL import Image as PILImage
+from django.core.files.base import ContentFile
 
 from factories.base import AutoRegisterModelFactory
 from factories.documents import CountryFactory, DocumentTypeFactory
@@ -30,10 +30,10 @@ class AnalysisJobFactory(AutoRegisterModelFactory):
     error = ""
 
     @factory.post_generation
-    def image(obj: AnalysisJob, create: bool, extracted: object, **kwargs: object) -> None:
+    def image(self: AnalysisJob, create: bool, extracted: object, **kwargs: object) -> None:
         if extracted:
-            obj.image = extracted
+            self.image = extracted
         else:
-            obj.image.save(f"{obj.id}.png", ContentFile(_make_png_bytes()), save=False)
+            self.image.save(f"{self.id}.png", ContentFile(_make_png_bytes()), save=False)
         if create:
-            obj.save()
+            self.save()

@@ -1,7 +1,7 @@
 from factory.django import DjangoModelFactory
 
-from .base import AutoRegisterModelFactory, TAutoRegisterModelFactory, factories_registry
 from .analysis import AnalysisJobFactory  # noqa
+from .base import AutoRegisterModelFactory, TAutoRegisterModelFactory, factories_registry
 from .documents import CountryFactory, DocumentRuleFactory, DocumentTypeFactory  # noqa
 from .user import GroupFactory, SuperUserFactory, UserFactory  # noqa
 

@@ -1,30 +1,70 @@
 import logging
 
+import requests
+from PIL import Image
 from celery import shared_task
 from django.utils import timezone
+
+from hope_documents.models import AnalysisJob
+from hope_ocr.archive.models import Attribute, Document
+from hope_ocr.ocr.engine import CV2Config, Processor, TSConfig
 
 logger = logging.getLogger(__name__)
 
 
+def _match_documents(
+    processor: Processor,
+    pil_image: Image.Image,
+    documents: list[Document],
+) -> tuple[str | None, list[dict], bool]:
+    best_version: str | None = None
+    best_score = -1
+    best_attributes: list[dict] = []
+    version_matched = False
+
+    for doc in documents:
+        extracted = []
+        score = 0
+        for doc_attr in doc.documentattribute_set.all():
+            # Placeholder: region-based extraction is deferred to a future ticket.
+            # Full-image fuzzy search using the attribute name as a proxy.
+            text, _ = processor.find_single(pil_image, doc_attr.attribute.name)
+            value = text.strip()
+            extracted.append({"attribute_name": doc_attr.attribute.name, "extracted_value": value})
+            if value:
+                score += 1
+        if score > best_score:
+            best_score = score
+            best_version = doc.version
+            best_attributes = extracted
+
+    if best_score > 0:
+        version_matched = True
+
+    return best_version, best_attributes, version_matched
+
+
+def _generic_fallback(processor: Processor, pil_image: Image.Image) -> list[dict]:
+    result = []
+    for attr in Attribute.objects.filter(system=True):
+        text, _ = processor.find_single(pil_image, attr.name)
+        result.append({"attribute_name": attr.name, "extracted_value": text.strip()})
+    return result
+
+
 @shared_task
 def process_analysis_job(job_id: str) -> None:
-    from PIL import Image
-
-    from hope_documents.models import AnalysisJob
-    from hope_ocr.archive.models import Attribute, Document
-    from hope_ocr.ocr.engine import CV2Config, Processor, TSConfig
-
     job = AnalysisJob.objects.select_related("document_type", "country").get(pk=job_id)
 
     try:
         job.status = AnalysisJob.Status.RUNNING
         job.save(update_fields=["status"])
+
         with job.image.open("rb") as fh:
             pil_image = Image.open(fh)
             pil_image.load()
 
         processor = Processor(ts_config=TSConfig(), cv2_config=CV2Config())
-
         documents = list(
             Document.objects.filter(
                 document_type=job.document_type,
@@ -32,40 +72,16 @@ def process_analysis_job(job_id: str) -> None:
             ).prefetch_related("documentattribute_set__attribute")
         )
 
-        best_version: str | None = None
-        best_score = -1
-        best_attributes: list[dict] = []
-        version_matched = False
-
         if documents:
-            for doc in documents:
-                extracted = []
-                score = 0
-                for doc_attr in doc.documentattribute_set.all():
-                    # Placeholder: region-based extraction is deferred to a future ticket.
-                    # Full-image fuzzy search using the attribute name as a proxy.
-                    text, _ = processor.find_single(pil_image, doc_attr.attribute.name)
-                    value = text.strip()
-                    extracted.append({"attribute_name": doc_attr.attribute.name, "extracted_value": value})
-                    if value:
-                        score += 1
-                if score > best_score:
-                    best_score = score
-                    best_version = doc.version
-                    best_attributes = extracted
-            if best_score > 0:
-                version_matched = True
+            best_version, best_attributes, version_matched = _match_documents(processor, pil_image, documents)
+        else:
+            best_version, best_attributes, version_matched = None, [], False
 
         if not version_matched:
             best_version = None
-            best_attributes = []
-            for attr in Attribute.objects.filter(system=True):
-                text, _ = processor.find_single(pil_image, attr.name)
-                best_attributes.append({"attribute_name": attr.name, "extracted_value": text.strip()})
+            best_attributes = _generic_fallback(processor, pil_image)
 
         if job.callback_url:
-            import requests
-
             payload = {
                 "job_id": str(job.id),
                 "status": "completed",
@@ -77,7 +93,7 @@ def process_analysis_job(job_id: str) -> None:
             }
             try:
                 requests.post(job.callback_url, json=payload, timeout=10)
-            except Exception:
+            except requests.RequestException:
                 logger.warning("Callback POST failed for job %s", job_id)
 
         job.status = AnalysisJob.Status.COMPLETED
