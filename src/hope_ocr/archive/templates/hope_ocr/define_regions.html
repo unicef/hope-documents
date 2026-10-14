@@ -1,0 +1,206 @@
+{% extends "admin_extra_buttons/action_page.html" %}
+{% load i18n static %}
+
+{% block breadcrumbs-active %}
+    &rsaquo; <a href=".">{{ document }}</a> &rsaquo; Define Regions
+{% endblock %}
+
+{% block action-content %}
+<style>
+  #region-canvas { border: 1px solid #ccc; cursor: crosshair; display: block; max-width: 100%; margin-bottom: 1em; }
+  .attr-row { cursor: pointer; }
+  .attr-row.selected { background: #e8f4fd; font-weight: bold; }
+  .colour-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+  .region-inputs input[type=number] { width: 70px; }
+  #canvas-placeholder { color: #888; font-style: italic; margin-bottom: 1em; }
+</style>
+
+<h2>{{ document }}</h2>
+
+{% if not doc_attrs %}
+  <p>No attributes are configured for this document. Add attributes via the Document change form first.</p>
+{% else %}
+
+  {# ── Image upload ── #}
+  <form method="post" enctype="multipart/form-data" style="margin-bottom: 1em;">
+    {% csrf_token %}
+    <label><strong>Reference image:</strong></label>
+    <input type="file" name="image" accept="image/*" required>
+    <input type="submit" value="Load image" class="button">
+  </form>
+
+  {% if image_src %}
+    <canvas id="region-canvas"></canvas>
+  {% else %}
+    <p id="canvas-placeholder">Upload a reference image above to draw regions on the canvas. Saved coordinates are shown below.</p>
+  {% endif %}
+
+  {# ── Save form — always visible ── #}
+  <form method="post" id="regions-form">
+    {% csrf_token %}
+    <table style="width:100%; margin-top: 1em;">
+      <thead>
+        <tr>
+          <th>Attribute</th>
+          <th>x</th><th>y</th><th>width</th><th>height</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for da in doc_attrs %}
+        <tr class="attr-row" data-pk="{{ da.pk }}" id="row-{{ da.pk }}">
+          <td>
+            <span class="colour-swatch" id="swatch-{{ da.pk }}"></span>
+            {{ da.attribute.name }}
+          </td>
+          <td class="region-inputs"><input type="number" step="0.5" name="region_{{ da.pk }}_x" id="rx_{{ da.pk }}" placeholder="x"></td>
+          <td class="region-inputs"><input type="number" step="0.5" name="region_{{ da.pk }}_y" id="ry_{{ da.pk }}" placeholder="y"></td>
+          <td class="region-inputs"><input type="number" step="0.5" name="region_{{ da.pk }}_width" id="rw_{{ da.pk }}" placeholder="w"></td>
+          <td class="region-inputs"><input type="number" step="0.5" name="region_{{ da.pk }}_height" id="rh_{{ da.pk }}" placeholder="h"></td>
+          <td><button type="button" onclick="clearRegion({{ da.pk }})">Clear</button></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p style="margin-top: 1em;">
+      {% if image_src %}
+        <em>Click a row to select it, then drag on the image to draw that attribute's region.</em>
+      {% else %}
+        <em>Load an image above to draw regions interactively, or edit coordinates directly.</em>
+      {% endif %}
+    </p>
+    <input type="submit" value="Save regions" class="button default">
+  </form>
+
+  <script>
+  (function () {
+    const COLOURS = ["#e74c3c","#3498db","#2ecc71","#f39c12","#9b59b6","#1abc9c","#e67e22","#2980b9"];
+    const DOC_ATTRS = JSON.parse('{{ doc_attrs_json|escapejs }}');
+    {% if image_src %}const IMAGE_SRC = '{{ image_src|escapejs }}';{% endif %}
+
+    const canvas = document.getElementById('region-canvas');
+    const ctx = canvas ? canvas.getContext('2d') : null;
+    let scale = 1;
+    let selectedPk = null;
+    let dragging = false;
+    let dragStart = null;
+
+    // Assign colours
+    DOC_ATTRS.forEach((a, i) => {
+      a.colour = COLOURS[i % COLOURS.length];
+      const swatch = document.getElementById('swatch-' + a.pk);
+      if (swatch) swatch.style.background = a.colour;
+    });
+
+    // Pre-populate inputs from saved BoundingBox data (always, not just on image load)
+    DOC_ATTRS.forEach(a => {
+      if (!a.region) return;
+      const tl = a.region.top_left;
+      const tr = a.region.top_right;
+      const bl = a.region.bottom_left;
+      const w = tr.x - tl.x;
+      const h = bl.y - tl.y;
+      setInputs(a.pk, tl.x, tl.y, w, h);
+    });
+
+    // Row click → select attribute
+    document.querySelectorAll('.attr-row').forEach(row => {
+      row.addEventListener('click', () => {
+        document.querySelectorAll('.attr-row').forEach(r => r.classList.remove('selected'));
+        row.classList.add('selected');
+        selectedPk = parseInt(row.dataset.pk, 10);
+      });
+    });
+
+    // Input change → redraw
+    DOC_ATTRS.forEach(a => {
+      ['rx','ry','rw','rh'].forEach(prefix => {
+        const el = document.getElementById(prefix + '_' + a.pk);
+        if (el) el.addEventListener('input', redraw);
+      });
+    });
+
+    function getRegionFromInputs(pk) {
+      const x = parseFloat(document.getElementById('rx_' + pk).value);
+      const y = parseFloat(document.getElementById('ry_' + pk).value);
+      const w = parseFloat(document.getElementById('rw_' + pk).value);
+      const h = parseFloat(document.getElementById('rh_' + pk).value);
+      if ([x, y, w, h].some(isNaN)) return null;
+      return { x, y, width: w, height: h };
+    }
+
+    function setInputs(pk, x, y, w, h) {
+      document.getElementById('rx_' + pk).value = Math.round(x);
+      document.getElementById('ry_' + pk).value = Math.round(y);
+      document.getElementById('rw_' + pk).value = Math.round(w);
+      document.getElementById('rh_' + pk).value = Math.round(h);
+    }
+
+    window.clearRegion = function(pk) {
+      ['rx','ry','rw','rh'].forEach(prefix => {
+        document.getElementById(prefix + '_' + pk).value = '';
+      });
+      redraw();
+    };
+
+    function redraw() {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      DOC_ATTRS.forEach(a => {
+        const r = getRegionFromInputs(a.pk);
+        if (!r) return;
+        ctx.strokeStyle = a.colour;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(r.x * scale, r.y * scale, r.width * scale, r.height * scale);
+        ctx.fillStyle = a.colour;
+        ctx.font = '12px sans-serif';
+        ctx.fillText(a.name, r.x * scale + 3, r.y * scale + 13);
+      });
+    }
+
+    function canvasCoords(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left) * (canvas.width / rect.width) / scale,
+        y: (e.clientY - rect.top) * (canvas.height / rect.height) / scale,
+      };
+    }
+
+    {% if image_src %}
+    const img = new Image();
+
+    canvas.addEventListener('mousedown', e => {
+      if (!selectedPk) return;
+      dragging = true;
+      dragStart = canvasCoords(e);
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      if (!dragging || !dragStart) return;
+      const cur = canvasCoords(e);
+      const x = Math.min(dragStart.x, cur.x);
+      const y = Math.min(dragStart.y, cur.y);
+      const w = Math.abs(cur.x - dragStart.x);
+      const h = Math.abs(cur.y - dragStart.y);
+      setInputs(selectedPk, x, y, w, h);
+      redraw();
+    });
+
+    canvas.addEventListener('mouseup', () => { dragging = false; dragStart = null; });
+    canvas.addEventListener('mouseleave', () => { dragging = false; dragStart = null; });
+
+    img.onload = function () {
+      const maxW = Math.min(900, img.naturalWidth);
+      scale = maxW / img.naturalWidth;
+      canvas.width = Math.round(img.naturalWidth * scale);
+      canvas.height = Math.round(img.naturalHeight * scale);
+      redraw();
+    };
+    img.src = IMAGE_SRC;
+    {% endif %}
+  })();
+  </script>
+
+{% endif %}
+{% endblock action-content %}

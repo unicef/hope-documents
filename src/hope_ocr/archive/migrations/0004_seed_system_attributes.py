@@ -2,6 +2,7 @@ from typing import Any
 
 from django.db import migrations
 
+
 SYSTEM_ATTRIBUTES = ("first_name", "last_name", "document_number")
 
 
