@@ -517,3 +517,196 @@ def test_task_lower_scoring_document_does_not_replace_best(document_type, countr
     job.refresh_from_db()
     assert job.version_matched is True
     assert job.matched_version == "v1"
+
+
+@pytest.mark.django_db
+def test_validation_mode_not_in_request_defaults_to_fall_back_to_best_match(app, png_bytes, document_type, country):
+    url = reverse("api:analyze-create")
+    with patch("hope_documents.api.viewsets.analyze.process_analysis_job"):
+        response = app.post(
+            url,
+            params={"document_type": document_type.code, "country": country.code2},
+            upload_files=[("image_file", "passport.png", png_bytes)],
+        )
+    assert response.status_code == status.HTTP_202_ACCEPTED
+    job = AnalysisJob.objects.get(pk=response.json["job_id"])
+    assert job.validation_mode == AnalysisJob.ValidationMode.FALL_BACK_TO_BEST_MATCH
+
+
+@pytest.mark.django_db
+def test_serializer_rejects_invalid_validation_mode(app, png_bytes, document_type, country):
+    url = reverse("api:analyze-create")
+    response = app.post(
+        url,
+        params={
+            "document_type": document_type.code,
+            "country": country.code2,
+            "image_base64": base64.b64encode(png_bytes).decode(),
+            "validation_mode": "bad_value",
+        },
+        expect_errors=True,
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+def test_status_response_includes_validation_mode(app, document_type, country):
+    job = AnalysisJobFactory(
+        document_type=document_type,
+        country=country,
+        status=AnalysisJob.Status.PENDING,
+        validation_mode=AnalysisJob.ValidationMode.KEEP_VALUE_MARK_INVALID,
+    )
+    url = reverse("api:analyze-detail", kwargs={"job_id": str(job.id)})
+    response = app.get(url)
+    assert response.status_code == status.HTTP_200_OK
+    assert "validation_mode" in response.json
+    assert response.json["validation_mode"] == AnalysisJob.ValidationMode.KEEP_VALUE_MARK_INVALID
+
+
+@pytest.mark.django_db
+def test_task_fall_back_to_best_match_no_is_valid_key(document_type, country, png_bytes):
+    """FALL_BACK_TO_BEST_MATCH: invalid value is included as-is with no is_valid flag."""
+    from hope_documents.tasks import process_analysis_job
+
+    attr = Attribute.objects.get(name="first_name")
+    doc = DocumentFactory(document_type=document_type, country=country, version="v1")
+    DocumentAttributeFactory(document=doc, attribute=attr, validation_expression=r"\d{9}")
+
+    job = _create_job_with_image(
+        document_type, country, png_bytes, validation_mode=AnalysisJob.ValidationMode.FALL_BACK_TO_BEST_MATCH
+    )
+
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock())
+        process_analysis_job(str(job.id))
+
+    job.refresh_from_db()
+    assert job.status == AnalysisJob.Status.COMPLETED
+    assert all("is_valid" not in a for a in job.result)
+
+
+@pytest.mark.django_db
+def test_task_fall_back_to_best_match_invalid_value_reduces_score(document_type, country, png_bytes):
+    """FALL_BACK_TO_BEST_MATCH: non-conforming values don't count toward score; if no version
+    scores > 0 the generic fallback is returned instead of any configured version."""
+    from hope_documents.tasks import process_analysis_job
+
+    attr = Attribute.objects.get(name="first_name")
+    doc = DocumentFactory(document_type=document_type, country=country, version="v1")
+    DocumentAttributeFactory(document=doc, attribute=attr, validation_expression=r"\d{9}")
+
+    job = _create_job_with_image(
+        document_type, country, png_bytes, validation_mode=AnalysisJob.ValidationMode.FALL_BACK_TO_BEST_MATCH
+    )
+
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        # All extracted values fail validation → score stays 0 → generic fallback
+        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock())
+        process_analysis_job(str(job.id))
+
+    job.refresh_from_db()
+    assert job.status == AnalysisJob.Status.COMPLETED
+    assert job.version_matched is False
+    system_names = {a["attribute_name"] for a in job.result}
+    assert system_names == {"first_name", "last_name", "document_number"}
+
+
+@pytest.mark.django_db
+def test_task_keep_value_mark_invalid_valid_value(document_type, country, png_bytes):
+    """KEEP_VALUE_MARK_INVALID: value matching the expression gets is_valid=True."""
+    from hope_documents.tasks import process_analysis_job
+
+    attr = Attribute.objects.get(name="first_name")
+    doc = DocumentFactory(document_type=document_type, country=country, version="v1")
+    DocumentAttributeFactory(document=doc, attribute=attr, validation_expression=r"\d{9}")
+
+    job = _create_job_with_image(
+        document_type, country, png_bytes, validation_mode=AnalysisJob.ValidationMode.KEEP_VALUE_MARK_INVALID
+    )
+
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        mock_proc.return_value.find_single.return_value = ("123456789", MagicMock())
+        process_analysis_job(str(job.id))
+
+    job.refresh_from_db()
+    assert job.status == AnalysisJob.Status.COMPLETED
+    first_name_result = next(a for a in job.result if a["attribute_name"] == "first_name")
+    assert first_name_result["is_valid"] is True
+    assert first_name_result["extracted_value"] == "123456789"
+
+
+@pytest.mark.django_db
+def test_task_keep_value_mark_invalid_invalid_value(document_type, country, png_bytes):
+    """KEEP_VALUE_MARK_INVALID: value not matching the expression gets is_valid=False; job completes."""
+    from hope_documents.tasks import process_analysis_job
+
+    attr = Attribute.objects.get(name="first_name")
+    doc = DocumentFactory(document_type=document_type, country=country, version="v1")
+    DocumentAttributeFactory(document=doc, attribute=attr, validation_expression=r"\d{9}")
+
+    job = _create_job_with_image(
+        document_type, country, png_bytes, validation_mode=AnalysisJob.ValidationMode.KEEP_VALUE_MARK_INVALID
+    )
+
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock())
+        process_analysis_job(str(job.id))
+
+    job.refresh_from_db()
+    assert job.status == AnalysisJob.Status.COMPLETED
+    first_name_result = next(a for a in job.result if a["attribute_name"] == "first_name")
+    assert first_name_result["is_valid"] is False
+    assert first_name_result["extracted_value"] == "JOHN"
+
+
+@pytest.mark.django_db
+def test_task_treat_as_not_found_invalid(document_type, country, png_bytes):
+    """TREAT_AS_NOT_FOUND: non-matching attribute becomes empty string, indistinguishable from unreadable.
+    A second attribute with no expression passes and keeps the version in play."""
+    from hope_documents.tasks import process_analysis_job
+
+    attr_fail = Attribute.objects.get(name="first_name")
+    attr_pass = Attribute.objects.get(name="last_name")
+    doc = DocumentFactory(document_type=document_type, country=country, version="v1")
+    DocumentAttributeFactory(document=doc, attribute=attr_fail, validation_expression=r"\d{9}")
+    DocumentAttributeFactory(document=doc, attribute=attr_pass, validation_expression=None)
+
+    job = _create_job_with_image(
+        document_type, country, png_bytes, validation_mode=AnalysisJob.ValidationMode.TREAT_AS_NOT_FOUND
+    )
+
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        # "JOHN" fails \d{9} → first_name treated as not found; last_name has no expression → passes
+        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock())
+        process_analysis_job(str(job.id))
+
+    job.refresh_from_db()
+    assert job.status == AnalysisJob.Status.COMPLETED
+    assert job.version_matched is True
+    first_name_result = next(a for a in job.result if a["attribute_name"] == "first_name")
+    assert first_name_result["extracted_value"] == ""
+    assert "is_valid" not in first_name_result
+
+
+@pytest.mark.django_db
+def test_task_fail_analysis_mode_invalid(document_type, country, png_bytes):
+    """FAIL_ANALYSIS: a non-matching attribute immediately fails the entire job."""
+    from hope_documents.tasks import process_analysis_job
+
+    attr = Attribute.objects.get(name="first_name")
+    doc = DocumentFactory(document_type=document_type, country=country, version="v1")
+    DocumentAttributeFactory(document=doc, attribute=attr, validation_expression=r"\d{9}")
+
+    job = _create_job_with_image(
+        document_type, country, png_bytes, validation_mode=AnalysisJob.ValidationMode.FAIL_ANALYSIS
+    )
+
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock())
+        with pytest.raises(Exception, match="first_name"):
+            process_analysis_job(str(job.id))
+
+    job.refresh_from_db()
+    assert job.status == AnalysisJob.Status.FAILED
+    assert "first_name" in job.error
