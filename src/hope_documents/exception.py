@@ -4,3 +4,7 @@ class FlowTimeoutError(Exception):
 
 class FlowLockoutError(Exception):
     pass
+
+
+class ValidationFailedError(Exception):
+    pass
