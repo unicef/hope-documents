@@ -69,3 +69,4 @@ class DocumentAttributeFactory(AutoRegisterModelFactory):
     document = factory.SubFactory(DocumentFactory)
     attribute = factory.SubFactory(AttributeFactory)
     region = None
+    validation_expression = None

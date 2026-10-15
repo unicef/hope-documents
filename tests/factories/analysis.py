@@ -23,6 +23,7 @@ class AnalysisJobFactory(AutoRegisterModelFactory):
     document_type = factory.SubFactory(DocumentTypeFactory)
     country = factory.SubFactory(CountryFactory)
     status = AnalysisJob.Status.PENDING
+    validation_mode = AnalysisJob.ValidationMode.FALL_BACK_TO_BEST_MATCH
     callback_url = ""
     matched_version = ""
     version_matched = None
