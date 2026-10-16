@@ -69,6 +69,13 @@ class AnalyzeView(APIView):
         )
         ext = pathlib.Path(image_file.name).suffix or ".png"
         job.image.save(f"{job.id}{ext}", image_file, save=True)
+
+        sync = request.query_params.get("sync", "").lower() in ("1", "true")
+        if sync:
+            process_analysis_job(str(job.id))
+            job.refresh_from_db()
+            return Response(AnalysisJobStatusSerializer(job).data, status=status.HTTP_200_OK)
+
         process_analysis_job.delay(str(job.id))
         return Response({"job_id": str(job.id)}, status=status.HTTP_202_ACCEPTED)
 

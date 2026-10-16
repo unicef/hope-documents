@@ -30,7 +30,8 @@ def test_handle_debug_true(mock_bulk_create, mock_config, mock_group, mock_site,
 
     command.handle()
 
-    mock_call_command.assert_called_once_with("upgrade")
+    assert mock_call_command.call_args_list[0].args == ("upgrade",)
+    assert mock_call_command.call_args_list[1].args == ("demo_data",)
     mock_site.objects.update_or_create.assert_called_once_with(
         pk=settings.SITE_ID, defaults={"domain": "localhost:8000", "name": "localhost"}
     )

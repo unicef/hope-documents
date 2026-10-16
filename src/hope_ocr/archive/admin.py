@@ -1,10 +1,12 @@
 import json
+from typing import Any
 
 from PIL import Image
 from admin_extra_buttons.api import ExtraButtonsMixin, button
 from django import forms
 from django.contrib import admin, messages
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db.models import Field as ModelField
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils.module_loading import import_string
@@ -101,7 +103,7 @@ class DocumentAttributeInline(TabularInline):
     autocomplete_fields = ["attribute"]
     fields = ["attribute", "validation_expression", "region"]
 
-    def formfield_for_dbfield(self, db_field, request, **kwargs):
+    def formfield_for_dbfield(self, db_field: ModelField, request: HttpRequest, **kwargs: Any) -> forms.Field | None:
         formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
         if isinstance(db_field, RegexField) and formfield is not None:
             formfield.widget = UnfoldAdminTextInputWidget()
