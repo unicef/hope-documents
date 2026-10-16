@@ -1,19 +1,19 @@
 import json
 
 import pytest
-
 from factories.documents import DocumentAttributeFactory
+
 from hope_ocr.archive.models import DocumentAttribute
 from hope_ocr.archive.region import BoundingBox, BoundingBoxField, Point
 
 
 def test_point_negative_x_raises():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="non-negative"):
         Point(x=-1, y=0)
 
 
 def test_point_negative_y_raises():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="non-negative"):
         Point(x=0, y=-1)
 
 
