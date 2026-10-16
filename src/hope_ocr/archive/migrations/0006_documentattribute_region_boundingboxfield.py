@@ -8,7 +8,7 @@ import hope_ocr.archive.region
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("archive", "0004_seed_system_attributes"),
+        ("archive", "0005_documentattribute_validation_expression"),
     ]
 
     operations = [

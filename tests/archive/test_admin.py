@@ -3,11 +3,12 @@ from pathlib import Path
 import pytest
 from django.contrib.admin.sites import AdminSite
 from django.urls import reverse
-from factories.documents import AttributeFactory
+from factories.documents import AttributeFactory, DocumentAttributeFactory
 from webtest import Upload
 
 from hope_ocr.archive.admin import AttributeAdmin
 from hope_ocr.archive.models import Attribute
+from hope_ocr.archive.region import BoundingBox
 from hope_ocr.ocr.engine import MatchMode
 
 
@@ -99,3 +100,54 @@ def test_scan_image_search_all(app, admin_user, document1):
     res = res.forms["scan-form"].submit()
     assert res.status_code == 200
     assert b"Text found" in res.content
+
+
+@pytest.mark.django_db
+def test_define_regions_get(app):
+    da = DocumentAttributeFactory.create()
+    url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
+    res = app.get(url)
+    assert res.status_code == 200
+    assert da.attribute.name.encode() in res.content
+
+
+@pytest.mark.django_db
+def test_define_regions_post_image_upload(app, images_dir):
+    da = DocumentAttributeFactory.create()
+    url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
+    image_path = images_dir / "ita/dl1.png"
+    with image_path.open("rb") as f:
+        res = app.post(url, {"image": Upload(str(image_path.absolute()), f.read(), "image/png")})
+    assert res.status_code == 200
+    assert b"region-canvas" in res.content
+
+
+@pytest.mark.django_db
+def test_define_regions_post_save_coords(app):
+    da = DocumentAttributeFactory.create()
+    url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
+    res = app.post(url, {
+        f"region_{da.pk}_x": "10",
+        f"region_{da.pk}_y": "20",
+        f"region_{da.pk}_width": "100",
+        f"region_{da.pk}_height": "50",
+    })
+    assert res.status_code == 200
+    da.refresh_from_db()
+    assert da.region == BoundingBox.from_rect(10, 20, 100, 50)
+
+
+@pytest.mark.django_db
+def test_define_regions_post_clear_coords(app):
+    bb = BoundingBox.from_rect(10, 20, 100, 50)
+    da = DocumentAttributeFactory.create(region=bb)
+    url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
+    res = app.post(url, {
+        f"region_{da.pk}_x": "",
+        f"region_{da.pk}_y": "",
+        f"region_{da.pk}_width": "",
+        f"region_{da.pk}_height": "",
+    })
+    assert res.status_code == 200
+    da.refresh_from_db()
+    assert da.region is None
