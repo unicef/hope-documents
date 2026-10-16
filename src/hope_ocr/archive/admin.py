@@ -8,6 +8,9 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils.module_loading import import_string
+from django_regex.fields import RegexField
+from unfold.admin import TabularInline
+from unfold.widgets import UnfoldAdminTextInputWidget
 
 from ..ocr.engine import CV2Config, MatchMode, Processor, ScanEntryInfo, SearchInfo, TSConfig
 from ..ocr.loaders import Loader, loader_registry
@@ -92,11 +95,17 @@ class AttributeAdmin(admin.ModelAdmin[models.Attribute]):
         return ["system"]
 
 
-class DocumentAttributeInline(admin.TabularInline):
+class DocumentAttributeInline(TabularInline):
     model = models.DocumentAttribute
     extra = 1
     autocomplete_fields = ["attribute"]
     fields = ["attribute", "validation_expression", "region"]
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+        if isinstance(db_field, RegexField) and formfield is not None:
+            formfield.widget = UnfoldAdminTextInputWidget()
+        return formfield
 
 
 @admin.register(models.Document)
@@ -148,7 +157,7 @@ class DocumentAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.Document]):
 
 @admin.register(models.DocumentAttribute)
 class DocumentAttributeAdmin(admin.ModelAdmin[models.DocumentAttribute]):
-    list_display = ["document", "attribute", "region"]
+    list_display = ["document", "attribute", "validation_expression", "region"]
     search_fields = ["document__document_type__name", "document__country__name", "attribute__name"]
     list_filter = ["document__document_type", "document__country", "attribute"]
     autocomplete_fields = ["document", "attribute"]
