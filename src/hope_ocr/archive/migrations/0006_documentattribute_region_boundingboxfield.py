@@ -6,7 +6,6 @@ import hope_ocr.archive.region
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("archive", "0005_documentattribute_validation_expression"),
     ]

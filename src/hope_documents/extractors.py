@@ -37,12 +37,14 @@ class OCRAttributeExtractor:
     ) -> str:
         if region:
             try:
-                cropped = image.crop((
-                    int(region.top_left.x),
-                    int(region.top_left.y),
-                    int(region.bottom_right.x),
-                    int(region.bottom_right.y),
-                ))
+                cropped = image.crop(
+                    (
+                        int(region.top_left.x),
+                        int(region.top_left.y),
+                        int(region.bottom_right.x),
+                        int(region.bottom_right.y),
+                    )
+                )
                 value = self.processor.reader.extract(cropped).strip()
             except (ExtractionError, InvalidImageError, OSError, ValueError):
                 value = ""

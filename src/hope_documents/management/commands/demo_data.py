@@ -64,15 +64,21 @@ class Command(BaseCommand):
         last_name = system_attrs["last_name"]
         doc_number = system_attrs["document_number"]
 
-        self._seed_document_attributes(dl_doc, [
-            (first_name, None),
-            (last_name, None),
-            (doc_number, r"[A-Z]{2}\d{7}[A-Z]"),
-        ])
-        self._seed_document_attributes(pas_doc, [
-            (first_name, None),
-            (last_name, None),
-            (doc_number, r"[A-Z]{2}\d{7}"),
-        ])
+        self._seed_document_attributes(
+            dl_doc,
+            [
+                (first_name, None),
+                (last_name, None),
+                (doc_number, r"[A-Z]{2}\d{7}[A-Z]"),
+            ],
+        )
+        self._seed_document_attributes(
+            pas_doc,
+            [
+                (first_name, None),
+                (last_name, None),
+                (doc_number, r"[A-Z]{2}\d{7}"),
+            ],
+        )
 
         self.stdout.write(self.style.SUCCESS("Demo data ready."))

@@ -126,12 +126,15 @@ def test_define_regions_post_image_upload(app, images_dir):
 def test_define_regions_post_save_coords(app):
     da = DocumentAttributeFactory.create()
     url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
-    res = app.post(url, {
-        f"region_{da.pk}_x": "10",
-        f"region_{da.pk}_y": "20",
-        f"region_{da.pk}_width": "100",
-        f"region_{da.pk}_height": "50",
-    })
+    res = app.post(
+        url,
+        {
+            f"region_{da.pk}_x": "10",
+            f"region_{da.pk}_y": "20",
+            f"region_{da.pk}_width": "100",
+            f"region_{da.pk}_height": "50",
+        },
+    )
     assert res.status_code == 200
     da.refresh_from_db()
     assert da.region == BoundingBox.from_rect(10, 20, 100, 50)
@@ -142,12 +145,15 @@ def test_define_regions_post_clear_coords(app):
     bb = BoundingBox.from_rect(10, 20, 100, 50)
     da = DocumentAttributeFactory.create(region=bb)
     url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
-    res = app.post(url, {
-        f"region_{da.pk}_x": "",
-        f"region_{da.pk}_y": "",
-        f"region_{da.pk}_width": "",
-        f"region_{da.pk}_height": "",
-    })
+    res = app.post(
+        url,
+        {
+            f"region_{da.pk}_x": "",
+            f"region_{da.pk}_y": "",
+            f"region_{da.pk}_width": "",
+            f"region_{da.pk}_height": "",
+        },
+    )
     assert res.status_code == 200
     da.refresh_from_db()
     assert da.region is None

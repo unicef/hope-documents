@@ -141,18 +141,22 @@ class DocumentAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.Document]):
                     da.region = None
                 da.save(update_fields=["region"])
             self.message_user(request, "Regions saved.")
+            if image_src := request.POST.get("image_src", ""):
+                ctx["image_src"] = image_src
 
         if request.method == "POST" and "image" in request.FILES:
             ctx["image_src"] = get_image_base64(request.FILES["image"])
 
-        ctx["doc_attrs_json"] = json.dumps([
-            {
-                "pk": da.pk,
-                "name": da.attribute.name,
-                "region": da.region.to_dict() if da.region else None,
-            }
-            for da in doc_attrs
-        ])
+        ctx["doc_attrs_json"] = json.dumps(
+            [
+                {
+                    "pk": da.pk,
+                    "name": da.attribute.name,
+                    "region": da.region.to_dict() if da.region else None,
+                }
+                for da in doc_attrs
+            ]
+        )
         ctx["doc_attrs"] = doc_attrs
         return render(request, "hope_ocr/define_regions.html", ctx)
 
