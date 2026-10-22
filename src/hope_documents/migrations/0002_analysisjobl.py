@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("archive", "0004_seed_system_attributes"),
         ("hope_documents", "0001_initial"),
@@ -18,14 +17,19 @@ class Migration(migrations.Migration):
             name="AnalysisJob",
             fields=[
                 ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ("status", models.CharField(
-                    choices=[
-                        ("pending", "Pending"), ("running", "Running"),
-                        ("completed", "Completed"), ("failed", "Failed"),
-                    ],
-                    default="pending",
-                    max_length=20,
-                )),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("pending", "Pending"),
+                            ("running", "Running"),
+                            ("completed", "Completed"),
+                            ("failed", "Failed"),
+                        ],
+                        default="pending",
+                        max_length=20,
+                    ),
+                ),
                 ("image", models.FileField(upload_to="analysis_jobs/")),
                 ("callback_url", models.URLField(blank=True)),
                 ("matched_version", models.CharField(blank=True, max_length=255)),
@@ -34,12 +38,20 @@ class Migration(migrations.Migration):
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("completed_at", models.DateTimeField(blank=True, null=True)),
                 ("error", models.TextField(blank=True)),
-                ("country", models.ForeignKey(
-                    on_delete=django.db.models.deletion.PROTECT, related_name="analysis_jobs", to="archive.country"
-                )),
-                ("document_type", models.ForeignKey(
-                    on_delete=django.db.models.deletion.PROTECT, related_name="analysis_jobs", to="archive.documenttype"
-                )),
+                (
+                    "country",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT, related_name="analysis_jobs", to="archive.country"
+                    ),
+                ),
+                (
+                    "document_type",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="analysis_jobs",
+                        to="archive.documenttype",
+                    ),
+                ),
             ],
             options={
                 "ordering": ("-created_at",),
