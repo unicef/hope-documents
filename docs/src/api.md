@@ -2,7 +2,7 @@
 
 The REST API accepts document images, runs OCR extraction, and returns structured field values.
 
-Swagger UI: `/api/rest/swagger/`  
+Swagger UI: `/api/rest/swagger/`
 ReDoc: `/api/rest/redoc/`
 
 ---
