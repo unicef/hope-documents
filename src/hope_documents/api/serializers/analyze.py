@@ -57,8 +57,15 @@ class AnalysisJobStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnalysisJob
         fields = [
-            "job_id", "status", "document_type", "country",
-            "validation_mode", "version", "version_matched", "attributes", "error",
+            "job_id",
+            "status",
+            "document_type",
+            "country",
+            "validation_mode",
+            "version",
+            "version_matched",
+            "attributes",
+            "error",
         ]
 
     def get_version(self, obj: AnalysisJob) -> str | None:

@@ -5,7 +5,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("archive", "0004_seed_system_attributes"),
     ]
@@ -15,8 +14,10 @@ class Migration(migrations.Migration):
             model_name="documentattribute",
             name="validation_expression",
             field=django_regex.fields.RegexField(
-                blank=True, help_text="Optional regex; if set, extracted values are checked against this pattern.",
-                null=True, verbose_name="validation_expression"
+                blank=True,
+                help_text="Optional regex; if set, extracted values are checked against this pattern.",
+                null=True,
+                verbose_name="validation_expression",
             ),
         ),
     ]

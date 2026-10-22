@@ -25,9 +25,7 @@ def _validate_attribute(
     is_valid = bool(re.fullmatch(expression, value)) if (expression and value) else True
 
     if validation_mode == AnalysisJob.ValidationMode.FAIL_ANALYSIS and not is_valid:
-        raise ValidationFailedError(
-            f"Attribute '{attribute_name}' value '{value}' failed validation."
-        )
+        raise ValidationFailedError(f"Attribute '{attribute_name}' value '{value}' failed validation.")
     if validation_mode == AnalysisJob.ValidationMode.KEEP_VALUE_MARK_INVALID:
         extracted.append({"attribute_name": attribute_name, "extracted_value": value, "is_valid": is_valid})
         return bool(value)
