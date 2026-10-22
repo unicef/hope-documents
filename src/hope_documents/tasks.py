@@ -54,6 +54,7 @@ def _generic_fallback(processor: Processor, pil_image: Image.Image) -> list[dict
 
 @shared_task
 def process_analysis_job(job_id: str) -> None:
+    """Run OCR extraction for a single AnalysisJob, update its status fields, and POST to callback_url if set."""
     job = AnalysisJob.objects.select_related("document_type", "country").get(pk=job_id)
 
     try:

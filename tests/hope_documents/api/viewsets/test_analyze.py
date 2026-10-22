@@ -1,11 +1,13 @@
 import base64
 import io
+import json
 import uuid
 from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
 from PIL import Image as PILImage
+from django.contrib.auth.models import Permission
 from django.core.files.base import ContentFile
 from django.urls import reverse
 from factories.analysis import AnalysisJobFactory
@@ -16,6 +18,7 @@ from factories.documents import (
     DocumentFactory,
     DocumentTypeFactory,
 )
+from factories.user import UserFactory
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -159,6 +162,34 @@ def test_upload_unauthenticated(png_bytes, document_type, country):
 
 
 @pytest.mark.django_db
+def test_upload_no_permission(png_bytes, document_type, country):
+    user = UserFactory()
+    client = APIClient()
+    client.force_authenticate(user=user)
+    b64 = base64.b64encode(png_bytes).decode()
+    url = reverse("api:analyze-create")
+    response = client.post(url, {"document_type": document_type.code, "country": country.code2, "image_base64": b64})
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+def test_upload_has_permission(png_bytes, document_type, country):
+    user = UserFactory()
+    perm = Permission.objects.get(codename="add_analysisjob", content_type__app_label="hope_documents")
+    user.user_permissions.add(perm)
+    user = type(user).objects.get(pk=user.pk)  # clear permission cache
+    client = APIClient()
+    client.force_authenticate(user=user)
+    b64 = base64.b64encode(png_bytes).decode()
+    url = reverse("api:analyze-create")
+    with patch("hope_documents.api.viewsets.analyze.process_analysis_job"):
+        response = client.post(
+            url, {"document_type": document_type.code, "country": country.code2, "image_base64": b64}
+        )
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+
+@pytest.mark.django_db
 def test_upload_with_callback_url(app, png_bytes, document_type, country):
     b64 = base64.b64encode(png_bytes).decode()
     url = reverse("api:analyze-create")
@@ -178,31 +209,26 @@ def test_upload_with_callback_url(app, png_bytes, document_type, country):
 
 
 @pytest.mark.django_db
-def test_detail_pending(app, document_type, country):
-    job = AnalysisJobFactory(document_type=document_type, country=country, status=AnalysisJob.Status.PENDING)
+@pytest.mark.parametrize(
+    ("job_status", "expected_str"),
+    [
+        (AnalysisJob.Status.PENDING, "pending"),
+        (AnalysisJob.Status.RUNNING, "running"),
+    ],
+)
+def test_detail_in_progress_state(app, document_type, country, job_status, expected_str):
+    job = AnalysisJobFactory(document_type=document_type, country=country, status=job_status)
     url = reverse("api:analyze-detail", kwargs={"job_id": str(job.id)})
     response = app.get(url)
     assert response.status_code == status.HTTP_200_OK
     data = response.json
-    assert data["status"] == "pending"
+    assert data["status"] == expected_str
     assert data["job_id"] == str(job.id)
     assert data["document_type"] == document_type.code
     assert data["country"] == country.code2
     assert data["version"] is None
     assert data["version_matched"] is None
     assert data["attributes"] is None
-
-
-@pytest.mark.django_db
-def test_detail_running(app, document_type, country):
-    job = AnalysisJobFactory(document_type=document_type, country=country, status=AnalysisJob.Status.RUNNING)
-    url = reverse("api:analyze-detail", kwargs={"job_id": str(job.id)})
-    response = app.get(url)
-    assert response.status_code == status.HTTP_200_OK
-    assert response.json["status"] == "running"
-    assert response.json["version"] is None
-    assert response.json["version_matched"] is None
-    assert response.json["attributes"] is None
 
 
 @pytest.mark.django_db
@@ -284,6 +310,31 @@ def test_detail_unauthenticated(document_type, country):
     url = reverse("api:analyze-detail", kwargs={"job_id": str(job.id)})
     response = client.get(url)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
+def test_detail_no_permission(document_type, country):
+    user = UserFactory()
+    client = APIClient()
+    client.force_authenticate(user=user)
+    job = AnalysisJobFactory(document_type=document_type, country=country)
+    url = reverse("api:analyze-detail", kwargs={"job_id": str(job.id)})
+    response = client.get(url)
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+def test_detail_has_permission(document_type, country):
+    user = UserFactory()
+    perm = Permission.objects.get(codename="add_analysisjob", content_type__app_label="hope_documents")
+    user.user_permissions.add(perm)
+    user = type(user).objects.get(pk=user.pk)  # clear permission cache
+    client = APIClient()
+    client.force_authenticate(user=user)
+    job = AnalysisJobFactory(document_type=document_type, country=country)
+    url = reverse("api:analyze-detail", kwargs={"job_id": str(job.id)})
+    response = client.get(url)
+    assert response.status_code == status.HTTP_200_OK
 
 
 def _create_job_with_image(document_type, country, png_bytes, **kwargs):
@@ -385,6 +436,14 @@ def test_task_fires_callback(document_type, country, png_bytes, mocked_responses
         process_analysis_job(str(job.id))
 
     assert len(mocked_responses.calls) == 1
+    payload = json.loads(mocked_responses.calls[0].request.body)
+    assert payload["job_id"] == str(job.id)
+    assert payload["status"] == "completed"
+    assert payload["document_type"] == document_type.code
+    assert payload["country"] == country.code2
+    assert "version" in payload
+    assert "version_matched" in payload
+    assert "attributes" in payload
     job.refresh_from_db()
     assert job.status == AnalysisJob.Status.COMPLETED
 
@@ -487,6 +546,20 @@ def test_resolve_image_base64_prefix_without_colon():
     payload = "nocoronprefix," + _base64.b64encode(raw).decode()
     result = _resolve_image({"image_base64": payload})
     assert result is not None
+
+
+def test_resolve_image_url_content_type_mapping():
+    """Content-Type response header determines the saved file extension."""
+    from hope_documents.api.viewsets.analyze import _resolve_image
+
+    mock_resp = MagicMock()
+    mock_resp.headers = {"Content-Type": "image/jpeg"}
+    mock_resp.content = b"fake-jpeg"
+    with patch("hope_documents.api.viewsets.analyze.http_client.get", return_value=mock_resp):
+        result = _resolve_image({"image_url": "https://example.com/photo"})
+
+    assert result is not None
+    assert result.name == "url_image.jpg"
 
 
 def test_analysis_job_str(document_type, country):
