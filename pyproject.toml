@@ -33,6 +33,7 @@ dependencies = [
   "django-admin-extra-buttons>=2.1.1",
   "django-adminactions>=2.4",
   "django-adminfilters>=2.6",
+  "django-celery-boost",
   "django-constance>=4.3.2",
   "django-cors-headers",
   "django-csp",

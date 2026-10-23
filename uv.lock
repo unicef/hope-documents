@@ -574,6 +574,30 @@ wheels = [
 ]
 
 [[package]]
+name = "django-celery-boost"
+version = "0.9.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "celery" },
+    { name = "django-admin-extra-buttons" },
+    { name = "django-concurrency" },
+    { name = "sentry-sdk" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/16/29/aac238c214db1af46f40b3ebf99b299fbbf6d1f855f1b82e9f17e42abe7a/django_celery_boost-0.9.0.tar.gz", hash = "sha256:55eb0ecca99b69d46ff64d7b77b49ea69fd4f48ca9f003cd44b5e5e8cd8d1137", size = 12127, upload-time = "2026-10-19T07:55:58.656Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/04/b6/01386ec9c85897f26f1345eef60cfac2e08b2457d01b8578e19237680c3d/django_celery_boost-0.9.0-py3-none-any.whl", hash = "sha256:b908851c60d5f6deebbfedd40b40045d98ea7a730debf2e380854dc9017110d3", size = 15577, upload-time = "2026-10-19T07:55:57.026Z" },
+]
+
+[[package]]
+name = "django-concurrency"
+version = "2.8.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/91/57/94ce0cb4592ff43f4e9671bc2e7fc4d50c1c7f71d56fe85a6637d7b58306/django_concurrency-2.8.1.tar.gz", hash = "sha256:621817c0cf8b344d14389cdf7d9040080717292cde88ecbd471facb79614afbf", size = 21092, upload-time = "2026-04-08T12:23:32.931Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c4/c7/657936235e0176a27bd56d556ad9ab427bfdab0fe29c2447bc39510bf6d5/django_concurrency-2.8.1-py3-none-any.whl", hash = "sha256:785e0c47052d47438cb99dc9ff128b8166c24377284080bdd7f3a57dbeb4c56a", size = 27861, upload-time = "2026-04-08T12:23:31.825Z" },
+]
+
+[[package]]
 name = "django-constance"
 version = "4.3.5"
 source = { registry = "https://pypi.org/simple" }
@@ -973,6 +997,7 @@ dependencies = [
     { name = "django-admin-extra-buttons" },
     { name = "django-adminactions" },
     { name = "django-adminfilters" },
+    { name = "django-celery-boost" },
     { name = "django-constance" },
     { name = "django-cors-headers" },
     { name = "django-csp" },
@@ -1064,6 +1089,7 @@ requires-dist = [
     { name = "django-admin-extra-buttons", specifier = ">=2.1.1" },
     { name = "django-adminactions", specifier = ">=2.4" },
     { name = "django-adminfilters", specifier = ">=2.6" },
+    { name = "django-celery-boost" },
     { name = "django-constance", specifier = ">=4.3.2" },
     { name = "django-cors-headers" },
     { name = "django-csp" },
