@@ -845,9 +845,46 @@ def test_region_extraction_falls_back_when_no_region(document_type, country, png
     mock_proc.return_value.find_single.assert_called()
 
 
-# ---------------------------------------------------------------------------
-# Sync mode (?sync=true)
-# ---------------------------------------------------------------------------
+@pytest.mark.django_db
+def test_region_extraction_crop_exception_falls_back_to_find_single(document_type, country, png_bytes):
+    """When cropping raises an OCR exception the extractor falls back to the full-image find_single path."""
+    from hope_documents.tasks import process_analysis_job
+    from hope_ocr.archive.region import BoundingBox
+    from hope_ocr.exceptions import ExtractionError
+
+    attr = Attribute.objects.get(name="first_name")
+    doc = DocumentFactory(document_type=document_type, country=country, version="v1")
+    DocumentAttributeFactory(document=doc, attribute=attr, region=BoundingBox.from_rect(0, 0, 10, 10))
+
+    job = _create_job_with_image(document_type, country, png_bytes)
+
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        mock_proc.return_value.reader.extract.side_effect = ExtractionError("bad crop")
+        mock_proc.return_value.find_single.return_value = ("MARIO", MagicMock(text=""))
+        process_analysis_job(str(job.id))
+
+    mock_proc.return_value.find_single.assert_called()
+
+
+@pytest.mark.django_db
+def test_region_extraction_fallback_match_text_not_in_ocr_returns_empty(document_type, country, png_bytes):
+    """When the match.text from find_single is not found in the OCR output, extracted value is empty string."""
+    from hope_documents.tasks import process_analysis_job
+
+    attr = Attribute.objects.get(name="first_name")
+    doc = DocumentFactory(document_type=document_type, country=country, version="v1")
+    DocumentAttributeFactory(document=doc, attribute=attr, region=None)
+
+    job = _create_job_with_image(document_type, country, png_bytes)
+
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        # match.text "xyz" is not present in the full OCR text "MARIO"
+        mock_proc.return_value.find_single.return_value = ("MARIO", MagicMock(text="xyz"))
+        process_analysis_job(str(job.id))
+
+    job.refresh_from_db()
+    first_name = next(a for a in job.result if a["attribute_name"] == "first_name")
+    assert first_name["extracted_value"] == ""
 
 
 @pytest.mark.django_db

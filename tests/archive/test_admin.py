@@ -2,12 +2,13 @@ from pathlib import Path
 
 import pytest
 from django.contrib.admin.sites import AdminSite
+from django.test import RequestFactory
 from django.urls import reverse
 from factories.documents import AttributeFactory, DocumentAttributeFactory
 from webtest import Upload
 
-from hope_ocr.archive.admin import AttributeAdmin
-from hope_ocr.archive.models import Attribute
+from hope_ocr.archive.admin import AttributeAdmin, DocumentAttributeInline
+from hope_ocr.archive.models import Attribute, DocumentAttribute
 from hope_ocr.archive.region import BoundingBox
 from hope_ocr.ocr.engine import MatchMode
 
@@ -157,3 +158,47 @@ def test_define_regions_post_clear_coords(app):
     assert res.status_code == 200
     da.refresh_from_db()
     assert da.region is None
+
+
+@pytest.mark.django_db
+def test_define_regions_post_save_coords_preserves_image_src(app):
+    """When coords are saved and image_src is in the POST body, it is echoed back into the response."""
+    da = DocumentAttributeFactory.create()
+    url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
+    res = app.post(
+        url,
+        {
+            f"region_{da.pk}_x": "10",
+            f"region_{da.pk}_y": "20",
+            f"region_{da.pk}_width": "100",
+            f"region_{da.pk}_height": "50",
+            "image_src": "data:image/png;base64,TESTTOKEN",
+        },
+    )
+    assert res.status_code == 200
+    assert b"TESTTOKEN" in res.content
+
+
+@pytest.mark.django_db
+def test_document_attribute_inline_formfield_applies_unfold_widget_to_regex_field():
+    """formfield_for_dbfield replaces the widget on RegexField with UnfoldAdminTextInputWidget."""
+    from unfold.widgets import UnfoldAdminTextInputWidget
+
+    inline = DocumentAttributeInline(DocumentAttribute, AdminSite())
+    request = RequestFactory().get("/")
+    db_field = DocumentAttribute._meta.get_field("validation_expression")
+    formfield = inline.formfield_for_dbfield(db_field, request)
+    assert isinstance(formfield.widget, UnfoldAdminTextInputWidget)
+
+
+@pytest.mark.django_db
+def test_document_attribute_inline_formfield_non_regex_field_unchanged():
+    """formfield_for_dbfield leaves non-RegexField fields untouched."""
+    from unfold.widgets import UnfoldAdminTextInputWidget
+
+    inline = DocumentAttributeInline(DocumentAttribute, AdminSite())
+    request = RequestFactory().get("/")
+    db_field = DocumentAttribute._meta.get_field("region")
+    formfield = inline.formfield_for_dbfield(db_field, request)
+    # region is a JSONField — widget must NOT be replaced with UnfoldAdminTextInputWidget
+    assert not isinstance(formfield.widget, UnfoldAdminTextInputWidget)

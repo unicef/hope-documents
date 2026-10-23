@@ -14,7 +14,7 @@ class AttributeExtractor(Protocol):
         image: Image.Image,
         attribute_name: str,
         region: BoundingBox | None,
-    ) -> str: ...
+    ) -> str: ...  # pragma: no cover
 
 
 class OCRAttributeExtractor:
