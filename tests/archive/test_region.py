@@ -74,3 +74,33 @@ def test_document_attribute_region_db_round_trip():
     da.refresh_from_db()
     assert isinstance(da.region, BoundingBox)
     assert da.region == bb
+
+
+def test_bounding_box_field_to_python_none():
+    assert BoundingBoxField().to_python(None) is None
+
+
+def test_bounding_box_field_to_python_already_bounding_box():
+    bb = BoundingBox.from_rect(0, 0, 50, 50)
+    assert BoundingBoxField().to_python(bb) is bb
+
+
+def test_bounding_box_field_to_python_dict_returns_bounding_box():
+    """to_python converts a plain dict (e.g. from deserialization) to a BoundingBox."""
+    bb = BoundingBox.from_rect(0, 0, 50, 50)
+    result = BoundingBoxField().to_python(bb.to_dict())
+    assert isinstance(result, BoundingBox)
+    assert result == bb
+
+
+def test_bounding_box_field_get_prep_value_non_bounding_box():
+    """When value is not a BoundingBox (e.g. None) get_prep_value passes it through unchanged."""
+    assert BoundingBoxField().get_prep_value(None) is None
+
+
+def test_bounding_box_field_value_from_object_none_region():
+    """value_from_object returns the raw value when it is not a BoundingBox."""
+    field = DocumentAttribute._meta.get_field("region")
+    da = DocumentAttribute()
+    da.region = None
+    assert field.value_from_object(da) is None
