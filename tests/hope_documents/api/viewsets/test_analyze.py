@@ -352,7 +352,7 @@ def test_task_generic_fallback_no_documents(document_type, country, png_bytes):
     job = _create_job_with_image(document_type, country, png_bytes)
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
-        mock_proc.return_value.find_single.return_value = ("John", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("John", MagicMock(text=""))
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -376,7 +376,7 @@ def test_task_version_matched(document_type, country, png_bytes):
     job = _create_job_with_image(document_type, country, png_bytes)
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
-        mock_proc.return_value.find_single.return_value = ("John", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("John", MagicMock(text=""))
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -581,7 +581,7 @@ def test_task_lower_scoring_document_does_not_replace_best(document_type, countr
     job = _create_job_with_image(document_type, country, png_bytes)
 
     def _side_effect(image, name):
-        return ("John", MagicMock()) if name == "first_name" else ("", None)
+        return ("John", MagicMock(text="")) if name == "first_name" else ("", None)
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
         mock_proc.return_value.find_single.side_effect = _side_effect
@@ -651,7 +651,7 @@ def test_task_fall_back_to_best_match_no_is_valid_key(document_type, country, pn
     )
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
-        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock(text=""))
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -675,7 +675,7 @@ def test_task_fall_back_to_best_match_invalid_value_reduces_score(document_type,
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
         # All extracted values fail validation → score stays 0 → generic fallback
-        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock(text=""))
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -699,7 +699,7 @@ def test_task_keep_value_mark_invalid_valid_value(document_type, country, png_by
     )
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
-        mock_proc.return_value.find_single.return_value = ("123456789", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("123456789", MagicMock(text=""))
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -723,7 +723,7 @@ def test_task_keep_value_mark_invalid_invalid_value(document_type, country, png_
     )
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
-        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock(text=""))
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -751,7 +751,7 @@ def test_task_treat_as_not_found_invalid(document_type, country, png_bytes):
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
         # "JOHN" fails \d{9} → first_name treated as not found; last_name has no expression → passes
-        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock(text=""))
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -776,10 +776,147 @@ def test_task_fail_analysis_mode_invalid(document_type, country, png_bytes):
     )
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
-        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock(text=""))
         with pytest.raises(Exception, match="first_name"):
             process_analysis_job(str(job.id))
 
     job.refresh_from_db()
     assert job.status == AnalysisJob.Status.FAILED
     assert "first_name" in job.error
+
+
+@pytest.mark.django_db
+def test_region_extraction_uses_crop_when_region_set(document_type, country, png_bytes):
+    """When DocumentAttribute has a region, OCRAttributeExtractor crops first; find_single not called."""
+    from hope_documents.tasks import process_analysis_job
+    from hope_ocr.archive.region import BoundingBox
+
+    attr = Attribute.objects.get(name="first_name")
+    doc = DocumentFactory(document_type=document_type, country=country, version="v1")
+    DocumentAttributeFactory(document=doc, attribute=attr, region=BoundingBox.from_rect(0, 0, 10, 10))
+
+    job = _create_job_with_image(document_type, country, png_bytes)
+
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        mock_proc.return_value.reader.extract.return_value = "MARIO"
+        process_analysis_job(str(job.id))
+
+    mock_proc.return_value.reader.extract.assert_called_once()
+    mock_proc.return_value.find_single.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_region_extraction_falls_back_to_full_image_when_crop_empty(document_type, country, png_bytes):
+    """When cropped region returns empty string, OCRAttributeExtractor falls back to find_single."""
+    from hope_documents.tasks import process_analysis_job
+    from hope_ocr.archive.region import BoundingBox
+
+    attr = Attribute.objects.get(name="first_name")
+    doc = DocumentFactory(document_type=document_type, country=country, version="v1")
+    DocumentAttributeFactory(document=doc, attribute=attr, region=BoundingBox.from_rect(0, 0, 10, 10))
+
+    job = _create_job_with_image(document_type, country, png_bytes)
+
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        mock_proc.return_value.reader.extract.return_value = ""
+        mock_proc.return_value.find_single.return_value = ("MARIO", MagicMock(text=""))
+        process_analysis_job(str(job.id))
+
+    mock_proc.return_value.reader.extract.assert_called_once()
+    mock_proc.return_value.find_single.assert_called_once()
+
+
+@pytest.mark.django_db
+def test_region_extraction_falls_back_when_no_region(document_type, country, png_bytes):
+    """Without a region, OCRAttributeExtractor uses find_single directly."""
+    from hope_documents.tasks import process_analysis_job
+
+    attr = Attribute.objects.get(name="first_name")
+    doc = DocumentFactory(document_type=document_type, country=country, version="v1")
+    DocumentAttributeFactory(document=doc, attribute=attr, region=None)
+
+    job = _create_job_with_image(document_type, country, png_bytes)
+
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        mock_proc.return_value.find_single.return_value = ("MARIO", MagicMock(text=""))
+        process_analysis_job(str(job.id))
+
+    mock_proc.return_value.reader.extract.assert_not_called()
+    mock_proc.return_value.find_single.assert_called()
+
+
+@pytest.mark.django_db
+def test_region_extraction_crop_exception_falls_back_to_find_single(document_type, country, png_bytes):
+    """When cropping raises an OCR exception the extractor falls back to the full-image find_single path."""
+    from hope_documents.tasks import process_analysis_job
+    from hope_ocr.archive.region import BoundingBox
+    from hope_ocr.exceptions import ExtractionError
+
+    attr = Attribute.objects.get(name="first_name")
+    doc = DocumentFactory(document_type=document_type, country=country, version="v1")
+    DocumentAttributeFactory(document=doc, attribute=attr, region=BoundingBox.from_rect(0, 0, 10, 10))
+
+    job = _create_job_with_image(document_type, country, png_bytes)
+
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        mock_proc.return_value.reader.extract.side_effect = ExtractionError("bad crop")
+        mock_proc.return_value.find_single.return_value = ("MARIO", MagicMock(text=""))
+        process_analysis_job(str(job.id))
+
+    mock_proc.return_value.find_single.assert_called()
+
+
+@pytest.mark.django_db
+def test_region_extraction_fallback_match_text_not_in_ocr_returns_empty(document_type, country, png_bytes):
+    """When the match.text from find_single is not found in the OCR output, extracted value is empty string."""
+    from hope_documents.tasks import process_analysis_job
+
+    attr = Attribute.objects.get(name="first_name")
+    doc = DocumentFactory(document_type=document_type, country=country, version="v1")
+    DocumentAttributeFactory(document=doc, attribute=attr, region=None)
+
+    job = _create_job_with_image(document_type, country, png_bytes)
+
+    with patch("hope_documents.tasks.Processor") as mock_proc:
+        # match.text "xyz" is not present in the full OCR text "MARIO"
+        mock_proc.return_value.find_single.return_value = ("MARIO", MagicMock(text="xyz"))
+        process_analysis_job(str(job.id))
+
+    job.refresh_from_db()
+    first_name = next(a for a in job.result if a["attribute_name"] == "first_name")
+    assert first_name["extracted_value"] == ""
+
+
+@pytest.mark.django_db
+def test_analyze_sync_returns_200_with_full_result(app, png_bytes, document_type, country):
+    """`?sync=true` runs the task inline and returns the completed job payload with HTTP 200."""
+    url = reverse("api:analyze-create") + "?sync=true"
+    with patch("hope_documents.api.viewsets.analyze.process_analysis_job") as mock_task:
+        mock_task.return_value = None
+        response = app.post(
+            url,
+            params={"document_type": document_type.code, "country": country.code2},
+            upload_files=[("image_file", "passport.png", png_bytes)],
+        )
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json
+    assert "job_id" in data
+    assert "status" in data
+    assert "attributes" in data
+    mock_task.assert_called_once()
+    mock_task.delay.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_analyze_async_returns_202_job_id(app, png_bytes, document_type, country):
+    """Without ?sync=true the original 202 + job_id response is returned."""
+    url = reverse("api:analyze-create")
+    with patch.object(AnalysisJob, "queue") as mock_queue:
+        response = app.post(
+            url,
+            params={"document_type": document_type.code, "country": country.code2},
+            upload_files=[("image_file", "passport.png", png_bytes)],
+        )
+    assert response.status_code == status.HTTP_202_ACCEPTED
+    assert "job_id" in response.json
+    mock_queue.assert_called_once()
