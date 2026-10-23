@@ -50,5 +50,12 @@ class OCRAttributeExtractor:
                 value = ""
             if value:
                 return value
-        text, _ = self.processor.find_single(image, attribute_name)
-        return text.strip()
+        text, match = self.processor.find_single(image, attribute_name)
+        if not match:
+            return ""
+        label_pos = text.find(match.text)
+        if label_pos == -1:
+            return ""
+        after = text[label_pos + len(match.text) :].lstrip(" :\t")
+        lines = [ln.strip() for ln in after.split("\n") if ln.strip()]
+        return lines[0] if lines else ""

@@ -352,7 +352,7 @@ def test_task_generic_fallback_no_documents(document_type, country, png_bytes):
     job = _create_job_with_image(document_type, country, png_bytes)
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
-        mock_proc.return_value.find_single.return_value = ("John", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("John", MagicMock(text=""))
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -376,7 +376,7 @@ def test_task_version_matched(document_type, country, png_bytes):
     job = _create_job_with_image(document_type, country, png_bytes)
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
-        mock_proc.return_value.find_single.return_value = ("John", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("John", MagicMock(text=""))
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -581,7 +581,7 @@ def test_task_lower_scoring_document_does_not_replace_best(document_type, countr
     job = _create_job_with_image(document_type, country, png_bytes)
 
     def _side_effect(image, name):
-        return ("John", MagicMock()) if name == "first_name" else ("", None)
+        return ("John", MagicMock(text="")) if name == "first_name" else ("", None)
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
         mock_proc.return_value.find_single.side_effect = _side_effect
@@ -651,7 +651,7 @@ def test_task_fall_back_to_best_match_no_is_valid_key(document_type, country, pn
     )
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
-        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock(text=""))
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -675,7 +675,7 @@ def test_task_fall_back_to_best_match_invalid_value_reduces_score(document_type,
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
         # All extracted values fail validation → score stays 0 → generic fallback
-        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock(text=""))
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -699,7 +699,7 @@ def test_task_keep_value_mark_invalid_valid_value(document_type, country, png_by
     )
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
-        mock_proc.return_value.find_single.return_value = ("123456789", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("123456789", MagicMock(text=""))
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -723,7 +723,7 @@ def test_task_keep_value_mark_invalid_invalid_value(document_type, country, png_
     )
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
-        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock(text=""))
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -751,7 +751,7 @@ def test_task_treat_as_not_found_invalid(document_type, country, png_bytes):
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
         # "JOHN" fails \d{9} → first_name treated as not found; last_name has no expression → passes
-        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock(text=""))
         process_analysis_job(str(job.id))
 
     job.refresh_from_db()
@@ -776,7 +776,7 @@ def test_task_fail_analysis_mode_invalid(document_type, country, png_bytes):
     )
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
-        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("JOHN", MagicMock(text=""))
         with pytest.raises(Exception, match="first_name"):
             process_analysis_job(str(job.id))
 
@@ -819,7 +819,7 @@ def test_region_extraction_falls_back_to_full_image_when_crop_empty(document_typ
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
         mock_proc.return_value.reader.extract.return_value = ""
-        mock_proc.return_value.find_single.return_value = ("MARIO", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("MARIO", MagicMock(text=""))
         process_analysis_job(str(job.id))
 
     mock_proc.return_value.reader.extract.assert_called_once()
@@ -838,7 +838,7 @@ def test_region_extraction_falls_back_when_no_region(document_type, country, png
     job = _create_job_with_image(document_type, country, png_bytes)
 
     with patch("hope_documents.tasks.Processor") as mock_proc:
-        mock_proc.return_value.find_single.return_value = ("MARIO", MagicMock())
+        mock_proc.return_value.find_single.return_value = ("MARIO", MagicMock(text=""))
         process_analysis_job(str(job.id))
 
     mock_proc.return_value.reader.extract.assert_not_called()

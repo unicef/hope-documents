@@ -78,8 +78,15 @@ def _match_documents(
 def _generic_fallback(processor: Processor, pil_image: Image.Image) -> list[dict]:
     result = []
     for attr in Attribute.objects.filter(system=True):
-        text, _ = processor.find_single(pil_image, attr.name)
-        result.append({"attribute_name": attr.name, "extracted_value": text.strip()})
+        text, match = processor.find_single(pil_image, attr.name)
+        value = ""
+        if match:
+            label_pos = text.find(match.text)
+            if label_pos != -1:
+                after = text[label_pos + len(match.text) :].lstrip(" :\t")
+                lines = [ln.strip() for ln in after.split("\n") if ln.strip()]
+                value = lines[0] if lines else ""
+        result.append({"attribute_name": attr.name, "extracted_value": value})
     return result
 
 
