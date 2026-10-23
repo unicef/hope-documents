@@ -6,7 +6,7 @@ from hope_documents.models import AnalysisJob
 
 @admin.register(AnalysisJob)
 class AnalysisJobAdmin(ModelAdmin):
-    list_display = ["id", "status", "document_type", "country", "validation_mode", "created_at", "completed_at"]
+    list_display = ["id", "status", "document_type", "country", "validation_mode", "datetime_created", "completed_at"]
     list_filter = ["status", "document_type", "country", "validation_mode"]
     search_fields = ["id"]
     readonly_fields = [
@@ -21,7 +21,7 @@ class AnalysisJobAdmin(ModelAdmin):
         "version_matched",
         "result",
         "error",
-        "created_at",
+        "datetime_created",
         "completed_at",
     ]
-    ordering = ["-created_at"]
+    ordering = ["-datetime_created"]
