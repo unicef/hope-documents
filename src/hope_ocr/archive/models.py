@@ -146,6 +146,12 @@ class DocumentAttribute(models.Model):
         verbose_name=_("region"),
         help_text=_('Bounding box, e.g. {"x": 10, "y": 20, "width": 100, "height": 50}'),
     )
+    validation_expression = RegexField(
+        null=True,
+        blank=True,
+        verbose_name=_("validation_expression"),
+        help_text=_("Optional regex; if set, extracted values are checked against this pattern."),
+    )
 
     class Meta:
         ordering = ("document", "attribute__name")

@@ -14,6 +14,11 @@ class AnalyzeInputSerializer(serializers.Serializer):
     document_type = serializers.CharField()
     country = serializers.CharField()
     callback_url = serializers.URLField(required=False, default="")
+    validation_mode = serializers.ChoiceField(
+        choices=AnalysisJob.ValidationMode.choices,
+        default=AnalysisJob.ValidationMode.FALL_BACK_TO_BEST_MATCH,
+        required=False,
+    )
 
     def validate(self, data: dict) -> dict:
         provided = [k for k in ("image_file", "image_url", "image_base64") if data.get(k)]
@@ -51,7 +56,17 @@ class AnalysisJobStatusSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AnalysisJob
-        fields = ["job_id", "status", "document_type", "country", "version", "version_matched", "attributes", "error"]
+        fields = [
+            "job_id",
+            "status",
+            "document_type",
+            "country",
+            "validation_mode",
+            "version",
+            "version_matched",
+            "attributes",
+            "error",
+        ]
 
     def get_version(self, obj: AnalysisJob) -> str | None:
         if obj.status == AnalysisJob.Status.COMPLETED:

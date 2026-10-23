@@ -69,6 +69,7 @@ class AnalyzeView(APIView):
             document_type=data["document_type_obj"],
             country=data["country_obj"],
             callback_url=data.get("callback_url", ""),
+            validation_mode=data.get("validation_mode", AnalysisJob.ValidationMode.FALL_BACK_TO_BEST_MATCH),
         )
         ext = pathlib.Path(image_file.name).suffix or ".png"
         job.image.save(f"{job.id}{ext}", image_file, save=True)
