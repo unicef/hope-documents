@@ -53,9 +53,9 @@ def _generic_fallback(processor: Processor, pil_image: Image.Image) -> list[dict
 
 
 @shared_task
-def process_analysis_job(job_id: str) -> None:
+def process_analysis_job(pk: str, version: int | None = None) -> None:
     """Run OCR extraction for a single AnalysisJob, update its status fields, and POST to callback_url if set."""
-    job = AnalysisJob.objects.select_related("document_type", "country").get(pk=job_id)
+    job = AnalysisJob.objects.select_related("document_type", "country").get(pk=pk)
 
     try:
         job.status = AnalysisJob.Status.RUNNING
@@ -95,7 +95,7 @@ def process_analysis_job(job_id: str) -> None:
             try:
                 requests.post(job.callback_url, json=payload, timeout=10)
             except requests.RequestException:
-                logger.warning("Callback POST failed for job %s", job_id)
+                logger.warning("Callback POST failed for job %s", pk)
 
         job.status = AnalysisJob.Status.COMPLETED
         job.matched_version = best_version or ""

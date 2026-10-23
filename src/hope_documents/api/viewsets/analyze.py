@@ -13,7 +13,6 @@ from rest_framework.views import APIView
 from hope_documents.api.permissions import CanAnalyzeDocuments
 from hope_documents.api.serializers.analyze import AnalysisJobStatusSerializer, AnalyzeInputSerializer
 from hope_documents.models import AnalysisJob
-from hope_documents.tasks import process_analysis_job
 
 _CONTENT_TYPE_EXT: dict[str, str] = {
     "image/jpeg": ".jpg",
@@ -28,7 +27,7 @@ def _resolve_image(data: dict) -> Any:
         return data["image_file"]
     if data.get("image_url"):
         try:
-            resp = http_client.get(data["image_url"], timeout=10)
+            resp = http_client.get(data["image_url"], timeout=10)  # TODO: add auth header passthrough
             resp.raise_for_status()
             ct = resp.headers.get("Content-Type", "").split(";")[0].strip()
             ext = _CONTENT_TYPE_EXT.get(ct, ".png")
@@ -73,7 +72,7 @@ class AnalyzeView(APIView):
         )
         ext = pathlib.Path(image_file.name).suffix or ".png"
         job.image.save(f"{job.id}{ext}", image_file, save=True)
-        process_analysis_job.delay(str(job.id))
+        job.queue()
         return Response({"job_id": str(job.id)}, status=status.HTTP_202_ACCEPTED)
 
 

@@ -1,11 +1,14 @@
 import uuid
 
 from django.db import models
+from django_celery_boost.models import CeleryTaskModel
 
 from hope_ocr.archive.models import Country, DocumentType
 
 
-class AnalysisJob(models.Model):
+class AnalysisJob(CeleryTaskModel):
+    celery_task_name = "hope_documents.tasks.process_analysis_job"
+
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         RUNNING = "running", "Running"
@@ -21,13 +24,12 @@ class AnalysisJob(models.Model):
     matched_version = models.CharField(max_length=255, blank=True)
     version_matched = models.BooleanField(null=True, blank=True)
     result = models.JSONField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     error = models.TextField(blank=True)
 
     class Meta:
         app_label = "hope_documents"
-        ordering = ("-created_at",)
+        ordering = ("-datetime_created",)
 
     def __str__(self) -> str:
         return f"AnalysisJob({self.id}, {self.status})"

@@ -51,7 +51,7 @@ def country(db):
 @pytest.mark.django_db
 def test_upload_multipart_file(app, png_bytes, document_type, country):
     url = reverse("api:analyze-create")
-    with patch("hope_documents.api.viewsets.analyze.process_analysis_job") as mock_task:
+    with patch.object(AnalysisJob, "queue") as mock_queue:
         response = app.post(
             url,
             params={"document_type": document_type.code, "country": country.code2},
@@ -59,7 +59,7 @@ def test_upload_multipart_file(app, png_bytes, document_type, country):
         )
     assert response.status_code == status.HTTP_202_ACCEPTED
     assert "job_id" in response.json
-    mock_task.delay.assert_called_once()
+    mock_queue.assert_called_once()
     job = AnalysisJob.objects.get(pk=response.json["job_id"])
     assert job.document_type == document_type
     assert job.country == country
@@ -70,7 +70,7 @@ def test_upload_multipart_file(app, png_bytes, document_type, country):
 def test_upload_url(app, png_bytes, document_type, country, mocked_responses):
     mocked_responses.add(mocked_responses.GET, "https://example.com/passport.png", body=png_bytes, status=200)
     url = reverse("api:analyze-create")
-    with patch("hope_documents.api.viewsets.analyze.process_analysis_job"):
+    with patch.object(AnalysisJob, "queue"):
         response = app.post(
             url,
             params={
@@ -87,7 +87,7 @@ def test_upload_url(app, png_bytes, document_type, country, mocked_responses):
 def test_upload_base64(app, png_bytes, document_type, country):
     b64 = base64.b64encode(png_bytes).decode()
     url = reverse("api:analyze-create")
-    with patch("hope_documents.api.viewsets.analyze.process_analysis_job"):
+    with patch.object(AnalysisJob, "queue"):
         response = app.post(
             url,
             params={
@@ -182,7 +182,7 @@ def test_upload_has_permission(png_bytes, document_type, country):
     client.force_authenticate(user=user)
     b64 = base64.b64encode(png_bytes).decode()
     url = reverse("api:analyze-create")
-    with patch("hope_documents.api.viewsets.analyze.process_analysis_job"):
+    with patch.object(AnalysisJob, "queue"):
         response = client.post(
             url, {"document_type": document_type.code, "country": country.code2, "image_base64": b64}
         )
@@ -193,7 +193,7 @@ def test_upload_has_permission(png_bytes, document_type, country):
 def test_upload_with_callback_url(app, png_bytes, document_type, country):
     b64 = base64.b64encode(png_bytes).decode()
     url = reverse("api:analyze-create")
-    with patch("hope_documents.api.viewsets.analyze.process_analysis_job"):
+    with patch.object(AnalysisJob, "queue"):
         response = app.post(
             url,
             params={
@@ -485,7 +485,7 @@ def test_upload_base64_data_uri_prefix(app, png_bytes, document_type, country):
     """base64 supplied as a full data-URI (data:image/png;base64,...) is accepted."""
     b64 = "data:image/png;base64," + base64.b64encode(png_bytes).decode()
     url = reverse("api:analyze-create")
-    with patch("hope_documents.api.viewsets.analyze.process_analysis_job"):
+    with patch.object(AnalysisJob, "queue"):
         response = app.post(
             url,
             params={

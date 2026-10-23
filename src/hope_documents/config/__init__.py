@@ -59,6 +59,14 @@ DEFAULTS = {
         False,
         "If true, Celery tasks will be executed locally and synchronously. Used for testing.",
     ),
+    "CELERY_TASK_DEFAULT_QUEUE": (str, "default", "default", False, "Name of the default Celery task queue."),
+    "CELERY_TASK_REVOKED_QUEUE": (
+        str,
+        "revoked",
+        "revoked",
+        False,
+        "Name of the queue where revoked tasks are stored.",
+    ),
     "CONSTANCE_DATABASE_CACHE_BACKEND": (
         str,
         "",

@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "admin_extra_buttons",
     "adminfilters",
     "adminactions",
+    "django_celery_boost",
     "social_django",
     *env("EXTRA_APPS"),
 ]
