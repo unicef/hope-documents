@@ -595,7 +595,7 @@ def test_task_lower_scoring_document_does_not_replace_best(document_type, countr
 @pytest.mark.django_db
 def test_validation_mode_not_in_request_defaults_to_fall_back_to_best_match(app, png_bytes, document_type, country):
     url = reverse("api:analyze-create")
-    with patch("hope_documents.api.viewsets.analyze.process_analysis_job"):
+    with patch.object(AnalysisJob, "queue"):
         response = app.post(
             url,
             params={"document_type": document_type.code, "country": country.code2},

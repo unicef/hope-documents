@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("hope_documents", "0002_analysisjobl"),
+        ("hope_documents", "0003_alter_analysisjob_options_and_more"),
     ]
 
     operations = [
