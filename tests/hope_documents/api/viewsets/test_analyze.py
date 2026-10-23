@@ -874,8 +874,7 @@ def test_analyze_sync_returns_200_with_full_result(app, png_bytes, document_type
 def test_analyze_async_returns_202_job_id(app, png_bytes, document_type, country):
     """Without ?sync=true the original 202 + job_id response is returned."""
     url = reverse("api:analyze-create")
-    with patch("hope_documents.api.viewsets.analyze.process_analysis_job") as mock_task:
-        mock_task.delay.return_value = None
+    with patch.object(AnalysisJob, "queue") as mock_queue:
         response = app.post(
             url,
             params={"document_type": document_type.code, "country": country.code2},
@@ -883,5 +882,4 @@ def test_analyze_async_returns_202_job_id(app, png_bytes, document_type, country
         )
     assert response.status_code == status.HTTP_202_ACCEPTED
     assert "job_id" in response.json
-    mock_task.delay.assert_called_once()
-    mock_task.assert_not_called()
+    mock_queue.assert_called_once()

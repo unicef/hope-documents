@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 from hope_documents.api.permissions import CanAnalyzeDocuments
 from hope_documents.api.serializers.analyze import AnalysisJobStatusSerializer, AnalyzeInputSerializer
 from hope_documents.models import AnalysisJob
+from hope_documents.tasks import process_analysis_job
 
 _CONTENT_TYPE_EXT: dict[str, str] = {
     "image/jpeg": ".jpg",
@@ -73,6 +74,10 @@ class AnalyzeView(APIView):
         )
         ext = pathlib.Path(image_file.name).suffix or ".png"
         job.image.save(f"{job.id}{ext}", image_file, save=True)
+        if request.GET.get("sync") == "true":
+            process_analysis_job(str(job.id))
+            job.refresh_from_db()
+            return Response(AnalysisJobStatusSerializer(job).data, status=status.HTTP_200_OK)
         job.queue()
         return Response({"job_id": str(job.id)}, status=status.HTTP_202_ACCEPTED)
 
