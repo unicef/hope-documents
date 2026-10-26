@@ -2,7 +2,7 @@ import base64
 import io
 import json
 import uuid
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 import requests
@@ -801,7 +801,7 @@ def test_region_extraction_uses_crop_when_region_set(document_type, country, png
         mock_proc.return_value.reader.extract.return_value = "MARIO"
         process_analysis_job(str(job.id))
 
-    mock_proc.return_value.reader.extract.assert_called_once()
+    mock_proc.return_value.reader.extract.assert_called_once_with(ANY, psm=6)
     mock_proc.return_value.find_single.assert_not_called()
 
 

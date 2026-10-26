@@ -45,7 +45,7 @@ class OCRAttributeExtractor:
                         int(region.bottom_right.y),
                     )
                 )
-                value = self.processor.reader.extract(cropped).strip()
+                value = self.processor.reader.extract(cropped, psm=6).strip()
             except (ExtractionError, InvalidImageError, OSError, ValueError):
                 value = ""
             if value:

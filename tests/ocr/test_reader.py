@@ -17,7 +17,7 @@ from hope_documents.ocr.loaders import (
     PILLoader,
     SmartLoader,
 )
-from hope_documents.ocr.reader import Reader
+from hope_documents.ocr.reader import Reader, TSConfig
 
 images_dir = Path(__file__).parent.parent / "images"
 
@@ -54,3 +54,24 @@ def test_reader_error(reader: Reader):
         m.side_effect = TesseractError("", "")
         with pytest.raises(ExtractionError):
             reader.extract(Mock())
+
+
+def test_tsconfig_build_uses_override_psm():
+    cfg = TSConfig(psm=11)
+    result = cfg.build(psm=6)
+    assert "--psm 6" in result
+    assert "--psm 11" not in result
+
+
+def test_tsconfig_build_default_uses_instance_psm():
+    cfg = TSConfig(psm=11)
+    assert "--psm 11" in cfg.build()
+
+
+def test_reader_extract_passes_psm_override():
+    reader = Reader(TSConfig(psm=11))
+    with mock.patch("pytesseract.image_to_string", return_value="text") as m:
+        reader.extract(Mock(), psm=6)
+    config_arg = m.call_args.kwargs["config"]
+    assert "--psm 6" in config_arg
+    assert "--psm 11" not in config_arg
