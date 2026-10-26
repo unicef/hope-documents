@@ -7,6 +7,7 @@ from celery import shared_task
 from django.utils import timezone
 
 from hope_documents.exception import ValidationFailedError
+from hope_documents.extractors import AttributeExtractor, OCRAttributeExtractor
 from hope_documents.models import AnalysisJob
 from hope_ocr.archive.models import Attribute, Document
 from hope_ocr.ocr.engine import CV2Config, Processor, TSConfig
@@ -39,7 +40,7 @@ def _validate_attribute(
 
 
 def _match_documents(
-    processor: Processor,
+    extractor: AttributeExtractor,
     pil_image: Image.Image,
     documents: list[Document],
     validation_mode: str,
@@ -53,10 +54,7 @@ def _match_documents(
         extracted: list[dict] = []
         score = 0
         for doc_attr in doc.documentattribute_set.all():
-            # Placeholder: region-based extraction is deferred to a future ticket.
-            # Full-image fuzzy search using the attribute name as a proxy.
-            text, _ = processor.find_single(pil_image, doc_attr.attribute.name)
-            value = text.strip()
+            value = extractor.extract_attribute(pil_image, doc_attr.attribute.name, doc_attr.region)
             counts = _validate_attribute(
                 doc_attr.attribute.name,
                 value,
@@ -80,8 +78,15 @@ def _match_documents(
 def _generic_fallback(processor: Processor, pil_image: Image.Image) -> list[dict]:
     result = []
     for attr in Attribute.objects.filter(system=True):
-        text, _ = processor.find_single(pil_image, attr.name)
-        result.append({"attribute_name": attr.name, "extracted_value": text.strip()})
+        text, match = processor.find_single(pil_image, attr.name)
+        value = ""
+        if match:
+            label_pos = text.find(match.text)
+            if label_pos != -1:
+                after = text[label_pos + len(match.text) :].lstrip(" :\t")
+                lines = [ln.strip() for ln in after.split("\n") if ln.strip()]
+                value = lines[0] if lines else ""
+        result.append({"attribute_name": attr.name, "extracted_value": value})
     return result
 
 
@@ -99,6 +104,7 @@ def process_analysis_job(pk: str, version: int | None = None) -> None:
             pil_image.load()
 
         processor = Processor(ts_config=TSConfig(), cv2_config=CV2Config())
+        extractor = OCRAttributeExtractor(processor)
         documents = list(
             Document.objects.filter(
                 document_type=job.document_type,
@@ -108,7 +114,7 @@ def process_analysis_job(pk: str, version: int | None = None) -> None:
 
         if documents:
             best_version, best_attributes, version_matched = _match_documents(
-                processor, pil_image, documents, job.validation_mode
+                extractor, pil_image, documents, job.validation_mode
             )
         else:
             best_version, best_attributes, version_matched = None, [], False

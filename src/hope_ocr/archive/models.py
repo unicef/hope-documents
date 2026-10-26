@@ -5,6 +5,8 @@ from django.db.models import ProtectedError
 from django.utils.translation import gettext as _
 from django_regex.fields import RegexField
 
+from .region import BoundingBoxField
+
 
 class Country(models.Model):
     name = models.CharField(max_length=255)
@@ -140,11 +142,11 @@ class DocumentAttribute(models.Model):
         verbose_name=_("attribute"),
         help_text=_("The extractable field from the Attributes catalog."),
     )
-    region = models.JSONField(
+    region = BoundingBoxField(
         null=True,
         blank=True,
         verbose_name=_("region"),
-        help_text=_('Bounding box, e.g. {"x": 10, "y": 20, "width": 100, "height": 50}'),
+        help_text=_("Bounding box for the attribute region on the document image."),
     )
     validation_expression = RegexField(
         null=True,

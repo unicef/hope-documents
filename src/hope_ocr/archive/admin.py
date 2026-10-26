@@ -1,11 +1,18 @@
+import json
+from typing import Any
+
 from PIL import Image
 from admin_extra_buttons.api import ExtraButtonsMixin, button
 from django import forms
 from django.contrib import admin, messages
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db.models import Field as ModelField
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.utils.module_loading import import_string
+from django_regex.fields import RegexField
+from unfold.admin import TabularInline
+from unfold.widgets import UnfoldAdminTextInputWidget
 
 from ..ocr.engine import CV2Config, MatchMode, Processor, ScanEntryInfo, SearchInfo, TSConfig
 from ..ocr.loaders import Loader, loader_registry
@@ -13,6 +20,7 @@ from ..utils._timeit import time_it
 from ..utils.image import get_image_base64
 from ..utils.language import fqn
 from . import models
+from .region import BoundingBox
 
 PSM_CHOICES = (
     (0, "(0) Orientation and script detection (OSD) only."),
@@ -89,25 +97,73 @@ class AttributeAdmin(admin.ModelAdmin[models.Attribute]):
         return ["system"]
 
 
-class DocumentAttributeInline(admin.TabularInline):
+class DocumentAttributeInline(TabularInline):
     model = models.DocumentAttribute
     extra = 1
     autocomplete_fields = ["attribute"]
     fields = ["attribute", "validation_expression", "region"]
 
+    def formfield_for_dbfield(self, db_field: ModelField, request: HttpRequest, **kwargs: Any) -> forms.Field | None:
+        formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+        if isinstance(db_field, RegexField) and formfield is not None:
+            formfield.widget = UnfoldAdminTextInputWidget()
+        return formfield
+
 
 @admin.register(models.Document)
-class DocumentAdmin(admin.ModelAdmin[models.Document]):
+class DocumentAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.Document]):
     list_display = ["document_type", "country", "version"]
     search_fields = ["document_type__name", "country__name", "version"]
     list_filter = ["document_type", "country"]
     autocomplete_fields = ["document_type", "country"]
     inlines = [DocumentAttributeInline]
 
+    @button(change=True)
+    def define_regions(self, request: HttpRequest, pk: str) -> HttpResponse:
+        document = get_object_or_404(models.Document, pk=pk)
+        doc_attrs = list(
+            models.DocumentAttribute.objects.filter(document=document)
+            .select_related("attribute")
+            .order_by("attribute__name")
+        )
+        ctx = self.get_common_context(request)
+        ctx["document"] = document
+
+        if request.method == "POST" and "image" not in request.FILES:
+            for da in doc_attrs:
+                x = request.POST.get(f"region_{da.pk}_x", "")
+                y = request.POST.get(f"region_{da.pk}_y", "")
+                w = request.POST.get(f"region_{da.pk}_width", "")
+                h = request.POST.get(f"region_{da.pk}_height", "")
+                if all(v.strip() for v in (x, y, w, h)):
+                    da.region = BoundingBox.from_rect(float(x), float(y), float(w), float(h))
+                else:
+                    da.region = None
+                da.save(update_fields=["region"])
+            self.message_user(request, "Regions saved.")
+            if image_src := request.POST.get("image_src", ""):
+                ctx["image_src"] = image_src
+
+        if request.method == "POST" and "image" in request.FILES:
+            ctx["image_src"] = get_image_base64(request.FILES["image"])
+
+        ctx["doc_attrs_json"] = json.dumps(
+            [
+                {
+                    "pk": da.pk,
+                    "name": da.attribute.name,
+                    "region": da.region.to_dict() if da.region else None,
+                }
+                for da in doc_attrs
+            ]
+        )
+        ctx["doc_attrs"] = doc_attrs
+        return render(request, "hope_ocr/define_regions.html", ctx)
+
 
 @admin.register(models.DocumentAttribute)
 class DocumentAttributeAdmin(admin.ModelAdmin[models.DocumentAttribute]):
-    list_display = ["document", "attribute", "region"]
+    list_display = ["document", "attribute", "validation_expression", "region"]
     search_fields = ["document__document_type__name", "document__country__name", "attribute__name"]
     list_filter = ["document__document_type", "document__country", "attribute"]
     autocomplete_fields = ["document", "attribute"]

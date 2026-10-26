@@ -35,3 +35,6 @@ class Command(BaseCommand):
             FlagState(name=flag, condition="hostname", value="127.0.0.1,localhost") for flag in settings.FLAGS
         ]
         FlagState.objects.bulk_create(flag_states, ignore_conflicts=True)
+
+        self.stdout.write("Creating demo data")
+        call_command("demo_data")
