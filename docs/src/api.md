@@ -29,7 +29,7 @@ Submit a document image for analysis.
 
 | Parameter | Values | Default |
 |---|---|---|
-| `sync` | `true` / `1` | — |
+| `sync` | `true` | — |
 
 When `?sync=true` the task runs in-process and the response contains the full result (HTTP 200). Without it the task is queued via Celery and the response contains only the `job_id` (HTTP 202).
 
@@ -107,4 +107,24 @@ The `validation_mode` field controls how the extraction pipeline handles attribu
 
 ## Callback
 
-When `callback_url` is provided, the server sends a `POST` request to that URL on job completion. The request body is identical to the `GET /api/analyze/{job_id}/` response. No retries are attempted on failure.
+When `callback_url` is provided, the server sends a `POST` request to that URL when the job completes successfully. The callback is not fired for failed jobs.
+
+**Callback payload**
+
+```json
+{
+  "job_id": "5ef25336-94ab-4819-9c25-510cb88914ad",
+  "status": "completed",
+  "document_type": "PAS",
+  "country": "IT",
+  "version": "2024",
+  "version_matched": true,
+  "attributes": [
+    {"attribute_name": "first_name", "extracted_value": "MARIO"},
+    {"attribute_name": "last_name",  "extracted_value": "ROSSI"},
+    {"attribute_name": "document_number", "extracted_value": "AA1234567"}
+  ]
+}
+```
+
+Note that `validation_mode` and `error` are not included in the callback payload. No retries are attempted if the callback POST fails.
