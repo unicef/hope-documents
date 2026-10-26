@@ -12,18 +12,18 @@ from colorama import Fore, Style
 from humanize import naturaldelta, naturalsize
 from jinja2 import Template
 
-from hope_ocr.exceptions import InvalidImageError
-from hope_ocr.ocr.engine import CV2Config, MatchMode, Processor, ScanEntryInfo, Scanner, SearchInfo, TSConfig
-from hope_ocr.utils._logging import LevelFormatter
-from hope_ocr.utils._timeit import time_it
-from hope_ocr.utils.image import get_image, get_image_base64
-from hope_ocr.utils.language import parse_bool
+from hope_documents.exceptions import InvalidImageError
+from hope_documents.ocr.engine import CV2Config, MatchMode, Processor, ScanEntryInfo, Scanner, SearchInfo, TSConfig
+from hope_documents.utils._logging import LevelFormatter
+from hope_documents.utils._timeit import time_it
+from hope_documents.utils.image import get_image, get_image_base64
+from hope_documents.utils.language import parse_bool
 
 logger = logging.getLogger(__name__)
 INFO_LINE = f"{Fore.YELLOW}%-16s: {Style.RESET_ALL}%s"
 
 
-def configure_logging(debug: bool, loggers: Iterable[str] = ("hope_ocr",)) -> None:
+def configure_logging(debug: bool, loggers: Iterable[str] = ("hope_documents",)) -> None:
     # This should be called only from a click command
     formatter = LevelFormatter()
     ch = logging.StreamHandler()

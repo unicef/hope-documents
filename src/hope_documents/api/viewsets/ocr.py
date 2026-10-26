@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from hope_documents.api.serializers.ocr import ExtractSerializer
-from hope_ocr.ocr.engine import CV2Config, MatchMode, Processor, TSConfig
+from hope_documents.ocr.engine import CV2Config, MatchMode, Processor, TSConfig
 
 
 class OCRView(APIView):

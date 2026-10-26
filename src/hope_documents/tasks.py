@@ -6,11 +6,11 @@ from PIL import Image
 from celery import shared_task
 from django.utils import timezone
 
-from hope_documents.exception import ValidationFailedError
+from hope_documents.archive.models import Attribute, Document
+from hope_documents.exceptions import ValidationFailedError
 from hope_documents.extractors import AttributeExtractor, OCRAttributeExtractor
 from hope_documents.models import AnalysisJob
-from hope_ocr.archive.models import Attribute, Document
-from hope_ocr.ocr.engine import CV2Config, Processor, TSConfig
+from hope_documents.ocr.engine import CV2Config, Processor, TSConfig
 
 logger = logging.getLogger(__name__)
 

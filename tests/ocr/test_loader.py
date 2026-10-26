@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from hope_ocr.exceptions import InvalidImageError
-from hope_ocr.ocr.loaders import (
+from hope_documents.exceptions import InvalidImageError
+from hope_documents.ocr.loaders import (
     BWLoader,
     CV2Loader,
     ImprovedLoader,

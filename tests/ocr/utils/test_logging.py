@@ -3,7 +3,7 @@ import logging
 import pytest
 from colorama import Fore
 
-from hope_ocr.utils._logging import LevelFormatter
+from hope_documents.utils._logging import LevelFormatter
 
 
 @pytest.mark.parametrize(

@@ -158,7 +158,7 @@ class DocumentAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.Document]):
             ]
         )
         ctx["doc_attrs"] = doc_attrs
-        return render(request, "hope_ocr/define_regions.html", ctx)
+        return render(request, "hope_documents/define_regions.html", ctx)
 
 
 @admin.register(models.DocumentAttribute)
@@ -223,4 +223,4 @@ class DocumentRuleAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.DocumentRule]
         else:
             form = TestImageForm()
         ctx["form"] = form
-        return render(request, "hope_ocr/test_image.html", ctx)
+        return render(request, "hope_documents/test_image.html", ctx)

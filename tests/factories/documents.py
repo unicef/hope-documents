@@ -2,7 +2,7 @@ import factory.fuzzy
 import pycountry
 
 from factories.base import AutoRegisterModelFactory
-from hope_ocr.archive.models import Attribute, Country, Document, DocumentAttribute, DocumentRule, DocumentType
+from hope_documents.archive.models import Attribute, Country, Document, DocumentAttribute, DocumentRule, DocumentType
 
 all_countries = list(pycountry.countries)
 

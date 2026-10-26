@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
 
-from hope_ocr.ocr.__cli__ import cli, configure_logging, load_expectations, write_report
+from hope_documents.ocr.__cli__ import cli, configure_logging, load_expectations, write_report
 
 
 def test_load_expectations(tmp_path):
@@ -22,15 +22,15 @@ def test_load_expectations(tmp_path):
     assert load_expectations(str(csv_file)) == expected
 
 
-@patch("hope_ocr.ocr.__cli__.Template")
-@patch("hope_ocr.ocr.__cli__.click.echo")
+@patch("hope_documents.ocr.__cli__.Template")
+@patch("hope_documents.ocr.__cli__.click.echo")
 def test_write_report(mock_echo, mock_template, tmp_path):
     """Test that the report is written correctly."""
     output_file = tmp_path / "report.html"
     template_content = "Hello {{ content }}"
     mock_template.return_value.render.return_value = "Hello World"
     # we need to mock the reading of the template file
-    with patch("hope_ocr.ocr.__cli__.Path.read_text", return_value=template_content):
+    with patch("hope_documents.ocr.__cli__.Path.read_text", return_value=template_content):
         write_report(str(output_file), "dummy_template.html", {"content": "World"})
 
     mock_echo.assert_called_with(f"Writing report to {output_file}")
@@ -55,8 +55,8 @@ def test_configure_logging_no_debug():
     assert not logger.handlers
 
 
-@patch("hope_ocr.ocr.__cli__.Scanner")
-@patch("hope_ocr.ocr.__cli__.Processor")
+@patch("hope_documents.ocr.__cli__.Scanner")
+@patch("hope_documents.ocr.__cli__.Processor")
 def test_extract_command(mock_processor, mock_scanner, tmp_path):
     """Test the extract command."""
     runner = CliRunner()
@@ -71,12 +71,12 @@ def test_extract_command(mock_processor, mock_scanner, tmp_path):
     assert "extracted text" in result.output
 
 
-@patch("hope_ocr.ocr.__cli__.os.getcwd")
-@patch("hope_ocr.ocr.__cli__.get_image")
-@patch("hope_ocr.ocr.__cli__.Scanner")
-@patch("hope_ocr.ocr.__cli__.Processor")
-@patch("hope_ocr.ocr.__cli__.write_report")
-@patch("hope_ocr.ocr.__cli__.get_image_base64")
+@patch("hope_documents.ocr.__cli__.os.getcwd")
+@patch("hope_documents.ocr.__cli__.get_image")
+@patch("hope_documents.ocr.__cli__.Scanner")
+@patch("hope_documents.ocr.__cli__.Processor")
+@patch("hope_documents.ocr.__cli__.write_report")
+@patch("hope_documents.ocr.__cli__.get_image_base64")
 def test_report_command(
     mock_get_image_base64,
     mock_write_report,
@@ -112,11 +112,11 @@ def test_report_command(
     assert mock_write_report.called
 
 
-@patch("hope_ocr.ocr.__cli__.os.getcwd")
-@patch("hope_ocr.ocr.__cli__.get_image")
-@patch("hope_ocr.ocr.__cli__.Processor")
-@patch("hope_ocr.ocr.__cli__.write_report")
-@patch("hope_ocr.ocr.__cli__.get_image_base64")
+@patch("hope_documents.ocr.__cli__.os.getcwd")
+@patch("hope_documents.ocr.__cli__.get_image")
+@patch("hope_documents.ocr.__cli__.Processor")
+@patch("hope_documents.ocr.__cli__.write_report")
+@patch("hope_documents.ocr.__cli__.get_image_base64")
 def test_inspect_command(
     mock_get_image_base64,
     mock_write_report,

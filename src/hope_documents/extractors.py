@@ -2,9 +2,9 @@ from typing import Protocol, runtime_checkable
 
 from PIL import Image
 
-from hope_ocr.archive.region import BoundingBox
-from hope_ocr.exceptions import ExtractionError, InvalidImageError
-from hope_ocr.ocr.engine import Processor
+from hope_documents.archive.region import BoundingBox
+from hope_documents.exceptions import ExtractionError, InvalidImageError
+from hope_documents.ocr.engine import Processor
 
 
 @runtime_checkable

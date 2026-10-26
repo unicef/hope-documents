@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from hope_ocr.ocr.engine import MatchMode, OcrEngineMode
+from hope_documents.ocr.engine import MatchMode, OcrEngineMode
 
 
 class ExtractSerializer(serializers.Serializer):

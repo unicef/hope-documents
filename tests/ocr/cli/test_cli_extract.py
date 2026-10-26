@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from hope_ocr.ocr.__cli__ import cli
+from hope_documents.ocr.__cli__ import cli
 
 images_dir = Path(__file__).parent.parent / "images"
 

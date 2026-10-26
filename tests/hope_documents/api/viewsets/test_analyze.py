@@ -22,8 +22,8 @@ from factories.user import UserFactory
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from hope_documents.archive.models import Attribute
 from hope_documents.models import AnalysisJob
-from hope_ocr.archive.models import Attribute
 
 
 def make_png_bytes() -> bytes:
@@ -788,8 +788,8 @@ def test_task_fail_analysis_mode_invalid(document_type, country, png_bytes):
 @pytest.mark.django_db
 def test_region_extraction_uses_crop_when_region_set(document_type, country, png_bytes):
     """When DocumentAttribute has a region, OCRAttributeExtractor crops first; find_single not called."""
+    from hope_documents.archive.region import BoundingBox
     from hope_documents.tasks import process_analysis_job
-    from hope_ocr.archive.region import BoundingBox
 
     attr = Attribute.objects.get(name="first_name")
     doc = DocumentFactory(document_type=document_type, country=country, version="v1")
@@ -808,8 +808,8 @@ def test_region_extraction_uses_crop_when_region_set(document_type, country, png
 @pytest.mark.django_db
 def test_region_extraction_falls_back_to_full_image_when_crop_empty(document_type, country, png_bytes):
     """When cropped region returns empty string, OCRAttributeExtractor falls back to find_single."""
+    from hope_documents.archive.region import BoundingBox
     from hope_documents.tasks import process_analysis_job
-    from hope_ocr.archive.region import BoundingBox
 
     attr = Attribute.objects.get(name="first_name")
     doc = DocumentFactory(document_type=document_type, country=country, version="v1")
@@ -848,9 +848,9 @@ def test_region_extraction_falls_back_when_no_region(document_type, country, png
 @pytest.mark.django_db
 def test_region_extraction_crop_exception_falls_back_to_find_single(document_type, country, png_bytes):
     """When cropping raises an OCR exception the extractor falls back to the full-image find_single path."""
+    from hope_documents.archive.region import BoundingBox
+    from hope_documents.exceptions import ExtractionError
     from hope_documents.tasks import process_analysis_job
-    from hope_ocr.archive.region import BoundingBox
-    from hope_ocr.exceptions import ExtractionError
 
     attr = Attribute.objects.get(name="first_name")
     doc = DocumentFactory(document_type=document_type, country=country, version="v1")

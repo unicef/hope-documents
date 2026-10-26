@@ -18,7 +18,7 @@ def remove_attributes(apps: Any, schema_editor: Any) -> None:
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("archive", "0003_attribute_country_full_name_country_iso_code2_and_more"),
+        ("archive", "0001_initial"),
     ]
 
     operations = [

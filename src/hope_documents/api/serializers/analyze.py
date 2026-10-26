@@ -3,8 +3,8 @@ import binascii
 
 from rest_framework import serializers
 
+from hope_documents.archive.models import Country, DocumentType
 from hope_documents.models import AnalysisJob
-from hope_ocr.archive.models import Country, DocumentType
 
 
 class AnalyzeInputSerializer(serializers.Serializer):

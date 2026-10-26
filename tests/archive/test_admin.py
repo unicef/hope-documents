@@ -7,10 +7,10 @@ from django.urls import reverse
 from factories.documents import AttributeFactory, DocumentAttributeFactory
 from webtest import Upload
 
-from hope_ocr.archive.admin import AttributeAdmin, DocumentAttributeInline
-from hope_ocr.archive.models import Attribute, DocumentAttribute
-from hope_ocr.archive.region import BoundingBox
-from hope_ocr.ocr.engine import MatchMode
+from hope_documents.archive.admin import AttributeAdmin, DocumentAttributeInline
+from hope_documents.archive.models import Attribute, DocumentAttribute
+from hope_documents.archive.region import BoundingBox
+from hope_documents.ocr.engine import MatchMode
 
 
 @pytest.fixture

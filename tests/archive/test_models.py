@@ -6,7 +6,7 @@ from django.db.models import ProtectedError
 from factories import get_factory_for_model
 from factories.documents import AttributeFactory, DocumentAttributeFactory, DocumentFactory
 
-from hope_ocr.archive.models import Attribute, Document, DocumentAttribute
+from hope_documents.archive.models import Attribute, Document, DocumentAttribute
 
 
 @pytest.mark.django_db

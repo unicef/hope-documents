@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
-from hope_ocr.ocr.__cli__ import cli
+from hope_documents.ocr.__cli__ import cli
 
 images_dirs = [
     #    str((Path(__file__).parent.parent / "images/and").absolute()),
@@ -27,7 +27,7 @@ def test_report_help(runner: CliRunner) -> None:
     assert result.exit_code == 0
 
 
-@patch("hope_ocr.ocr.__cli__.write_report")
+@patch("hope_documents.ocr.__cli__.write_report")
 def test_report(write_report_mock, runner: CliRunner, test_dir) -> None:
     expectations_file = test_dir / "ocr" / "expectations.csv"
 

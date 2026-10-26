@@ -78,7 +78,9 @@ class Attribute(models.Model):
     system = models.BooleanField(
         default=False,
         verbose_name=_("system"),
-        help_text=_("Built-in system attributes (first_name, last_name, number) cannot be renamed or deleted."),
+        help_text=_(
+            "Built-in system attributes (first_name, last_name, document_number) cannot be renamed or deleted."
+        ),
     )
 
     class Meta:

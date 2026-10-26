@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from hope_ocr.ocr.diff.common import Match, _normalize_homoglyphs
+from hope_documents.ocr.diff.common import Match, _normalize_homoglyphs
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

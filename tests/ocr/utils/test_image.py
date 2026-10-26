@@ -4,8 +4,8 @@ from io import BytesIO
 import pytest
 from PIL import Image
 
-from hope_ocr.exceptions import InvalidImageError
-from hope_ocr.utils.image import get_image, get_image_base64
+from hope_documents.exceptions import InvalidImageError
+from hope_documents.utils.image import get_image, get_image_base64
 
 
 @pytest.fixture

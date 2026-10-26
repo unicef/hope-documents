@@ -7,7 +7,7 @@ import pytesseract
 from PIL.Image import Image
 from pytesseract import TesseractError
 
-from hope_ocr.exceptions import ExtractionError
+from hope_documents.exceptions import ExtractionError
 
 logger = logging.getLogger(__name__)
 
