@@ -7,12 +7,13 @@
 {% endblock %}
 {% block action-content %}
     <style>
-  #region-canvas { border: 1px solid #ccc; cursor: crosshair; display: block; max-width: 100%; margin-bottom: 1em; }
+  #region-canvas { border: 1px solid #ccc; cursor: crosshair; display: none; max-width: 100%; margin-bottom: 1em; }
   .attr-row { cursor: pointer; }
   .attr-row.selected { background: #e8f4fd; font-weight: bold; }
   .colour-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
   .region-inputs input[type=number] { width: 70px; }
   #canvas-placeholder { color: #888; font-style: italic; margin-bottom: 1em; }
+  input[type=file] { cursor: pointer; }
     </style>
     <h2>
         {{ document }}
@@ -22,22 +23,17 @@
             No attributes are configured for this document. Add attributes via the Document change form first.
         </p>
     {% else %}
-        {# ── Image upload ── #}
-        <form method="post" enctype="multipart/form-data" style="margin-bottom: 1em;">
-            {% csrf_token %}
+        {# ── Image picker (client-side, no form submit needed) ── #}
+        <div style="margin-bottom: 1em;">
             <label>
                 <strong>Reference image:</strong>
             </label>
-            <input type="file" name="image" accept="image/*" required />
-            <input type="submit" value="Load image" class="button" />
-        </form>
-        {% if image_src %}
-            <canvas id="region-canvas"></canvas>
-        {% else %}
-            <p id="canvas-placeholder">
-                Upload a reference image above to draw regions on the canvas. Saved coordinates are shown below.
-            </p>
-        {% endif %}
+            <input type="file" id="image-file-input" accept="image/*" />
+        </div>
+        <canvas id="region-canvas"></canvas>
+        <p id="canvas-placeholder">
+            Upload a reference image above to draw regions on the canvas. Saved coordinates are shown below.
+        </p>
         {# ── Save form — always visible ── #}
         <form method="post" id="regions-form">
             {% csrf_token %}
@@ -92,48 +88,45 @@
                 </tbody>
             </table>
             <p style="margin-top: 1em;">
-                {% if image_src %}
-                    <em>Click a row to select it, then drag on the image to draw that attribute's region.</em>
-                {% else %}
-                    <em>Load an image above to draw regions interactively, or edit coordinates directly.</em>
-                {% endif %}
+                <em>Upload a reference image to draw regions interactively, or edit coordinates directly in the table.</em>
             </p>
-            <input type="hidden" name="image_src" id="hidden-image-src" />
             <div style="display:flex; flex-direction:column; gap:0.5em; margin-top:1em; align-items:flex-start;">
                 <input type="submit" value="Save regions" class="button default" style="cursor:pointer;" />
-                <a href="{% url opts|admin_urlname:'change' document.pk %}" class="button">Go back</a>
+                <a href="{% url opts|admin_urlname:'change' document.pk %}"
+                   class="button"
+                   onclick="event.preventDefault(); window.location.href = this.href + '?_t=' + Date.now();">Go back</a>
             </div>
         </form>
         <script>
   (function () {
     const COLOURS = ["#e74c3c","#3498db","#2ecc71","#f39c12","#9b59b6","#1abc9c","#e67e22","#2980b9"];
     const DOC_ATTRS = JSON.parse('{{ doc_attrs_json|escapejs }}');
-    {% if image_src %}const IMAGE_SRC = '{{ image_src|escapejs }}';
-    document.getElementById('hidden-image-src').value = IMAGE_SRC;{% endif %}
 
+    const SESSION_KEY = 'define_regions_img_{{ document.pk }}';
     const canvas = document.getElementById('region-canvas');
-    const ctx = canvas ? canvas.getContext('2d') : null;
+    const ctx = canvas.getContext('2d');
+    const placeholder = document.getElementById('canvas-placeholder');
+    const fileInput = document.getElementById('image-file-input');
+    const img = new Image();
     let scale = 1;
     let selectedPk = null;
     let dragging = false;
     let dragStart = null;
 
-    // Assign colours
+    // Assign colours to swatches
     DOC_ATTRS.forEach((a, i) => {
       a.colour = COLOURS[i % COLOURS.length];
       const swatch = document.getElementById('swatch-' + a.pk);
       if (swatch) swatch.style.background = a.colour;
     });
 
-    // Pre-populate inputs from saved BoundingBox data (always, not just on image load)
+    // Pre-populate inputs from saved BoundingBox data
     DOC_ATTRS.forEach(a => {
       if (!a.region) return;
       const tl = a.region.top_left;
       const tr = a.region.top_right;
       const bl = a.region.bottom_left;
-      const w = tr.x - tl.x;
-      const h = bl.y - tl.y;
-      setInputs(a.pk, tl.x, tl.y, w, h);
+      setInputs(a.pk, tl.x, tl.y, tr.x - tl.x, bl.y - tl.y);
     });
 
     // Row click → select attribute
@@ -177,7 +170,6 @@
     };
 
     function redraw() {
-      if (!ctx) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       DOC_ATTRS.forEach(a => {
@@ -200,9 +192,6 @@
       };
     }
 
-    {% if image_src %}
-    const img = new Image();
-
     canvas.addEventListener('mousedown', e => {
       if (!selectedPk) return;
       dragging = true;
@@ -212,26 +201,40 @@
     canvas.addEventListener('mousemove', e => {
       if (!dragging || !dragStart) return;
       const cur = canvasCoords(e);
-      const x = Math.min(dragStart.x, cur.x);
-      const y = Math.min(dragStart.y, cur.y);
-      const w = Math.abs(cur.x - dragStart.x);
-      const h = Math.abs(cur.y - dragStart.y);
-      setInputs(selectedPk, x, y, w, h);
+      setInputs(selectedPk, Math.min(dragStart.x, cur.x), Math.min(dragStart.y, cur.y),
+                Math.abs(cur.x - dragStart.x), Math.abs(cur.y - dragStart.y));
       redraw();
     });
 
     canvas.addEventListener('mouseup', () => { dragging = false; dragStart = null; });
     canvas.addEventListener('mouseleave', () => { dragging = false; dragStart = null; });
 
-    img.onload = function () {
-      const maxW = Math.min(900, img.naturalWidth);
-      scale = maxW / img.naturalWidth;
-      canvas.width = Math.round(img.naturalWidth * scale);
-      canvas.height = Math.round(img.naturalHeight * scale);
-      redraw();
-    };
-    img.src = IMAGE_SRC;
-    {% endif %}
+    function loadImageSrc(src) {
+      img.onload = function () {
+        const maxW = Math.min(900, img.naturalWidth);
+        scale = maxW / img.naturalWidth;
+        canvas.width = Math.round(img.naturalWidth * scale);
+        canvas.height = Math.round(img.naturalHeight * scale);
+        canvas.style.display = 'block';
+        placeholder.style.display = 'none';
+        sessionStorage.setItem(SESSION_KEY, src);
+        redraw();
+      };
+      img.src = src;
+    }
+
+    // Auto-load when user picks a file
+    fileInput.addEventListener('change', function () {
+      const file = this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) { loadImageSrc(e.target.result); };
+      reader.readAsDataURL(file);
+    });
+
+    // Restore canvas if we have a cached image from before the save reload
+    const _cached = sessionStorage.getItem(SESSION_KEY);
+    if (_cached) loadImageSrc(_cached);
   })();
         </script>
     {% endif %}

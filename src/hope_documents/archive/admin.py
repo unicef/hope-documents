@@ -141,8 +141,6 @@ class DocumentAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.Document]):
                     da.region = None
                 da.save(update_fields=["region"])
             self.message_user(request, "Regions saved.")
-            if image_src := request.POST.get("image_src", ""):
-                ctx["image_src"] = image_src
 
         if request.method == "POST" and "image" in request.FILES:
             ctx["image_src"] = get_image_base64(request.FILES["image"])
