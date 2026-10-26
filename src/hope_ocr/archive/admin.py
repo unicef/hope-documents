@@ -93,6 +93,7 @@ class DocumentAttributeInline(admin.TabularInline):
     model = models.DocumentAttribute
     extra = 1
     autocomplete_fields = ["attribute"]
+    fields = ["attribute", "validation_expression", "region"]
 
 
 @admin.register(models.Document)
