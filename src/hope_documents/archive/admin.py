@@ -142,9 +142,6 @@ class DocumentAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.Document]):
                 da.save(update_fields=["region"])
             self.message_user(request, "Regions saved.")
 
-        if request.method == "POST" and "image" in request.FILES:
-            ctx["image_src"] = get_image_base64(request.FILES["image"])
-
         ctx["doc_attrs_json"] = json.dumps(
             [
                 {

@@ -94,7 +94,7 @@
                 <input type="submit" value="Save regions" class="button default" style="cursor:pointer;" />
                 <a href="{% url opts|admin_urlname:'change' document.pk %}"
                    class="button"
-                   onclick="event.preventDefault(); window.location.href = this.href + '?_t=' + Date.now();">Go back</a>
+                   onclick="event.preventDefault(); const u = new URL(this.href); u.searchParams.set('_t', String(Date.now())); window.location.href = u.toString();">Go back</a>
             </div>
         </form>
         <script>
@@ -108,6 +108,7 @@
     const placeholder = document.getElementById('canvas-placeholder');
     const fileInput = document.getElementById('image-file-input');
     const img = new Image();
+    let imgReady = false;
     let scale = 1;
     let selectedPk = null;
     let dragging = false;
@@ -170,6 +171,7 @@
     };
 
     function redraw() {
+      if (!imgReady) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       DOC_ATTRS.forEach(a => {
@@ -211,13 +213,18 @@
 
     function loadImageSrc(src) {
       img.onload = function () {
+        imgReady = true;
         const maxW = Math.min(900, img.naturalWidth);
         scale = maxW / img.naturalWidth;
         canvas.width = Math.round(img.naturalWidth * scale);
         canvas.height = Math.round(img.naturalHeight * scale);
         canvas.style.display = 'block';
         placeholder.style.display = 'none';
-        sessionStorage.setItem(SESSION_KEY, src);
+        try {
+          sessionStorage.setItem(SESSION_KEY, src);
+        } catch (e) {
+          console.warn('sessionStorage quota exceeded; canvas will not persist after save', e);
+        }
         redraw();
       };
       img.src = src;

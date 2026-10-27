@@ -43,7 +43,7 @@ def reader(request):
     return Reader(getattr(request, "param", TSConfig()))
 
 
-@pytest.mark.parametrize("reader", ["--oem 3 --psm 11"], indirect=True)
+@pytest.mark.parametrize("reader", [TSConfig(oem=3, psm=11)], indirect=True)
 def test_reader_valid(reader: Reader, image):
     text = reader.extract(image)
     assert text
