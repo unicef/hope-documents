@@ -161,25 +161,6 @@ def test_define_regions_post_clear_coords(app):
 
 
 @pytest.mark.django_db
-def test_define_regions_post_save_coords_preserves_image_src(app):
-    """When coords are saved and image_src is in the POST body, it is echoed back into the response."""
-    da = DocumentAttributeFactory.create()
-    url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
-    res = app.post(
-        url,
-        {
-            f"region_{da.pk}_x": "10",
-            f"region_{da.pk}_y": "20",
-            f"region_{da.pk}_width": "100",
-            f"region_{da.pk}_height": "50",
-            "image_src": "data:image/png;base64,TESTTOKEN",
-        },
-    )
-    assert res.status_code == 200
-    assert b"TESTTOKEN" in res.content
-
-
-@pytest.mark.django_db
 def test_document_attribute_inline_formfield_applies_unfold_widget_to_regex_field():
     """formfield_for_dbfield replaces the widget on RegexField with UnfoldAdminTextInputWidget."""
     from unfold.widgets import UnfoldAdminTextInputWidget

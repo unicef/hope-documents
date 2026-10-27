@@ -40,7 +40,7 @@ def image(request) -> Image.Image:
 
 @pytest.fixture
 def reader(request):
-    return Reader(getattr(request, "param", ""))
+    return Reader(getattr(request, "param", TSConfig()))
 
 
 @pytest.mark.parametrize("reader", ["--oem 3 --psm 11"], indirect=True)
