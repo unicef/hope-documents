@@ -94,7 +94,7 @@
                 <input type="submit" value="Save regions" class="button default" style="cursor:pointer;" />
                 <a href="{% url opts|admin_urlname:'change' document.pk %}"
                    class="button"
-                   onclick="event.preventDefault(); const u = new URL(this.href); u.searchParams.set('_t', String(Date.now())); window.location.href = u.toString();">Go back</a>
+                   onclick="event.preventDefault(); var h = this.href; window.location.href = h + (h.indexOf('?') === -1 ? '?' : '&') + '_t=' + Date.now();">Go back</a>
             </div>
         </form>
         <script>
