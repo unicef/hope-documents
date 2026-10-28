@@ -113,6 +113,15 @@ def test_define_regions_get(app):
 
 
 @pytest.mark.django_db
+def test_define_regions_get_has_zoom_controls(app):
+    da = DocumentAttributeFactory.create()
+    url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
+    res = app.get(url)
+    assert b"zoom-controls" in res.content
+    assert b"canvas-wrapper" in res.content
+
+
+@pytest.mark.django_db
 def test_define_regions_post_image_upload(app, images_dir):
     da = DocumentAttributeFactory.create()
     url = reverse("admin:archive_document_define_regions", args=[da.document.pk])

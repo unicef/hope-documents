@@ -7,7 +7,15 @@
 {% endblock %}
 {% block action-content %}
     <style>
-  #region-canvas { border: 1px solid #ccc; cursor: crosshair; display: none; max-width: 100%; margin-bottom: 1em; }
+  #canvas-wrapper { border: 1px solid #ccc; overflow: auto; max-height: 70vh; max-width: 100%; width: fit-content; display: none; margin-bottom: 0.5em; }
+  #region-canvas { cursor: crosshair; display: block; }
+  #zoom-controls { display: none; align-items: center; gap: 0.5em; margin-bottom: 1em; background: transparent; border: 1px solid #ddd; border-radius: 4px; padding: 5px 10px; width: fit-content; }
+  #zoom-controls button { height: 28px; line-height: 1; cursor: pointer; border: 1px solid #bbb; background: transparent; border-radius: 3px; color: inherit; }
+  #zoom-controls button:hover { background: rgba(128,128,128,0.15); }
+  #zoom-in, #zoom-out { width: 28px; font-size: 1.1em; }
+  #zoom-reset { padding: 0 8px; font-size: 0.85em; }
+  #zoom-controls #zoom-label { min-width: 42px; text-align: center; font-weight: bold; font-size: 0.9em; }
+  #zoom-hint { color: #999; font-size: 0.82em; }
   .attr-row { cursor: pointer; }
   .attr-row.selected { background: #e8f4fd; font-weight: bold; }
   .colour-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
@@ -30,7 +38,22 @@
             </label>
             <input type="file" id="image-file-input" accept="image/*" />
         </div>
-        <canvas id="region-canvas"></canvas>
+        <div id="canvas-wrapper">
+            <canvas id="region-canvas"></canvas>
+        </div>
+        <div id="zoom-controls">
+            <button type="button" id="zoom-out">
+                −
+            </button>
+            <span id="zoom-label">100%</span>
+            <button type="button" id="zoom-in">
+                +
+            </button>
+            <button type="button" id="zoom-reset">
+                Reset
+            </button>
+            <span id="zoom-hint">Ctrl+scroll to zoom</span>
+        </div>
         <p id="canvas-placeholder">
             Upload a reference image above to draw regions on the canvas. Saved coordinates are shown below.
         </p>
@@ -110,6 +133,9 @@
     const img = new Image();
     let imgReady = false;
     let scale = 1;
+    let zoom = 1;
+    let baseWidth = 0;
+    let baseHeight = 0;
     let selectedPk = null;
     let dragging = false;
     let dragStart = null;
@@ -170,27 +196,36 @@
       redraw();
     };
 
+    function applyZoom() {
+      canvas.width = Math.round(baseWidth * zoom);
+      canvas.height = Math.round(baseHeight * zoom);
+      document.getElementById('zoom-label').textContent = Math.round(zoom * 100) + '%';
+      redraw();
+    }
+
     function redraw() {
       if (!imgReady) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const s = scale * zoom;
       DOC_ATTRS.forEach(a => {
         const r = getRegionFromInputs(a.pk);
         if (!r) return;
         ctx.strokeStyle = a.colour;
         ctx.lineWidth = 2;
-        ctx.strokeRect(r.x * scale, r.y * scale, r.width * scale, r.height * scale);
+        ctx.strokeRect(r.x * s, r.y * s, r.width * s, r.height * s);
         ctx.fillStyle = a.colour;
         ctx.font = '12px sans-serif';
-        ctx.fillText(a.name, r.x * scale + 3, r.y * scale + 13);
+        ctx.fillText(a.name, r.x * s + 3, r.y * s + 13);
       });
     }
 
     function canvasCoords(e) {
       const rect = canvas.getBoundingClientRect();
+      const s = scale * zoom;
       return {
-        x: (e.clientX - rect.left) * (canvas.width / rect.width) / scale,
-        y: (e.clientY - rect.top) * (canvas.height / rect.height) / scale,
+        x: (e.clientX - rect.left) * (canvas.width / rect.width) / s,
+        y: (e.clientY - rect.top) * (canvas.height / rect.height) / s,
       };
     }
 
@@ -211,21 +246,50 @@
     canvas.addEventListener('mouseup', () => { dragging = false; dragStart = null; });
     canvas.addEventListener('mouseleave', () => { dragging = false; dragStart = null; });
 
+    const ZOOM_STEP = 1.25;
+    const ZOOM_MIN  = 0.25;
+    const ZOOM_MAX  = 4.0;
+
+    document.getElementById('zoom-in').addEventListener('click', () => {
+      zoom = Math.min(ZOOM_MAX, zoom * ZOOM_STEP);
+      applyZoom();
+    });
+    document.getElementById('zoom-out').addEventListener('click', () => {
+      zoom = Math.max(ZOOM_MIN, zoom / ZOOM_STEP);
+      applyZoom();
+    });
+    document.getElementById('zoom-reset').addEventListener('click', () => {
+      zoom = 1;
+      applyZoom();
+    });
+
+    // { passive: false } is required — browsers default wheel to passive, which silently
+    // ignores preventDefault(), allowing Ctrl+scroll to zoom the whole page instead.
+    canvas.addEventListener('wheel', e => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      zoom = e.deltaY < 0
+        ? Math.min(ZOOM_MAX, zoom * ZOOM_STEP)
+        : Math.max(ZOOM_MIN, zoom / ZOOM_STEP);
+      applyZoom();
+    }, { passive: false });
+
     function loadImageSrc(src) {
       img.onload = function () {
         imgReady = true;
         const maxW = Math.min(900, img.naturalWidth);
         scale = maxW / img.naturalWidth;
-        canvas.width = Math.round(img.naturalWidth * scale);
-        canvas.height = Math.round(img.naturalHeight * scale);
-        canvas.style.display = 'block';
+        baseWidth = Math.round(img.naturalWidth * scale);
+        baseHeight = Math.round(img.naturalHeight * scale);
+        document.getElementById('canvas-wrapper').style.display = 'block';
+        document.getElementById('zoom-controls').style.display = 'flex';
         placeholder.style.display = 'none';
         try {
           sessionStorage.setItem(SESSION_KEY, src);
         } catch (e) {
           console.warn('sessionStorage quota exceeded; canvas will not persist after save', e);
         }
-        redraw();
+        applyZoom();
       };
       img.src = src;
     }
