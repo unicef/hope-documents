@@ -1,7 +1,7 @@
 import pytest
 from django.urls import path
 
-from hope_documents.exception import FlowTimeoutError
+from hope_documents.exceptions import FlowTimeoutError
 
 
 def view_that_raises_flow_timeout(request):

@@ -2,7 +2,7 @@ import time
 
 import pytest
 
-from hope_ocr.utils._timeit import format_elapsed_time, time_it
+from hope_documents.utils._timeit import format_elapsed_time, time_it
 
 
 @pytest.mark.parametrize(

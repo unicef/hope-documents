@@ -3,7 +3,7 @@ import uuid
 from django.db import models
 from django_celery_boost.models import CeleryTaskModel
 
-from hope_ocr.archive.models import Country, DocumentType
+from hope_documents.archive.models import Country, DocumentType
 
 
 class AnalysisJob(CeleryTaskModel):

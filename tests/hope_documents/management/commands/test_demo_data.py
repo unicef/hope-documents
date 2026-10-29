@@ -3,7 +3,7 @@ from io import StringIO
 import pytest
 from django.core.management import call_command
 
-from hope_ocr.archive.models import Country, Document, DocumentAttribute, DocumentType
+from hope_documents.archive.models import Country, Document, DocumentAttribute, DocumentType
 
 
 @pytest.mark.django_db
@@ -33,7 +33,7 @@ def test_demo_data_idempotent():
 @pytest.mark.django_db
 def test_demo_data_missing_system_attributes():
     """If system attributes are absent the command prints an error and exits early."""
-    from hope_ocr.archive.models import Attribute
+    from hope_documents.archive.models import Attribute
 
     Attribute.objects.filter(system=True).delete()
 

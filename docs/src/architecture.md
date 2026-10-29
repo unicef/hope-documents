@@ -2,27 +2,28 @@
 
 ## Overview
 
-HOPE Documents is split into two Django apps:
+HOPE Documents is a single Django package (`hope_documents`) with three logical layers:
 
-- **`hope_ocr`** — OCR engine, document catalog (archive), and admin UI. Self-contained; can be used independently of the REST API.
-- **`hope_documents`** — REST API, async analysis pipeline, and the `AnalysisJob` model. Depends on `hope_ocr`.
+- **Archive** (`hope_documents.archive`) — OCR engine, document catalog, and admin UI. Defines which fields exist for each document type, country, and version.
+- **Processing** (`hope_documents`) — REST API, async analysis pipeline, and the `AnalysisJob` model.
+- **OCR** (`hope_documents.ocr`) — Tesseract + OpenCV image processing engine; used by both the archive admin and the processing layer.
 
 ### Key components
 
 | Component | Location | Purpose |
 |---|---|---|
-| OCR engine | `hope_ocr/ocr/engine.py` | Tesseract + OpenCV image processing |
-| Document catalog | `hope_ocr/archive/models.py` | Config layer: countries, document types, attributes, regions |
+| OCR engine | `hope_documents/ocr/engine.py` | Tesseract + OpenCV image processing |
+| Document catalog | `hope_documents/archive/models.py` | Config layer: countries, document types, attributes, regions |
 | Extraction protocol | `hope_documents/extractors.py` | `AttributeExtractor` Protocol + `OCRAttributeExtractor` |
 | Analysis task | `hope_documents/tasks.py` | Celery task that runs extraction and persists results |
 | REST API | `hope_documents/api/` | DRF views + serializers for `POST /api/analyze/` |
-| Admin | `hope_ocr/archive/admin.py` | Catalog management + Define Regions canvas UI |
+| Admin | `hope_documents/archive/admin.py` | Catalog management + Define Regions canvas UI |
 
 ---
 
 ## Domain model
 
-### Configuration layer (`hope_ocr.archive`)
+### Configuration layer (`hope_documents.archive`)
 
 Defines *which fields exist* for each document type, country, and version:
 
@@ -40,7 +41,7 @@ DocumentType ────────► Document ──► DocumentAttribute �
   - `region` — a `BoundingBox` (pixel coordinates) on the document image used to crop before OCR.
   - `validation_expression` — an optional regex the extracted value must satisfy.
 
-### Processing layer (`hope_documents`)
+### Processing layer
 
 `AnalysisJob` records every extraction request:
 
@@ -108,7 +109,7 @@ class AttributeExtractor(Protocol):
     ) -> str: ...
 ```
 
-`OCRAttributeExtractor` is the current implementation — it uses `hope_ocr` directly. A future `LLMAttributeExtractor` is planned for low-confidence fallback (see todo list).
+`OCRAttributeExtractor` is the current implementation. A future `LLMAttributeExtractor` is planned for low-confidence fallback (see todo list).
 
 ---
 

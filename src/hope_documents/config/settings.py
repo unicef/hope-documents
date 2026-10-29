@@ -15,7 +15,7 @@ INSTALLED_APPS = [
     "hope_documents.apps.Config",
     "hope_documents.api",
     "hope_documents.modules.security",
-    "hope_ocr.archive",
+    "hope_documents.archive",
     "unfold",  # before django.contrib.admin
     "unfold.contrib.filters",  # optional, if special filters are needed
     "unfold.contrib.forms",  # optional, if special form elements are needed

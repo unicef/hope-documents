@@ -4,7 +4,7 @@ from pathlib import Path
 
 from PIL import Image, UnidentifiedImageError
 
-from hope_ocr.exceptions import InvalidImageError
+from hope_documents.exceptions import InvalidImageError
 
 
 def get_image_base64(input_data: Path | Image.Image | BufferedReader) -> str:

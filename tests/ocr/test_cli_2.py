@@ -7,9 +7,9 @@ from unittest.mock import ANY, MagicMock, patch
 from PIL import Image
 from click.testing import CliRunner
 
-from hope_ocr.exceptions import InvalidImageError
-from hope_ocr.ocr.__cli__ import cli, configure_logging, load_expectations, write_report
-from hope_ocr.ocr.engine import MatchMode, ScanEntryInfo, SearchInfo  # Import necessary classes
+from hope_documents.exceptions import InvalidImageError
+from hope_documents.ocr.__cli__ import cli, configure_logging, load_expectations, write_report
+from hope_documents.ocr.engine import MatchMode, ScanEntryInfo, SearchInfo  # Import necessary classes
 
 
 class TestCli:
@@ -25,7 +25,7 @@ class TestCli:
     @patch("logging.getLogger")
     def test_configure_logging(self, mock_get_logger, mock_stream_handler):
         mock_formatter_instance = MagicMock()
-        with patch("hope_ocr.ocr.__cli__.LevelFormatter", return_value=mock_formatter_instance):
+        with patch("hope_documents.ocr.__cli__.LevelFormatter", return_value=mock_formatter_instance):
             # Test with debug=True
             configure_logging(True)
             mock_ch_instance = mock_stream_handler.return_value
@@ -47,8 +47,8 @@ class TestCli:
             mock_logger_instance.setLevel.assert_not_called()
             mock_logger_instance.addHandler.assert_not_called()
 
-    @patch("hope_ocr.ocr.__cli__.Template")
-    @patch("hope_ocr.ocr.__cli__.click.echo")
+    @patch("hope_documents.ocr.__cli__.Template")
+    @patch("hope_documents.ocr.__cli__.click.echo")
     def test_write_report(self, mock_click_echo, mock_template_class):
         mock_output_file = "test_report.html"
         mock_template_name = "test_template.html"
@@ -72,7 +72,7 @@ class TestCli:
         mock_path_file_parent.__truediv__.return_value = mock_template_path
         mock_template_path.read_text.return_value = "template content"
 
-        with patch("hope_ocr.ocr.__cli__.Path") as mock_path_class:
+        with patch("hope_documents.ocr.__cli__.Path") as mock_path_class:
             mock_path_class.side_effect = [
                 mock_path_dot,  # First call: Path(".")
                 mock_path_file,  # Call for Path(__file__)
@@ -91,8 +91,8 @@ class TestCli:
             mock_report_path_instance.open.assert_called_once_with("w", encoding="utf-8")
             mock_open_file.write.assert_called_once_with("rendered content")
 
-    @patch("hope_ocr.ocr.__cli__.csv.reader")
-    @patch("hope_ocr.ocr.__cli__.Path")
+    @patch("hope_documents.ocr.__cli__.csv.reader")
+    @patch("hope_documents.ocr.__cli__.Path")
     def test_load_expectations(self, mock_path_class, mock_csv_reader):
         mock_filename = "expectations.csv"
         csv_data = [
@@ -123,10 +123,10 @@ class TestCli:
         )
         assert result == expected
 
-    @patch("hope_ocr.ocr.__cli__.Scanner")
-    @patch("hope_ocr.ocr.__cli__.Processor")
-    @patch("hope_ocr.ocr.__cli__.get_image")
-    @patch("hope_ocr.ocr.__cli__.click.echo")
+    @patch("hope_documents.ocr.__cli__.Scanner")
+    @patch("hope_documents.ocr.__cli__.Processor")
+    @patch("hope_documents.ocr.__cli__.get_image")
+    @patch("hope_documents.ocr.__cli__.click.echo")
     def test_extract_command_no_pattern_success(
         self, mock_click_echo, mock_get_image, mock_processor_class, mock_scanner_class
     ):
@@ -160,10 +160,10 @@ class TestCli:
             mock_click_echo.assert_any_call("\x1b[32mextracted_text\x1b[39m")
             mock_click_echo.assert_any_call("\x1b[97m========\x1b[39m")  # Added this missing assertion
 
-    @patch("hope_ocr.ocr.__cli__.Scanner")
-    @patch("hope_ocr.ocr.__cli__.Processor")
-    @patch("hope_ocr.ocr.__cli__.get_image")
-    @patch("hope_ocr.ocr.__cli__.click.echo")
+    @patch("hope_documents.ocr.__cli__.Scanner")
+    @patch("hope_documents.ocr.__cli__.Processor")
+    @patch("hope_documents.ocr.__cli__.get_image")
+    @patch("hope_documents.ocr.__cli__.click.echo")
     def test_extract_command_with_pattern_success(
         self, mock_click_echo, mock_get_image, mock_processor_class, mock_scanner_class
     ):
@@ -204,14 +204,14 @@ class TestCli:
             mock_click_echo.assert_any_call("Distance: \x1b[32m0.0\x1b[39m")
             mock_click_echo.assert_any_call("\x1b[97m========\x1b[39m")
 
-    @patch("hope_ocr.ocr.__cli__.Scanner")
-    @patch("hope_ocr.ocr.__cli__.Processor")
-    @patch("hope_ocr.ocr.__cli__.write_report")
-    @patch("hope_ocr.ocr.__cli__.load_expectations")
-    @patch("hope_ocr.ocr.__cli__.get_image")
-    @patch("hope_ocr.ocr.__cli__.get_image_base64")
-    @patch("hope_ocr.ocr.__cli__.click.echo")
-    @patch("hope_ocr.ocr.__cli__.time_it")
+    @patch("hope_documents.ocr.__cli__.Scanner")
+    @patch("hope_documents.ocr.__cli__.Processor")
+    @patch("hope_documents.ocr.__cli__.write_report")
+    @patch("hope_documents.ocr.__cli__.load_expectations")
+    @patch("hope_documents.ocr.__cli__.get_image")
+    @patch("hope_documents.ocr.__cli__.get_image_base64")
+    @patch("hope_documents.ocr.__cli__.click.echo")
+    @patch("hope_documents.ocr.__cli__.time_it")
     @patch("os.getcwd")  # Patch os.getcwd
     def test_report_command_success(
         self,
@@ -281,14 +281,14 @@ class TestCli:
             mock_write_report.assert_called_once()
             mock_click_echo.assert_called_with(ANY)  # Assert "Done in..." is called
 
-    @patch("hope_ocr.ocr.__cli__.Scanner")
-    @patch("hope_ocr.ocr.__cli__.Processor")
-    @patch("hope_ocr.ocr.__cli__.write_report")
-    @patch("hope_ocr.ocr.__cli__.load_expectations")
-    @patch("hope_ocr.ocr.__cli__.get_image")
-    @patch("hope_ocr.ocr.__cli__.get_image_base64")
-    @patch("hope_ocr.ocr.__cli__.click.echo")
-    @patch("hope_ocr.ocr.__cli__.time_it")
+    @patch("hope_documents.ocr.__cli__.Scanner")
+    @patch("hope_documents.ocr.__cli__.Processor")
+    @patch("hope_documents.ocr.__cli__.write_report")
+    @patch("hope_documents.ocr.__cli__.load_expectations")
+    @patch("hope_documents.ocr.__cli__.get_image")
+    @patch("hope_documents.ocr.__cli__.get_image_base64")
+    @patch("hope_documents.ocr.__cli__.click.echo")
+    @patch("hope_documents.ocr.__cli__.time_it")
     @patch("os.getcwd")  # Patch os.getcwd
     def test_report_command_invalid_image(
         self,
@@ -363,14 +363,14 @@ class TestCli:
 
             mock_click_echo.assert_called_with(ANY)  # Assert "Done in..." is called
 
-    @patch("hope_ocr.ocr.__cli__.Scanner")
-    @patch("hope_ocr.ocr.__cli__.Processor")
-    @patch("hope_ocr.ocr.__cli__.write_report")
-    @patch("hope_ocr.ocr.__cli__.load_expectations")
-    @patch("hope_ocr.ocr.__cli__.get_image")
-    @patch("hope_ocr.ocr.__cli__.get_image_base64")
-    @patch("hope_ocr.ocr.__cli__.click.echo")
-    @patch("hope_ocr.ocr.__cli__.time_it")
+    @patch("hope_documents.ocr.__cli__.Scanner")
+    @patch("hope_documents.ocr.__cli__.Processor")
+    @patch("hope_documents.ocr.__cli__.write_report")
+    @patch("hope_documents.ocr.__cli__.load_expectations")
+    @patch("hope_documents.ocr.__cli__.get_image")
+    @patch("hope_documents.ocr.__cli__.get_image_base64")
+    @patch("hope_documents.ocr.__cli__.click.echo")
+    @patch("hope_documents.ocr.__cli__.time_it")
     @patch("os.getcwd")  # Patch os.getcwd
     def test_report_command_no_match(
         self,
@@ -451,14 +451,14 @@ class TestCli:
 
             mock_click_echo.assert_called_with(ANY)  # Assert "Done in..." is called
 
-    @patch("hope_ocr.ocr.__cli__.Scanner")
-    @patch("hope_ocr.ocr.__cli__.Processor")
-    @patch("hope_ocr.ocr.__cli__.write_report")
-    @patch("hope_ocr.ocr.__cli__.load_expectations")
-    @patch("hope_ocr.ocr.__cli__.get_image")
-    @patch("hope_ocr.ocr.__cli__.get_image_base64")
-    @patch("hope_ocr.ocr.__cli__.click.echo")
-    @patch("hope_ocr.ocr.__cli__.time_it")
+    @patch("hope_documents.ocr.__cli__.Scanner")
+    @patch("hope_documents.ocr.__cli__.Processor")
+    @patch("hope_documents.ocr.__cli__.write_report")
+    @patch("hope_documents.ocr.__cli__.load_expectations")
+    @patch("hope_documents.ocr.__cli__.get_image")
+    @patch("hope_documents.ocr.__cli__.get_image_base64")
+    @patch("hope_documents.ocr.__cli__.click.echo")
+    @patch("hope_documents.ocr.__cli__.time_it")
     @patch("os.getcwd")  # Patch os.getcwd
     def test_inspect_command_success(
         self,
@@ -540,13 +540,13 @@ class TestCli:
 
             mock_click_echo.assert_called_with(ANY)  # Assert "Done in..." is called
 
-    @patch("hope_ocr.ocr.__cli__.Processor")
-    @patch("hope_ocr.ocr.__cli__.write_report")
-    @patch("hope_ocr.ocr.__cli__.load_expectations")
-    @patch("hope_ocr.ocr.__cli__.get_image")
-    @patch("hope_ocr.ocr.__cli__.get_image_base64")
-    @patch("hope_ocr.ocr.__cli__.click.echo")
-    @patch("hope_ocr.ocr.__cli__.time_it")
+    @patch("hope_documents.ocr.__cli__.Processor")
+    @patch("hope_documents.ocr.__cli__.write_report")
+    @patch("hope_documents.ocr.__cli__.load_expectations")
+    @patch("hope_documents.ocr.__cli__.get_image")
+    @patch("hope_documents.ocr.__cli__.get_image_base64")
+    @patch("hope_documents.ocr.__cli__.click.echo")
+    @patch("hope_documents.ocr.__cli__.time_it")
     @patch("os.getcwd")
     def test_inspect_command_invalid_image(
         self,

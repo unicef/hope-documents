@@ -8,7 +8,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("archive", "0004_seed_system_attributes"),
+        ("archive", "0002_seed_system_attributes"),
         ("hope_documents", "0001_initial"),
     ]
 

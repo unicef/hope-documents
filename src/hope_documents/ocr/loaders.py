@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-from hope_ocr.exceptions import InvalidImageError
-from hope_ocr.utils.image import get_image
+from hope_documents.exceptions import InvalidImageError
+from hope_documents.utils.image import get_image
 
 mpl.use("agg")
 loader_registry = []

@@ -128,13 +128,11 @@ raw-options = { root = "../.." }
 ignore-vcs = true
 include = [
   "src/hope_documents/**/*.*",
-  "src/hope_ocr/**/*.*",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = [
   "src/hope_documents",
-  "src/hope_ocr",
 ]
 
 [tool.uv]

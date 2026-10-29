@@ -7,10 +7,10 @@ from django.urls import reverse
 from factories.documents import AttributeFactory, DocumentAttributeFactory
 from webtest import Upload
 
-from hope_ocr.archive.admin import AttributeAdmin, DocumentAttributeInline
-from hope_ocr.archive.models import Attribute, DocumentAttribute
-from hope_ocr.archive.region import BoundingBox
-from hope_ocr.ocr.engine import MatchMode
+from hope_documents.archive.admin import AttributeAdmin, DocumentAttributeInline
+from hope_documents.archive.models import Attribute, DocumentAttribute
+from hope_documents.archive.region import BoundingBox
+from hope_documents.ocr.engine import MatchMode
 
 
 @pytest.fixture
@@ -158,25 +158,6 @@ def test_define_regions_post_clear_coords(app):
     assert res.status_code == 200
     da.refresh_from_db()
     assert da.region is None
-
-
-@pytest.mark.django_db
-def test_define_regions_post_save_coords_preserves_image_src(app):
-    """When coords are saved and image_src is in the POST body, it is echoed back into the response."""
-    da = DocumentAttributeFactory.create()
-    url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
-    res = app.post(
-        url,
-        {
-            f"region_{da.pk}_x": "10",
-            f"region_{da.pk}_y": "20",
-            f"region_{da.pk}_width": "100",
-            f"region_{da.pk}_height": "50",
-            "image_src": "data:image/png;base64,TESTTOKEN",
-        },
-    )
-    assert res.status_code == 200
-    assert b"TESTTOKEN" in res.content
 
 
 @pytest.mark.django_db

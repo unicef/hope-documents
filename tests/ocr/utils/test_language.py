@@ -1,4 +1,4 @@
-from hope_ocr.utils.language import fqn
+from hope_documents.utils.language import fqn
 
 
 class MyClass:

@@ -3,8 +3,8 @@ import json
 import pytest
 from factories.documents import DocumentAttributeFactory
 
-from hope_ocr.archive.models import DocumentAttribute
-from hope_ocr.archive.region import BoundingBox, BoundingBoxField, Point
+from hope_documents.archive.models import DocumentAttribute
+from hope_documents.archive.region import BoundingBox, BoundingBoxField, Point
 
 
 def test_point_negative_x_raises():

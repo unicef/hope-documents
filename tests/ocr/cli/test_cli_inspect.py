@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
-from hope_ocr.ocr.__cli__ import cli
+from hope_documents.ocr.__cli__ import cli
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def test_inspect_help(runner: CliRunner) -> None:
     assert result.exit_code == 0
 
 
-@patch("hope_ocr.ocr.__cli__.write_report")
+@patch("hope_documents.ocr.__cli__.write_report")
 def test_inspect(write_report_mock, runner: CliRunner, test_dir, images_dir) -> None:
     images_file = images_dir / "and" / "pp1.png"
     expectations_file = test_dir / "ocr" / "expectations.csv"

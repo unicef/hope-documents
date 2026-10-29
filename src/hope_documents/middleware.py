@@ -3,7 +3,7 @@ from collections.abc import Callable
 
 from django.http import HttpRequest, HttpResponseBase, HttpResponseRedirect
 
-from hope_documents.exception import FlowTimeoutError
+from hope_documents.exceptions import FlowTimeoutError
 
 logger = logging.getLogger(__name__)
 

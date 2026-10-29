@@ -5,8 +5,7 @@ source = src
 omit =
     */tests/**
     */migrations/*,
-    */hope_documents/version.py,
-    */hope_ocr/version.py
+    */hope_documents/version.py
     */settings/sentry.py
 
 

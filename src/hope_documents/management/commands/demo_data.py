@@ -2,7 +2,7 @@ from typing import Any
 
 from django.core.management import BaseCommand
 
-from hope_ocr.archive.models import Attribute, Country, Document, DocumentAttribute, DocumentType
+from hope_documents.archive.models import Attribute, Country, Document, DocumentAttribute, DocumentType
 
 
 class Command(BaseCommand):

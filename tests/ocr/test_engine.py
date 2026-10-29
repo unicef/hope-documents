@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from PIL import Image
 
-from hope_ocr.exceptions import ExtractionError, InvalidImageError
-from hope_ocr.ocr.engine import (
+from hope_documents.exceptions import ExtractionError, InvalidImageError
+from hope_documents.ocr.engine import (
     SEARCH_TEST_PATTERN,
     CV2Config,
     MatchMode,
@@ -114,13 +114,13 @@ class TestProcessor:
         processor = Processor(mock_ts_config, mock_cv2_config, loaders=custom_loaders)
         assert processor.loader_classes == custom_loaders
 
-    @patch("hope_ocr.ocr.engine.Loader")
-    @patch("hope_ocr.ocr.engine.PILLoader")
-    @patch("hope_ocr.ocr.engine.EnhancedLoader")
-    @patch("hope_ocr.ocr.engine.CV2Loader")
-    @patch("hope_ocr.ocr.engine.SmartLoader")
-    @patch("hope_ocr.ocr.engine.BWLoader")
-    @patch("hope_ocr.ocr.engine.ImprovedLoader")
+    @patch("hope_documents.ocr.engine.Loader")
+    @patch("hope_documents.ocr.engine.PILLoader")
+    @patch("hope_documents.ocr.engine.EnhancedLoader")
+    @patch("hope_documents.ocr.engine.CV2Loader")
+    @patch("hope_documents.ocr.engine.SmartLoader")
+    @patch("hope_documents.ocr.engine.BWLoader")
+    @patch("hope_documents.ocr.engine.ImprovedLoader")
     def test_loaders_property(
         self,
         mock_improved_loader,
@@ -160,7 +160,7 @@ class TestProcessor:
         _ = processor.loaders
         mock_loader.assert_called_once()
 
-    @patch("hope_ocr.ocr.engine.Reader")
+    @patch("hope_documents.ocr.engine.Reader")
     def test_reader_property(self, mock_reader, mock_ts_config, mock_cv2_config):
         processor = Processor(mock_ts_config, mock_cv2_config)
         reader = processor.reader
@@ -170,7 +170,7 @@ class TestProcessor:
         _ = processor.reader
         mock_reader.assert_called_once()
 
-    @patch("hope_ocr.ocr.engine.find_similar")
+    @patch("hope_documents.ocr.engine.find_similar")
     def test_find_single_success(self, mock_find_similar, mock_ts_config, mock_cv2_config):
         mock_reader = MagicMock()
         mock_reader.extract.return_value = "extracted text"
@@ -189,7 +189,7 @@ class TestProcessor:
         assert text == "extracted text"
         assert match == mock_match
 
-    @patch("hope_ocr.ocr.engine.find_similar", side_effect=ExtractionError("Test Error"))
+    @patch("hope_documents.ocr.engine.find_similar", side_effect=ExtractionError("Test Error"))
     def test_find_single_extraction_error(self, mock_find_similar, mock_ts_config, mock_cv2_config):
         mock_reader = MagicMock()
         mock_reader.extract.return_value = "extracted text"
@@ -206,7 +206,7 @@ class TestProcessor:
         assert text == "extracted text"
         assert match is None
 
-    @patch("hope_ocr.ocr.engine.find_similar", side_effect=InvalidImageError("Invalid Image"))
+    @patch("hope_documents.ocr.engine.find_similar", side_effect=InvalidImageError("Invalid Image"))
     def test_find_single_invalid_image_error(self, mock_find_similar, mock_ts_config, mock_cv2_config):
         mock_reader = MagicMock()
         mock_reader.extract.return_value = "extracted text"
@@ -223,8 +223,8 @@ class TestProcessor:
         assert text == "extracted text"
         assert match is None
 
-    @patch("hope_ocr.ocr.engine.time_it")
-    @patch("hope_ocr.ocr.engine.format_elapsed_time", return_value="1s")
+    @patch("hope_documents.ocr.engine.time_it")
+    @patch("hope_documents.ocr.engine.format_elapsed_time", return_value="1s")
     def test_processor_find_text_first_mode_success(
         self, mock_format_elapsed_time, mock_time_it, mock_ts_config, mock_cv2_config
     ):
@@ -268,8 +268,8 @@ class TestProcessor:
         mock_format_elapsed_time.assert_called_once_with(1.0)
         mock_time_it.assert_called_once()
 
-    @patch("hope_ocr.ocr.engine.time_it")
-    @patch("hope_ocr.ocr.engine.format_elapsed_time", return_value="1s")
+    @patch("hope_documents.ocr.engine.time_it")
+    @patch("hope_documents.ocr.engine.format_elapsed_time", return_value="1s")
     def test_processor_find_text_first_mode_find_single_error(
         self, mock_format_elapsed_time, mock_time_it, mock_ts_config, mock_cv2_config
     ):
@@ -297,8 +297,8 @@ class TestProcessor:
 
         assert len(results) == 0
 
-    @patch("hope_ocr.ocr.engine.time_it")
-    @patch("hope_ocr.ocr.engine.format_elapsed_time", return_value="2s")
+    @patch("hope_documents.ocr.engine.time_it")
+    @patch("hope_documents.ocr.engine.format_elapsed_time", return_value="2s")
     def test_processor_find_text_all_mode_success(  # noqa: PLR0915
         self, mock_format_elapsed_time, mock_time_it, mock_ts_config, mock_cv2_config
     ):
@@ -384,8 +384,8 @@ class TestProcessor:
         assert processor.find_single.call_count == 6
         assert mock_format_elapsed_time.call_count == 6
 
-    @patch("hope_ocr.ocr.engine.time_it")
-    @patch("hope_ocr.ocr.engine.format_elapsed_time", return_value="2s")
+    @patch("hope_documents.ocr.engine.time_it")
+    @patch("hope_documents.ocr.engine.format_elapsed_time", return_value="2s")
     def test_processor_find_text_best_mode_success(
         self, mock_format_elapsed_time, mock_time_it, mock_ts_config, mock_cv2_config
     ):
@@ -428,8 +428,8 @@ class TestProcessor:
         assert result.psm == 11
         assert result.time == "2s"  # Final time
 
-    @patch("hope_ocr.ocr.engine.time_it")
-    @patch("hope_ocr.ocr.engine.format_elapsed_time", return_value="2s")
+    @patch("hope_documents.ocr.engine.time_it")
+    @patch("hope_documents.ocr.engine.format_elapsed_time", return_value="2s")
     def test_processor_find_text_best_mode_zero_distance_stop(
         self, mock_format_elapsed_time, mock_time_it, mock_ts_config, mock_cv2_config
     ):
@@ -474,8 +474,8 @@ class TestProcessor:
 
         assert processor.find_single.call_count == 2  # Only two calls before stopping
 
-    @patch("hope_ocr.ocr.engine.time_it")
-    @patch("hope_ocr.ocr.engine.format_elapsed_time", return_value="1s")
+    @patch("hope_documents.ocr.engine.time_it")
+    @patch("hope_documents.ocr.engine.format_elapsed_time", return_value="1s")
     def test_processor_find_text_debug_mode(
         self, mock_format_elapsed_time, mock_time_it, mock_ts_config, mock_cv2_config
     ):
@@ -505,8 +505,8 @@ class TestProcessor:
         assert len(results) == 1
         assert processor.debug_info.iterations[0] == results[0]
 
-    @patch("hope_ocr.ocr.engine.time_it")
-    @patch("hope_ocr.ocr.engine.format_elapsed_time", return_value="1s")
+    @patch("hope_documents.ocr.engine.time_it")
+    @patch("hope_documents.ocr.engine.format_elapsed_time", return_value="1s")
     def test_processor_find_text_search_test_pattern(
         self, mock_format_elapsed_time, mock_time_it, mock_ts_config, mock_cv2_config
     ):
@@ -542,8 +542,8 @@ class TestProcessor:
         assert result.angle == 0
         assert result.psm == 11
 
-    @patch("hope_ocr.ocr.engine.time_it")
-    @patch("hope_ocr.ocr.engine.format_elapsed_time", return_value="1s")
+    @patch("hope_documents.ocr.engine.time_it")
+    @patch("hope_documents.ocr.engine.format_elapsed_time", return_value="1s")
     def test_processor_process_success(self, mock_format_elapsed_time, mock_time_it, mock_ts_config, mock_cv2_config):
         processor = Processor(mock_ts_config, mock_cv2_config)
 
@@ -577,8 +577,8 @@ class TestProcessor:
         mock_reader.extract.assert_called_once_with(mock_loader.load.return_value)
         mock_loader.load.return_value.rotate.assert_not_called()
 
-    @patch("hope_ocr.ocr.engine.time_it")
-    @patch("hope_ocr.ocr.engine.format_elapsed_time", return_value="1s")
+    @patch("hope_documents.ocr.engine.time_it")
+    @patch("hope_documents.ocr.engine.format_elapsed_time", return_value="1s")
     def test_processor_process_success_with_rotation(
         self, mock_format_elapsed_time, mock_time_it, mock_ts_config, mock_cv2_config
     ):
@@ -617,8 +617,8 @@ class TestProcessor:
         mock_loaded_image.rotate.assert_called_once_with(rotate_angle, expand=True)
         mock_reader.extract.assert_called_once_with(mock_rotated_image)
 
-    @patch("hope_ocr.ocr.engine.time_it")
-    @patch("hope_ocr.ocr.engine.format_elapsed_time", return_value="1s")
+    @patch("hope_documents.ocr.engine.time_it")
+    @patch("hope_documents.ocr.engine.format_elapsed_time", return_value="1s")
     def test_processor_process_error_handling(
         self, mock_format_elapsed_time, mock_time_it, mock_ts_config, mock_cv2_config
     ):

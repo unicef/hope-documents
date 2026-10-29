@@ -5,7 +5,7 @@ from PIL import Image
 from django.urls import reverse
 from rest_framework import status
 
-from hope_ocr.ocr.engine import MatchMode
+from hope_documents.ocr.engine import MatchMode
 
 
 @pytest.fixture

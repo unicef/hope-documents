@@ -7,7 +7,7 @@ import pytesseract
 from PIL.Image import Image
 from pytesseract import TesseractError
 
-from hope_ocr.exceptions import ExtractionError
+from hope_documents.exceptions import ExtractionError
 
 logger = logging.getLogger(__name__)
 
@@ -22,14 +22,15 @@ class TSConfig:
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    def __str__(self) -> str:
-        cfg = f"--oem {self.oem}  --psm {self.psm} {self.extra}"
-        extra = ""
+    def build(self, psm: int | None = None) -> str:
+        effective_psm = psm if psm is not None else self.psm
+        cfg = f"--oem {self.oem}  --psm {effective_psm} {self.extra}"
         if self.number_only:
-            extra = "tessedit_char_whitelist=0123456789"
-        if extra:
-            cfg = f"{cfg} -c {extra}"
+            cfg = f"{cfg} -c tessedit_char_whitelist=0123456789"
         return cfg
+
+    def __str__(self) -> str:
+        return self.build()
 
 
 class BaseReader:
@@ -37,16 +38,16 @@ class BaseReader:
         logger.debug(config)
         self.config = config
 
-    def extract(self, image: Image) -> str:
+    def extract(self, image: Image, *, psm: int | None = None) -> str:
         raise NotImplementedError()
 
 
 class Reader(BaseReader):
     lang = "eng"
 
-    def extract(self, image: Image) -> str:
+    def extract(self, image: Image, *, psm: int | None = None) -> str:
         try:
-            text = pytesseract.image_to_string(image, lang=self.lang, config=str(self.config), timeout=10)
+            text = pytesseract.image_to_string(image, lang=self.lang, config=self.config.build(psm), timeout=10)
             return "\n".join([line for line in text.splitlines() if line])
         except (TesseractError, RuntimeError, TimeoutExpired) as e:
             raise ExtractionError() from e

@@ -21,7 +21,7 @@ def pytest_configure(config):
 
 @pytest.fixture(autouse=True)
 def config_logging(caplog):
-    caplog.set_level(logging.CRITICAL, logger="hope_ocr")
+    caplog.set_level(logging.CRITICAL, logger="hope_documents")
 
 
 @pytest.fixture

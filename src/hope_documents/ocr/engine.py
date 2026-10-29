@@ -8,9 +8,9 @@ from typing import Any
 
 from PIL import Image
 
-from hope_ocr.exceptions import ExtractionError, InvalidImageError
-from hope_ocr.ocr.diff import Match, find_similar
-from hope_ocr.ocr.loaders import (
+from hope_documents.exceptions import ExtractionError, InvalidImageError
+from hope_documents.ocr.diff import Match, find_similar
+from hope_documents.ocr.loaders import (
     BWLoader,
     CV2Loader,
     EnhancedLoader,
@@ -19,8 +19,8 @@ from hope_ocr.ocr.loaders import (
     PILLoader,
     SmartLoader,
 )
-from hope_ocr.ocr.reader import BaseReader, Reader, TSConfig
-from hope_ocr.utils._timeit import format_elapsed_time, time_it
+from hope_documents.ocr.reader import BaseReader, Reader, TSConfig
+from hope_documents.utils._timeit import format_elapsed_time, time_it
 
 logger = logging.getLogger(__name__)
 

@@ -38,3 +38,11 @@ class classproperty:  # noqa: N801
 
 def repr_list(iterable: Iterable[Any]) -> str:
     return ", ".join("'%s'" % str(i) for i in iterable)  # noqa
+
+
+def fqn(obj: Any) -> str:
+    return f"{obj.__module__}.{obj.__qualname__}"
+
+
+def parse_bool(v: Any) -> bool:
+    return v in ["True", "true", "1", True, "y", "Y", "yes", "Yes"]
