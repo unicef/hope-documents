@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from django.contrib.admin.sites import AdminSite
@@ -179,6 +180,30 @@ def test_test_regions_post_no_image(app):
     res = app.post(url, {})
     assert res.status_code == 200
     assert da.attribute.name.encode() in res.content
+
+
+@pytest.mark.django_db
+def test_test_regions_post_validation_pass(app, images_dir):
+    da = DocumentAttributeFactory.create(validation_expression=r"\w+")
+    url = reverse("admin:archive_document_test_regions", args=[da.document.pk])
+    image_path = images_dir / "ita/dl1.png"
+    with patch("hope_documents.archive.admin.OCRAttributeExtractor.extract_attribute", return_value="BIANCA"):
+        with image_path.open("rb") as f:
+            res = app.post(url, {"image": Upload(str(image_path), f.read(), "image/png")})
+    assert res.status_code == 200
+    assert b"val-pass" in res.content
+
+
+@pytest.mark.django_db
+def test_test_regions_post_validation_fail(app, images_dir):
+    da = DocumentAttributeFactory.create(validation_expression=r"\d+")
+    url = reverse("admin:archive_document_test_regions", args=[da.document.pk])
+    image_path = images_dir / "ita/dl1.png"
+    with patch("hope_documents.archive.admin.OCRAttributeExtractor.extract_attribute", return_value="BIANCA"):
+        with image_path.open("rb") as f:
+            res = app.post(url, {"image": Upload(str(image_path), f.read(), "image/png")})
+    assert res.status_code == 200
+    assert b"val-fail" in res.content
 
 
 @pytest.mark.django_db
