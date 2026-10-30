@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any
 
 from PIL import Image
@@ -14,6 +15,7 @@ from django_regex.fields import RegexField
 from unfold.admin import TabularInline
 from unfold.widgets import UnfoldAdminTextInputWidget
 
+from ..extractors import OCRAttributeExtractor
 from ..ocr.engine import CV2Config, MatchMode, Processor, ScanEntryInfo, SearchInfo, TSConfig
 from ..ocr.loaders import Loader, loader_registry
 from ..utils._timeit import time_it
@@ -118,7 +120,9 @@ class DocumentAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.Document]):
     autocomplete_fields = ["document_type", "country"]
     inlines = [DocumentAttributeInline]
 
-    @button(change=True)
+    _BUTTON_STYLE = "background:transparent;color:inherit;border:1px solid currentColor;border-radius:4px;"
+
+    @button(change=True, html_attrs={"style": _BUTTON_STYLE})
     def define_regions(self, request: HttpRequest, pk: str) -> HttpResponse:
         document = get_object_or_404(models.Document, pk=pk)
         doc_attrs = list(
@@ -154,6 +158,53 @@ class DocumentAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.Document]):
         )
         ctx["doc_attrs"] = doc_attrs
         return render(request, "hope_documents/define_regions.html", ctx)
+
+    @button(change=True, html_attrs={"style": _BUTTON_STYLE})
+    def test_regions(self, request: HttpRequest, pk: str) -> HttpResponse:
+        document = get_object_or_404(models.Document, pk=pk)
+        doc_attrs = list(
+            models.DocumentAttribute.objects.filter(document=document)
+            .select_related("attribute")
+            .order_by("attribute__name")
+        )
+        ctx = self.get_common_context(request)
+        ctx["document"] = document
+        ctx["doc_attrs"] = doc_attrs
+        ctx["doc_attrs_json"] = json.dumps(
+            [
+                {
+                    "pk": da.pk,
+                    "name": da.attribute.name,
+                    "region": da.region.to_dict() if da.region else None,
+                }
+                for da in doc_attrs
+            ]
+        )
+
+        if request.method == "POST" and request.FILES.get("image"):
+            processor = Processor(ts_config=TSConfig(), cv2_config=CV2Config())
+            extractor = OCRAttributeExtractor(processor)
+            image = Image.open(request.FILES["image"])
+            image.load()
+            ctx["image_src"] = get_image_base64(image)
+            results = []
+            for da in doc_attrs:
+                value = extractor.extract_attribute(image, da.attribute.name, da.region)
+                valid = None
+                if da.validation_expression and value:
+                    valid = bool(re.fullmatch(da.validation_expression, value))
+                results.append(
+                    {
+                        "name": da.attribute.name,
+                        "has_region": da.region is not None,
+                        "value": value,
+                        "valid": valid,
+                        "validation_expression": da.validation_expression or "",
+                    }
+                )
+            ctx["results"] = results
+
+        return render(request, "hope_documents/test_regions.html", ctx)
 
 
 @admin.register(models.DocumentAttribute)
