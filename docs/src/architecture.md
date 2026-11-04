@@ -4,7 +4,7 @@
 
 HOPE Documents is a single Django package (`hope_documents`) with three logical layers:
 
-- **Archive** (`hope_documents.archive`) — OCR engine, document catalog, and admin UI. Defines which fields exist for each document type, country, and version.
+- **Archive** (`hope_documents.archive`) — document catalog, admin UI, and document pre-processing. Defines which fields exist for each document type, country, and version.
 - **Processing** (`hope_documents`) — REST API, async analysis pipeline, and the `AnalysisJob` model.
 - **OCR** (`hope_documents.ocr`) — Tesseract + OpenCV image processing engine; used by both the archive admin and the processing layer.
 
@@ -15,9 +15,10 @@ HOPE Documents is a single Django package (`hope_documents`) with three logical 
 | OCR engine | `hope_documents/ocr/engine.py` | Tesseract + OpenCV image processing |
 | Document catalog | `hope_documents/archive/models.py` | Config layer: countries, document types, attributes, regions |
 | Extraction protocol | `hope_documents/extractors.py` | `AttributeExtractor` Protocol + `OCRAttributeExtractor` |
+| Document pre-processing | `hope_documents/utils/preprocessing.py` | Detect document boundary, deskew, crop background |
 | Analysis task | `hope_documents/tasks.py` | Celery task that runs extraction and persists results |
 | REST API | `hope_documents/api/` | DRF views + serializers for `POST /api/analyze/` |
-| Admin | `hope_documents/archive/admin.py` | Catalog management + Define Regions canvas UI |
+| Admin | `hope_documents/archive/admin.py` | Catalog management + Define Regions canvas UI + Test Regions overlay |
 
 ---
 
@@ -75,14 +76,21 @@ AnalyzeView
        └─ default ──────► process_analysis_job.delay() via Celery
                                    │
                                    ▼
+                         detect_and_normalise(image)
+                           ├─ contour detection → perspective warp to document quad
+                           ├─ deskew
+                           └─ fallback: return original if no document found
+                                   │
+                                   ▼
                          resolve Document version
                          (score candidate versions against extracted values)
                                    │
                                    ▼
                          OCRAttributeExtractor.extract()
                            for each DocumentAttribute:
-                             ├─ region defined → crop image → OCR crop
-                             └─ no region → OCR full image
+                             ├─ region defined → scale coords by (processed_size / reference_size)
+                             │                 → crop image → OCR crop (PSM 6)
+                             └─ no region → fuzzy label search (find_single) on full image
                                    │
                                    ▼
                          validate against validation_expression
@@ -92,6 +100,29 @@ AnalyzeView
                          persist result on AnalysisJob
                          fire callback_url if set
 ```
+
+---
+
+## Document pre-processing
+
+`detect_and_normalise` in `hope_documents/utils/preprocessing.py` runs on every submitted image before extraction begins:
+
+1. **Contour detection** — finds the largest quadrilateral contour that covers > 15% of the image (the document boundary).
+2. **Perspective warp** — if a quad is found, `cv2.warpPerspective` rectifies it to a straight-on view at the document's natural pixel size, removing background.
+3. **Deskew** — corrects slight rotational tilt using the `deskew` package (Hough-line skew estimation + `scipy.ndimage.rotate`). Skews < 0.5° are skipped.
+4. **Fallback** — if no clear document quad is detected, only deskew is applied. If deskew finds no rotation, the original image is returned unchanged.
+
+### Coordinate normalisation
+
+Region coordinates are stored in absolute pixels relative to the **reference image** used in Define Regions. The reference image dimensions (`Document.reference_width`, `Document.reference_height`) are stored when the user saves regions. At extraction time, the pre-processed image may have different dimensions, so coordinates are scaled:
+
+```
+sx = processed_width  / document.reference_width
+sy = processed_height / document.reference_height
+region_coords *= (sx, sy)
+```
+
+If `reference_width`/`reference_height` are not set (e.g. the document was configured before this feature), scale factors default to 1.0 and coordinates are used as-is.
 
 ---
 
