@@ -88,3 +88,19 @@ def test_custom_attribute_can_be_deleted(custom_attribute):
     pk = custom_attribute.pk
     custom_attribute.delete()
     assert not Attribute.objects.filter(pk=pk).exists()
+
+
+@pytest.mark.django_db
+def test_document_reference_dims_default_null(document):
+    assert document.reference_width is None
+    assert document.reference_height is None
+
+
+@pytest.mark.django_db
+def test_document_reference_dims_can_be_set(document):
+    document.reference_width = 1200
+    document.reference_height = 900
+    document.save(update_fields=["reference_width", "reference_height"])
+    document.refresh_from_db()
+    assert document.reference_width == 1200
+    assert document.reference_height == 900

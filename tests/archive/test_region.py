@@ -104,3 +104,17 @@ def test_bounding_box_field_value_from_object_none_region():
     da = DocumentAttribute()
     da.region = None
     assert field.value_from_object(da) is None
+
+
+def test_bounding_box_scale_multiplies_all_corners():
+    bb = BoundingBox.from_rect(100, 200, 300, 400)
+    scaled = bb.scale(2.0, 3.0)
+    assert scaled.top_left == Point(200, 600)
+    assert scaled.top_right == Point(800, 600)
+    assert scaled.bottom_right == Point(800, 1800)
+    assert scaled.bottom_left == Point(200, 1800)
+
+
+def test_bounding_box_scale_identity_returns_equal():
+    bb = BoundingBox.from_rect(10, 20, 100, 50)
+    assert bb.scale(1.0, 1.0) == bb

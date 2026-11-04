@@ -123,6 +123,19 @@ class Document(models.Model):
         ),
     )
 
+    reference_width = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("reference_width"),
+        help_text=_("Width in pixels of the pre-processed reference image used to define regions."),
+    )
+    reference_height = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("reference_height"),
+        help_text=_("Height in pixels of the pre-processed reference image used to define regions."),
+    )
+
     class Meta:
         ordering = ("document_type__name", "country__name", "version")
         unique_together = [("document_type", "country", "version")]

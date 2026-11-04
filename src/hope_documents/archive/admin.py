@@ -8,7 +8,7 @@ from django import forms
 from django.contrib import admin, messages
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db.models import Field as ModelField
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils.module_loading import import_string
 from django_regex.fields import RegexField
@@ -21,6 +21,7 @@ from ..ocr.loaders import Loader, loader_registry
 from ..utils._timeit import time_it
 from ..utils.image import get_image_base64
 from ..utils.language import fqn
+from ..utils.preprocessing import detect_and_normalise
 from . import models
 from .region import BoundingBox
 
@@ -133,7 +134,22 @@ class DocumentAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.Document]):
         ctx = self.get_common_context(request)
         ctx["document"] = document
 
-        if request.method == "POST" and "image" not in request.FILES:
+        if request.method == "POST":
+            if "image" in request.FILES:
+                image = Image.open(request.FILES["image"])
+                image.load()
+                processed = detect_and_normalise(image)
+                w, h = processed.size
+                return JsonResponse(
+                    {"image_src": get_image_base64(processed, img_format="JPEG", quality=85), "width": w, "height": h}
+                )
+            # Save region coordinates (and optional reference dims)
+            ref_w = int(request.POST.get("reference_width") or 0) or None
+            ref_h = int(request.POST.get("reference_height") or 0) or None
+            if ref_w and ref_h:
+                document.reference_width = ref_w
+                document.reference_height = ref_h
+                document.save(update_fields=["reference_width", "reference_height"])
             for da in doc_attrs:
                 x = request.POST.get(f"region_{da.pk}_x", "")
                 y = request.POST.get(f"region_{da.pk}_y", "")
@@ -186,10 +202,15 @@ class DocumentAdmin(ExtraButtonsMixin, admin.ModelAdmin[models.Document]):
             extractor = OCRAttributeExtractor(processor)
             image = Image.open(request.FILES["image"])
             image.load()
-            ctx["image_src"] = get_image_base64(image)
+            image = detect_and_normalise(image)
+            ctx["image_src"] = get_image_base64(image, img_format="JPEG", quality=85)
+            proc_w, proc_h = image.size
+            sx = proc_w / document.reference_width if document.reference_width else 1.0
+            sy = proc_h / document.reference_height if document.reference_height else 1.0
             results = []
             for da in doc_attrs:
-                value = extractor.extract_attribute(image, da.attribute.name, da.region)
+                scaled_region = da.region.scale(sx, sy) if da.region else None
+                value = extractor.extract_attribute(image, da.attribute.name, scaled_region)
                 valid = None
                 if da.validation_expression and value:
                     valid = bool(re.fullmatch(da.validation_expression, value))

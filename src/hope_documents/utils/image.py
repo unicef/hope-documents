@@ -7,12 +7,20 @@ from PIL import Image, UnidentifiedImageError
 from hope_documents.exceptions import InvalidImageError
 
 
-def get_image_base64(input_data: Path | Image.Image | BufferedReader) -> str:
+def get_image_base64(
+    input_data: Path | Image.Image | BufferedReader,
+    img_format: str = "PNG",
+    quality: int = 85,
+) -> str:
     if isinstance(input_data, Path | str):
         image_data = Path(input_data).read_bytes()
     elif isinstance(input_data, Image.Image):
         image_file = BytesIO()
-        input_data.save(image_file, format="PNG")
+        pil_fmt = img_format.upper()
+        if pil_fmt in ("JPEG", "JPG", "WEBP"):
+            input_data.convert("RGB").save(image_file, format=pil_fmt, quality=quality)
+        else:
+            input_data.save(image_file, format=pil_fmt)
         image_file.seek(0)
         image_data = image_file.read()
     elif isinstance(input_data, BytesIO) or hasattr(input_data, "read"):
@@ -22,8 +30,8 @@ def get_image_base64(input_data: Path | Image.Image | BufferedReader) -> str:
 
     base64_data = base64.b64encode(image_data)
     base64_string = base64_data.decode("utf-8")
-    image_content_type = "image/png"
-    return f"data:{image_content_type};base64,{base64_string}"
+    mime = "image/jpeg" if img_format.upper() in ("JPEG", "JPG") else f"image/{img_format.lower()}"
+    return f"data:{mime};base64,{base64_string}"
 
 
 def get_image(filepath: str) -> Image.Image:

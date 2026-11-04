@@ -44,6 +44,14 @@ def test_get_image_base64_from_bytesio():
     base64.b64decode(base64_string.split(",")[1])
 
 
+def test_get_image_base64_jpeg_format():
+    """JPEG format parameter produces a JPEG data URL."""
+    image = Image.new("RGB", (10, 10), color="blue")
+    result = get_image_base64(image, img_format="JPEG", quality=85)
+    assert result.startswith("data:image/jpeg;base64,")
+    base64.b64decode(result.split(",")[1])
+
+
 def test_get_image_base64_unsupported_type():
     """Test get_image_base64 with an unsupported input type."""
     with pytest.raises(ValueError, match="Unsupported"):
