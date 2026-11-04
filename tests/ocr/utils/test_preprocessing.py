@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import numpy as np
 from PIL import Image
 
@@ -68,3 +70,31 @@ def test_detect_and_normalise_caps_output_at_1500px():
     large = _make_image(3000, 2000, (240, 240, 240))
     result = detect_and_normalise(large)
     assert max(result.size) <= 1500
+
+
+def test_detect_and_normalise_ignores_small_quads():
+    """A 4-vertex contour covering < 15% of the image area is not treated as the document."""
+    # Small white square (100×100 = 8.3% of 400×300) on a dark background — quad detected
+    # but area check fails; fallback path taken with no perspective warp.
+    arr = np.zeros((300, 400, 3), dtype=np.uint8)
+    arr[10:110, 10:110] = 240
+    image = Image.fromarray(arr)
+    result = detect_and_normalise(image)
+    assert isinstance(result, Image.Image)
+    # Should not be cropped to the small square
+    assert result.size[0] > 100
+
+
+def test_detect_and_normalise_fallback_applies_deskew_when_skewed():
+    """Fallback path: when skew exceeds threshold, the deskewed image is returned (not original)."""
+    # Two-tone image — no document quad, but non-uniform so rotation produces a different array
+    arr = np.zeros((300, 400, 3), dtype=np.uint8)
+    arr[:150] = 80
+    arr[150:] = 180
+    image = Image.fromarray(arr)
+
+    with patch("hope_documents.utils.preprocessing.determine_skew", return_value=5.0):
+        result = detect_and_normalise(image)
+
+    assert isinstance(result, Image.Image)
+    assert result is not image  # deskew was applied; a new image was returned
