@@ -52,6 +52,15 @@ def test_get_image_base64_jpeg_format():
     base64.b64decode(result.split(",")[1])
 
 
+def test_get_image_base64_path_uses_extension_for_mime(tmp_path):
+    """MIME type is derived from file extension when input is a Path, not from img_format."""
+    path = tmp_path / "photo.jpg"
+    Image.new("RGB", (10, 10), color="red").save(path, "JPEG")
+    result = get_image_base64(path)  # img_format defaults to "PNG" — extension wins
+    assert result.startswith("data:image/jpeg;base64,")
+    base64.b64decode(result.split(",")[1])
+
+
 def test_get_image_base64_unsupported_type():
     """Test get_image_base64 with an unsupported input type."""
     with pytest.raises(ValueError, match="Unsupported"):

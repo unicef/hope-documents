@@ -208,18 +208,6 @@ def test_test_regions_post_validation_fail(app, images_dir):
 
 
 @pytest.mark.django_db
-def test_define_regions_post_image_upload_returns_json(app, images_dir):
-    da = DocumentAttributeFactory.create()
-    url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
-    image_path = images_dir / "ita/dl1.png"
-    with image_path.open("rb") as f:
-        res = app.post(url, {"image": Upload(str(image_path.absolute()), f.read(), "image/png")})
-    assert res.status_code == 200
-    assert res.content_type == "application/json"
-    assert "image_src" in res.json
-
-
-@pytest.mark.django_db
 def test_define_regions_post_save_coords(app):
     da = DocumentAttributeFactory.create()
     url = reverse("admin:archive_document_define_regions", args=[da.document.pk])

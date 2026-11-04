@@ -12,8 +12,12 @@ def get_image_base64(
     img_format: str = "PNG",
     quality: int = 85,
 ) -> str:
+    _path_mime: str | None = None
     if isinstance(input_data, Path | str):
-        image_data = Path(input_data).read_bytes()
+        path = Path(input_data)
+        image_data = path.read_bytes()
+        ext = path.suffix.lstrip(".").lower()
+        _path_mime = "image/jpeg" if ext in ("jpg", "jpeg") else f"image/{ext}" if ext else None
     elif isinstance(input_data, Image.Image):
         image_file = BytesIO()
         pil_fmt = img_format.upper()
@@ -30,7 +34,11 @@ def get_image_base64(
 
     base64_data = base64.b64encode(image_data)
     base64_string = base64_data.decode("utf-8")
-    mime = "image/jpeg" if img_format.upper() in ("JPEG", "JPG") else f"image/{img_format.lower()}"
+    mime = (
+        _path_mime
+        if _path_mime is not None
+        else ("image/jpeg" if img_format.upper() in ("JPEG", "JPG") else f"image/{img_format.lower()}")
+    )
     return f"data:{mime};base64,{base64_string}"
 
 
