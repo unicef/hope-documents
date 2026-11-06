@@ -37,6 +37,14 @@ class BoundingBox:
     def to_dict(self) -> dict:
         return dataclasses.asdict(self)
 
+    def scale(self, sx: float, sy: float) -> "BoundingBox":
+        return BoundingBox(
+            top_left=Point(self.top_left.x * sx, self.top_left.y * sy),
+            top_right=Point(self.top_right.x * sx, self.top_right.y * sy),
+            bottom_right=Point(self.bottom_right.x * sx, self.bottom_right.y * sy),
+            bottom_left=Point(self.bottom_left.x * sx, self.bottom_left.y * sy),
+        )
+
     @property
     def width(self) -> float:
         return self.top_right.x - self.top_left.x

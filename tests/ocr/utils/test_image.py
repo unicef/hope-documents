@@ -44,6 +44,23 @@ def test_get_image_base64_from_bytesio():
     base64.b64decode(base64_string.split(",")[1])
 
 
+def test_get_image_base64_jpeg_format():
+    """JPEG format parameter produces a JPEG data URL."""
+    image = Image.new("RGB", (10, 10), color="blue")
+    result = get_image_base64(image, img_format="JPEG", quality=85)
+    assert result.startswith("data:image/jpeg;base64,")
+    base64.b64decode(result.split(",")[1])
+
+
+def test_get_image_base64_path_uses_extension_for_mime(tmp_path):
+    """MIME type is derived from file extension when input is a Path, not from img_format."""
+    path = tmp_path / "photo.jpg"
+    Image.new("RGB", (10, 10), color="red").save(path, "JPEG")
+    result = get_image_base64(path)  # img_format defaults to "PNG" — extension wins
+    assert result.startswith("data:image/jpeg;base64,")
+    base64.b64decode(result.split(",")[1])
+
+
 def test_get_image_base64_unsupported_type():
     """Test get_image_base64 with an unsupported input type."""
     with pytest.raises(ValueError, match="Unsupported"):

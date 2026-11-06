@@ -11,6 +11,7 @@ from hope_documents.exceptions import ValidationFailedError
 from hope_documents.extractors import AttributeExtractor, OCRAttributeExtractor
 from hope_documents.models import AnalysisJob
 from hope_documents.ocr.engine import CV2Config, Processor, TSConfig
+from hope_documents.utils.preprocessing import detect_and_normalise
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +51,16 @@ def _match_documents(
     best_attributes: list[dict] = []
     version_matched = False
 
+    proc_w, proc_h = pil_image.size
+
     for doc in documents:
         extracted: list[dict] = []
         score = 0
+        sx = proc_w / doc.reference_width if doc.reference_width else 1.0
+        sy = proc_h / doc.reference_height if doc.reference_height else 1.0
         for doc_attr in doc.documentattribute_set.all():
-            value = extractor.extract_attribute(pil_image, doc_attr.attribute.name, doc_attr.region)
+            scaled_region = doc_attr.region.scale(sx, sy) if doc_attr.region else None
+            value = extractor.extract_attribute(pil_image, doc_attr.attribute.name, scaled_region)
             counts = _validate_attribute(
                 doc_attr.attribute.name,
                 value,
@@ -96,6 +102,7 @@ def process_analysis_job(pk: str, version: int | None = None) -> None:
             pil_image = Image.open(fh)
             pil_image.load()
 
+        pil_image = detect_and_normalise(pil_image)
         processor = Processor(ts_config=TSConfig(), cv2_config=CV2Config())
         extractor = OCRAttributeExtractor(processor)
         documents = list(

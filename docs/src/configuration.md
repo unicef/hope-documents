@@ -91,7 +91,13 @@ The **Define Regions** button on the Document change page opens an interactive c
 
 The canvas uses display-scaled coordinates that are automatically converted to original image pixel space on save. Leaving all four coordinate fields blank for an attribute clears its region.
 
-> **Note:** The reference image is not persisted server-side between sessions. You will need to re-upload it each time you open Define Regions. Persisting the reference image on the Document model is a planned improvement.
+**Reference image pre-processing:** when you upload a reference image, it is sent to the server for automatic pre-processing before appearing on the canvas. The server detects the document boundary (using contour detection), applies a perspective correction to remove background, and deskews any slight tilt. The resulting image fills the canvas, and all region coordinates you draw are relative to this pre-processed image. The reference image dimensions are stored on the Document automatically.
+
+At extraction time, submitted photos go through the same pre-processing. Region coordinates are then scaled proportionally from the reference image size to the processed photo size before being applied, so regions drawn on the reference remain accurate even when photos are taken at different distances.
+
+> **Tip:** For best results, use a clean, well-lit scan or photo of the document as the reference image. The pre-processing handles background removal and tilt correction, so it does not need to be a perfect straight-on scan.
+>
+> **Note:** The reference image itself is not stored server-side. You will need to re-upload it to redraw regions in a later session.
 
 ### Validation expression
 

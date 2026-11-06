@@ -2,6 +2,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from PIL import Image
 from django.contrib.admin.sites import AdminSite
 from django.test import RequestFactory
 from django.urls import reverse
@@ -207,17 +208,6 @@ def test_test_regions_post_validation_fail(app, images_dir):
 
 
 @pytest.mark.django_db
-def test_define_regions_post_image_upload(app, images_dir):
-    da = DocumentAttributeFactory.create()
-    url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
-    image_path = images_dir / "ita/dl1.png"
-    with image_path.open("rb") as f:
-        res = app.post(url, {"image": Upload(str(image_path.absolute()), f.read(), "image/png")})
-    assert res.status_code == 200
-    assert b"region-canvas" in res.content
-
-
-@pytest.mark.django_db
 def test_define_regions_post_save_coords(app):
     da = DocumentAttributeFactory.create()
     url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
@@ -264,6 +254,103 @@ def test_document_attribute_inline_formfield_applies_unfold_widget_to_regex_fiel
     db_field = DocumentAttribute._meta.get_field("validation_expression")
     formfield = inline.formfield_for_dbfield(db_field, request)
     assert isinstance(formfield.widget, UnfoldAdminTextInputWidget)
+
+
+@pytest.mark.django_db
+def test_test_regions_post_preprocesses_image(app, images_dir):
+    """test_regions pre-processes the uploaded image; the base64 image_src reflects the processed image."""
+    da = DocumentAttributeFactory.create()
+    url = reverse("admin:archive_document_test_regions", args=[da.document.pk])
+    image_path = images_dir / "ita/dl1.png"
+    with patch("hope_documents.archive.admin.detect_and_normalise") as mock_preprocess:
+        processed = Image.new("RGB", (100, 80), (200, 200, 200))
+        mock_preprocess.return_value = processed
+        with image_path.open("rb") as f:
+            res = app.post(url, {"image": Upload(str(image_path), f.read(), "image/png")})
+    assert res.status_code == 200
+    mock_preprocess.assert_called_once()
+
+
+@pytest.mark.django_db
+def test_test_regions_scales_region_by_reference_dims(app, images_dir):
+    """When Document has reference dims, regions passed to the extractor are scaled."""
+    bb = BoundingBox.from_rect(10, 20, 100, 50)
+    da = DocumentAttributeFactory.create(region=bb)
+    da.document.reference_width = 200
+    da.document.reference_height = 100
+    da.document.save(update_fields=["reference_width", "reference_height"])
+    url = reverse("admin:archive_document_test_regions", args=[da.document.pk])
+    image_path = images_dir / "ita/dl1.png"
+
+    captured_regions = []
+
+    def fake_extract(self_inner, image, attr_name, region):
+        captured_regions.append(region)
+        return "test_value"
+
+    with patch("hope_documents.archive.admin.detect_and_normalise") as mock_preprocess:
+        mock_preprocess.return_value = Image.new("RGB", (400, 300), (200, 200, 200))
+        with patch("hope_documents.archive.admin.OCRAttributeExtractor.extract_attribute", fake_extract):
+            with image_path.open("rb") as f:
+                res = app.post(url, {"image": Upload(str(image_path), f.read(), "image/png")})
+
+    assert res.status_code == 200
+    assert len(captured_regions) == 1
+    # scale: 400/200=2.0, 300/100=3.0
+    scaled = captured_regions[0]
+    assert scaled is not None
+    assert scaled.top_left.x == pytest.approx(20.0)  # 10 * 2.0
+    assert scaled.top_left.y == pytest.approx(60.0)  # 20 * 3.0
+
+
+@pytest.mark.django_db
+def test_define_regions_get_has_reference_dim_inputs(app):
+    """GET define_regions renders hidden reference_width/height inputs in the save form."""
+    da = DocumentAttributeFactory.create()
+    url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
+    res = app.get(url)
+    assert b'name="reference_width"' in res.content
+    assert b'name="reference_height"' in res.content
+
+
+@pytest.mark.django_db
+def test_define_regions_post_image_returns_json(app, images_dir):
+    """POSTing an image to define_regions returns JSON with image_src, width, height."""
+    da = DocumentAttributeFactory.create()
+    url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
+    image_path = images_dir / "ita/dl1.png"
+    with image_path.open("rb") as f:
+        res = app.post(url, {"image": Upload(str(image_path.absolute()), f.read(), "image/png")})
+    assert res.status_code == 200
+    assert res.content_type == "application/json"
+    data = res.json
+    assert "image_src" in data
+    assert "width" in data
+    assert "height" in data
+    assert data["width"] > 0
+    assert data["height"] > 0
+
+
+@pytest.mark.django_db
+def test_define_regions_post_saves_reference_dims(app):
+    """POST save-regions with reference_width/height updates the Document."""
+    da = DocumentAttributeFactory.create()
+    url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
+    res = app.post(
+        url,
+        {
+            f"region_{da.pk}_x": "10",
+            f"region_{da.pk}_y": "20",
+            f"region_{da.pk}_width": "100",
+            f"region_{da.pk}_height": "50",
+            "reference_width": "1200",
+            "reference_height": "900",
+        },
+    )
+    assert res.status_code == 200
+    da.document.refresh_from_db()
+    assert da.document.reference_width == 1200
+    assert da.document.reference_height == 900
 
 
 @pytest.mark.django_db
