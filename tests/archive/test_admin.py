@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from django.contrib.admin.sites import AdminSite
@@ -110,6 +111,99 @@ def test_define_regions_get(app):
     res = app.get(url)
     assert res.status_code == 200
     assert da.attribute.name.encode() in res.content
+
+
+@pytest.mark.django_db
+def test_define_regions_get_region_serialized_in_json(app):
+    bb = BoundingBox.from_rect(10, 20, 100, 50)
+    da = DocumentAttributeFactory.create(region=bb)
+    url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
+    res = app.get(url)
+    assert b"top_left" in res.content
+
+
+@pytest.mark.django_db
+def test_define_regions_get_has_zoom_controls(app):
+    da = DocumentAttributeFactory.create()
+    url = reverse("admin:archive_document_define_regions", args=[da.document.pk])
+    res = app.get(url)
+    assert b"zoom-controls" in res.content
+    assert b"canvas-wrapper" in res.content
+
+
+@pytest.mark.django_db
+def test_test_regions_get(app):
+    da = DocumentAttributeFactory.create()
+    url = reverse("admin:archive_document_test_regions", args=[da.document.pk])
+    res = app.get(url)
+    assert res.status_code == 200
+    assert da.attribute.name.encode() in res.content
+
+
+@pytest.mark.django_db
+def test_test_regions_get_has_canvas_and_json(app):
+    da = DocumentAttributeFactory.create()
+    url = reverse("admin:archive_document_test_regions", args=[da.document.pk])
+    res = app.get(url)
+    assert b"test-canvas" in res.content
+    assert b"DOC_ATTRS" in res.content
+
+
+@pytest.mark.django_db
+def test_test_regions_post_with_region(app, images_dir):
+    bb = BoundingBox.from_rect(10, 20, 100, 50)
+    da = DocumentAttributeFactory.create(region=bb)
+    url = reverse("admin:archive_document_test_regions", args=[da.document.pk])
+    image_path = images_dir / "ita/dl1.png"
+    with image_path.open("rb") as f:
+        res = app.post(url, {"image": Upload(str(image_path), f.read(), "image/png")})
+    assert res.status_code == 200
+    assert b"region-yes" in res.content
+
+
+@pytest.mark.django_db
+def test_test_regions_post_with_image(app, images_dir):
+    da = DocumentAttributeFactory.create()
+    url = reverse("admin:archive_document_test_regions", args=[da.document.pk])
+    image_path = images_dir / "ita/dl1.png"
+    with image_path.open("rb") as f:
+        res = app.post(url, {"image": Upload(str(image_path), f.read(), "image/png")})
+    assert res.status_code == 200
+    assert da.attribute.name.encode() in res.content
+    assert b"results-table" in res.content
+
+
+@pytest.mark.django_db
+def test_test_regions_post_no_image(app):
+    da = DocumentAttributeFactory.create()
+    url = reverse("admin:archive_document_test_regions", args=[da.document.pk])
+    res = app.post(url, {})
+    assert res.status_code == 200
+    assert da.attribute.name.encode() in res.content
+
+
+@pytest.mark.django_db
+def test_test_regions_post_validation_pass(app, images_dir):
+    da = DocumentAttributeFactory.create(validation_expression=r"\w+")
+    url = reverse("admin:archive_document_test_regions", args=[da.document.pk])
+    image_path = images_dir / "ita/dl1.png"
+    with patch("hope_documents.archive.admin.OCRAttributeExtractor.extract_attribute", return_value="BIANCA"):
+        with image_path.open("rb") as f:
+            res = app.post(url, {"image": Upload(str(image_path), f.read(), "image/png")})
+    assert res.status_code == 200
+    assert b"val-pass" in res.content
+
+
+@pytest.mark.django_db
+def test_test_regions_post_validation_fail(app, images_dir):
+    da = DocumentAttributeFactory.create(validation_expression=r"\d+")
+    url = reverse("admin:archive_document_test_regions", args=[da.document.pk])
+    image_path = images_dir / "ita/dl1.png"
+    with patch("hope_documents.archive.admin.OCRAttributeExtractor.extract_attribute", return_value="BIANCA"):
+        with image_path.open("rb") as f:
+            res = app.post(url, {"image": Upload(str(image_path), f.read(), "image/png")})
+    assert res.status_code == 200
+    assert b"val-fail" in res.content
 
 
 @pytest.mark.django_db

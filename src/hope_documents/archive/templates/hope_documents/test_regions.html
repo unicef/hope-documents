@@ -1,0 +1,195 @@
+{% extends "admin_extra_buttons/action_page.html" %}
+{% load i18n static admin_urls %}
+{% block submit_buttons_bottom %}
+{% endblock %}
+{% block breadcrumbs-active %}
+    &rsaquo; <a href=".">{{ document }}</a> &rsaquo; Test Regions
+{% endblock %}
+{% block action-content %}
+    <style>
+  #test-canvas-wrapper { border: 1px solid #ccc; overflow: auto; max-height: 70vh; max-width: 100%; width: fit-content; display: none; margin-bottom: 1em; }
+  #test-canvas { display: block; }
+  #canvas-placeholder { color: #888; font-style: italic; margin-bottom: 1em; }
+  .results-table { width: 100%; margin-top: 1.5em; border-collapse: collapse; }
+  .results-table th { text-align: left; padding: 6px 10px; border-bottom: 2px solid #ddd; }
+  .results-table td { padding: 6px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
+  .region-yes { color: #2ecc71; }
+  .region-no { color: #999; }
+  .val-pass { color: #2ecc71; font-weight: bold; }
+  .val-fail { color: #e74c3c; font-weight: bold; }
+  .val-none { color: #999; }
+  .val-pattern { display: block; color: #999; font-size: 0.8em; font-family: monospace; margin-top: 2px; }
+  .empty-value { color: #aaa; font-style: italic; }
+    </style>
+    <h2>
+        {{ document }}
+    </h2>
+    {% if not doc_attrs %}
+        <p>
+            No attributes are configured for this document. Add attributes via the Document change form first.
+        </p>
+    {% else %}
+        <form method="post" enctype="multipart/form-data" id="test-form" style="margin-bottom: 1em;">
+            {% csrf_token %}
+            <div style="display: flex; align-items: center; gap: 1em; flex-wrap: wrap;">
+                <label>
+                    <strong>Document image:</strong>
+                </label>
+                <input type="file" name="image" id="image-file-input" accept="image/*" />
+            </div>
+        </form>
+        <div id="test-canvas-wrapper">
+            <canvas id="test-canvas"></canvas>
+        </div>
+        <p id="canvas-placeholder">
+            Select a document image above — regions will be drawn on the image and extraction will run automatically.
+        </p>
+        {% if results %}
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>
+                            Attribute
+                        </th>
+                        <th>
+                            Region
+                        </th>
+                        <th>
+                            Extracted value
+                        </th>
+                        <th>
+                            Validation
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in results %}
+                        <tr>
+                            <td>
+                                {{ r.name }}
+                            </td>
+                            <td>
+                                {% if r.has_region %}
+                                    <span class="region-yes">&#10003; defined</span>
+                                {% else %}
+                                    <span class="region-no">&#8212; none</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if r.value %}
+                                    {{ r.value }}
+                                {% else %}
+                                    <span class="empty-value">(empty)</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if r.valid is None %}
+                                    <span class="val-none">&#8212;</span>
+                                {% elif r.valid %}
+                                    <span class="val-pass">&#10003; pass</span>
+                                {% else %}
+                                    <span class="val-fail">&#10007; fail</span>
+                                    {% if r.validation_expression %}
+                                        <span class="val-pattern">expected: {{ r.validation_expression }}</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>
+                            Attribute
+                        </th>
+                        <th>
+                            Region
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for da in doc_attrs %}
+                        <tr>
+                            <td>
+                                {{ da.attribute.name }}
+                            </td>
+                            <td>
+                                {% if da.region %}
+                                    <span class="region-yes">&#10003; defined</span>
+                                {% else %}
+                                    <span class="region-no">&#8212; none</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+        <div style="margin-top: 1.5em;">
+            <a href="{% url opts|admin_urlname:'change' document.pk %}"
+               class="button"
+               onclick="event.preventDefault(); var h = this.href; window.location.href = h + (h.indexOf('?') === -1 ? '?' : '&') + '_t=' + Date.now();">Go back</a>
+        </div>
+        <script>
+  (function () {
+    const COLOURS = ["#e74c3c","#3498db","#2ecc71","#f39c12","#9b59b6","#1abc9c","#e67e22","#2980b9"];
+    const DOC_ATTRS = JSON.parse('{{ doc_attrs_json|escapejs }}');
+
+    const canvas = document.getElementById('test-canvas');
+    const ctx = canvas.getContext('2d');
+    const wrapper = document.getElementById('test-canvas-wrapper');
+    const placeholder = document.getElementById('canvas-placeholder');
+    const fileInput = document.getElementById('image-file-input');
+    const img = new Image();
+    let imgReady = false;
+    let scale = 1;
+
+    DOC_ATTRS.forEach((a, i) => { a.colour = COLOURS[i % COLOURS.length]; });
+
+    function redraw() {
+      if (!imgReady) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      DOC_ATTRS.forEach(a => {
+        if (!a.region) return;
+        const tl = a.region.top_left;
+        const br = a.region.bottom_right;
+        const x = tl.x * scale, y = tl.y * scale;
+        const w = (br.x - tl.x) * scale, h = (br.y - tl.y) * scale;
+        ctx.strokeStyle = a.colour;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, w, h);
+        ctx.fillStyle = a.colour;
+        ctx.font = '12px sans-serif';
+        ctx.fillText(a.name, x + 3, y + 13);
+      });
+    }
+
+    function loadImageSrc(src) {
+      img.onload = function () {
+        imgReady = true;
+        const maxW = Math.min(900, img.naturalWidth);
+        scale = maxW / img.naturalWidth;
+        canvas.width = Math.round(img.naturalWidth * scale);
+        canvas.height = Math.round(img.naturalHeight * scale);
+        wrapper.style.display = 'block';
+        placeholder.style.display = 'none';
+        redraw();
+      };
+      img.src = src;
+    }
+
+    // Auto-submit on file select
+    fileInput.addEventListener('change', function () {
+      if (this.files[0]) document.getElementById('test-form').submit();
+    });
+
+    // Load image from server-side base64 after POST (no sessionStorage — results and image must stay in sync)
+    {% if image_src %}loadImageSrc('{{ image_src }}');{% endif %}
+  })();
+        </script>
+    {% endif %}
+{% endblock action-content %}

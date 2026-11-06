@@ -75,17 +75,10 @@ def _match_documents(
     return best_version, best_attributes, version_matched
 
 
-def _generic_fallback(processor: Processor, pil_image: Image.Image) -> list[dict]:
+def _generic_fallback(extractor: AttributeExtractor, pil_image: Image.Image) -> list[dict]:
     result = []
     for attr in Attribute.objects.filter(system=True):
-        text, match = processor.find_single(pil_image, attr.name)
-        value = ""
-        if match:
-            label_pos = text.find(match.text)
-            if label_pos != -1:
-                after = text[label_pos + len(match.text) :].lstrip(" :\t")
-                lines = [ln.strip() for ln in after.split("\n") if ln.strip()]
-                value = lines[0] if lines else ""
+        value = extractor.extract_attribute(pil_image, attr.name, None)
         result.append({"attribute_name": attr.name, "extracted_value": value})
     return result
 
@@ -121,7 +114,7 @@ def process_analysis_job(pk: str, version: int | None = None) -> None:
 
         if not version_matched:
             best_version = None
-            best_attributes = _generic_fallback(processor, pil_image)
+            best_attributes = _generic_fallback(extractor, pil_image)
 
         if job.callback_url:
             payload = {
