@@ -59,3 +59,22 @@ class OCRAttributeExtractor:
         after = text[label_pos + len(match.text) :].lstrip(" :\t")
         lines = [ln.strip() for ln in after.split("\n") if ln.strip()]
         return lines[0] if lines else ""
+
+
+class ChainedAttributeExtractor:
+    """Runs a list of AttributeExtractors in order; returns the first non-empty result."""
+
+    def __init__(self, extractors: list[AttributeExtractor]) -> None:
+        self.extractors = extractors
+
+    def extract_attribute(
+        self,
+        image: Image.Image,
+        attribute_name: str,
+        region: BoundingBox | None,
+    ) -> str:
+        for extractor in self.extractors:
+            value = extractor.extract_attribute(image, attribute_name, region)
+            if value:
+                return value
+        return ""
