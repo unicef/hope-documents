@@ -152,3 +152,10 @@ def test_build_extractor_llm_no_backend_raises(settings):
     settings.LLM_BACKEND = None
     with pytest.raises(ImproperlyConfigured):
         _build_extractor(_processor())
+
+
+def test_build_extractor_empty_chain_raises(settings):
+    settings.EXTRACTOR_CHAIN = [""]
+    settings.LLM_BACKEND = None
+    with pytest.raises(ImproperlyConfigured):
+        _build_extractor(_processor())

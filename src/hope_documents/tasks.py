@@ -34,6 +34,11 @@ def _build_extractor(processor: Processor) -> AttributeExtractor:
             cfg = settings.LLM_BACKEND.copy()
             backend_cls = import_string(cfg.pop("provider"))
             items.append(LLMAttributeExtractor(backend_cls(**cfg)))
+    if not items:
+        raise ImproperlyConfigured(
+            f"HOPE_EXTRACTOR_CHAIN produced no valid extractors (value: {settings.EXTRACTOR_CHAIN!r}). "
+            "Valid names are 'ocr' and 'llm'."
+        )
     if len(items) == 1:
         return items[0]
     return ChainedAttributeExtractor(items)
