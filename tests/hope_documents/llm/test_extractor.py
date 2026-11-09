@@ -78,3 +78,10 @@ def test_confidence_above_one_passes():
 def test_confidence_negative_fails():
     ex = _make_extractor('{"value": "X", "confidence": -0.1}')
     assert ex.extract_attribute(_image(), "first_name", None) == ""
+
+
+@pytest.mark.django_db
+def test_null_value_returns_empty():
+    """JSON null value must never be coerced to the string "None"."""
+    ex = _make_extractor('{"value": null, "confidence": 0.9}')
+    assert ex.extract_attribute(_image(), "first_name", None) == ""

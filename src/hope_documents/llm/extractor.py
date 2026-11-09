@@ -52,4 +52,7 @@ class LLMAttributeExtractor:
         if parsed.get("confidence", 0) < config.LLM_CONFIDENCE_THRESHOLD:
             return ""
 
-        return str(parsed.get("value", "")).strip()
+        value = parsed.get("value")
+        if value is None:
+            return ""
+        return str(value).strip()
