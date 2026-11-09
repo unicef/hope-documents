@@ -4,16 +4,39 @@ import re
 import requests
 from PIL import Image
 from celery import shared_task
+from django.core.exceptions import ImproperlyConfigured
 from django.utils import timezone
+from django.utils.module_loading import import_string
 
 from hope_documents.archive.models import Attribute, Document
 from hope_documents.exceptions import ValidationFailedError
-from hope_documents.extractors import AttributeExtractor, OCRAttributeExtractor
+from hope_documents.extractors import AttributeExtractor, ChainedAttributeExtractor, OCRAttributeExtractor
+from hope_documents.llm.extractor import LLMAttributeExtractor
 from hope_documents.models import AnalysisJob
 from hope_documents.ocr.engine import CV2Config, Processor, TSConfig
 from hope_documents.utils.preprocessing import detect_and_normalise
 
 logger = logging.getLogger(__name__)
+
+
+def _build_extractor(processor: Processor) -> AttributeExtractor:
+    from django.conf import settings
+
+    items: list[AttributeExtractor] = []
+    for name in settings.EXTRACTOR_CHAIN:
+        if name == "ocr":
+            items.append(OCRAttributeExtractor(processor))
+        elif name == "llm":
+            if not settings.LLM_BACKEND:
+                raise ImproperlyConfigured(
+                    "HOPE_EXTRACTOR_CHAIN includes 'llm' but HOPE_LLM_BACKEND is not configured"
+                )
+            cfg = settings.LLM_BACKEND.copy()
+            backend_cls = import_string(cfg.pop("provider"))
+            items.append(LLMAttributeExtractor(backend_cls(**cfg)))
+    if len(items) == 1:
+        return items[0]
+    return ChainedAttributeExtractor(items)
 
 
 def _validate_attribute(
@@ -104,7 +127,7 @@ def process_analysis_job(pk: str, version: int | None = None) -> None:
 
         pil_image = detect_and_normalise(pil_image)
         processor = Processor(ts_config=TSConfig(), cv2_config=CV2Config())
-        extractor = OCRAttributeExtractor(processor)
+        extractor = _build_extractor(processor)
         documents = list(
             Document.objects.filter(
                 document_type=job.document_type,
