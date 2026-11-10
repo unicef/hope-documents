@@ -22,7 +22,7 @@ class PromptBuilder:
 
     def with_output_format(self) -> "PromptBuilder":
         self._sections.append(
-            'Respond ONLY with valid JSON in this exact format, no other text:\n'
+            "Respond ONLY with valid JSON in this exact format, no other text:\n"
             '{"value": "<extracted text>", "confidence": <0.00 to 1.00>}'
         )
         return self
@@ -32,8 +32,9 @@ class PromptBuilder:
             return self
         cx = (region.top_left.x + region.bottom_right.x) / 2
         cy = (region.top_left.y + region.bottom_right.y) / 2
-        vert = "upper" if cy / image_size[1] < 0.5 else "lower"
-        horiz = "left" if cx / image_size[0] < 0.5 else "right"
+        _mid = 0.5
+        vert = "upper" if cy / image_size[1] < _mid else "lower"
+        horiz = "left" if cx / image_size[0] < _mid else "right"
         self._sections.append(f"The field is typically in the {vert}-{horiz} area of the document.")
         return self
 

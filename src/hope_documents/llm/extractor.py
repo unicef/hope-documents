@@ -2,8 +2,8 @@ import json
 import logging
 import re
 
-from constance import config
 from PIL import Image
+from constance import config
 
 from hope_documents.archive.region import BoundingBox
 from hope_documents.llm.backends import LLMBackend
@@ -24,20 +24,14 @@ class LLMAttributeExtractor:
         attribute_name: str,
         region: BoundingBox | None,
     ) -> str:
-        builder = (
-            PromptBuilder()
-            .with_role()
-            .with_field_hint(attribute_name)
-            .with_rules()
-            .with_output_format()
-        )
+        builder = PromptBuilder().with_role().with_field_hint(attribute_name).with_rules().with_output_format()
         if region is not None:
             builder = builder.with_region_hint(region, image.size)
         prompt = builder.build()
 
         try:
             raw = self.backend.complete(prompt, image)
-        except Exception:
+        except Exception:  # noqa: BLE001
             logger.warning("LLM backend failed for attribute '%s'", attribute_name, exc_info=True)
             return ""
 

@@ -1,5 +1,3 @@
-import base64
-
 from unittest.mock import MagicMock
 
 from PIL import Image as PILImage
@@ -26,7 +24,8 @@ def test_ollama_backend_sends_prompt_and_image(monkeypatch):
     msg = kwargs["messages"][0]
     assert msg["content"] == "extract first_name"
     assert len(msg["images"]) == 1
-    base64.b64decode(msg["images"][0])  # must not raise
+    assert msg["images"][0][:4] == b"\x89PNG"  # raw PNG bytes, SDK handles base64 encoding
+    assert kwargs["options"]["num_predict"] == 256
 
 
 def test_openai_compatible_backend_sends_data_url(monkeypatch):
@@ -41,6 +40,7 @@ def test_openai_compatible_backend_sends_data_url(monkeypatch):
 
     assert result == "openai_result"
     call_kwargs = fake_client.chat.completions.create.call_args[1]
+    assert call_kwargs["max_tokens"] == 256
     content = call_kwargs["messages"][0]["content"]
     image_part = next(p for p in content if p["type"] == "image_url")
     assert image_part["image_url"]["url"].startswith("data:image/png;base64,")

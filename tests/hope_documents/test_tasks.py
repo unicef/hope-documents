@@ -2,12 +2,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from PIL import Image as PILImage
+from django.core.exceptions import ImproperlyConfigured
 from factories.analysis import AnalysisJobFactory
 from factories.documents import DocumentAttributeFactory
 
 from hope_documents.archive.region import BoundingBox
-from django.core.exceptions import ImproperlyConfigured
-
 from hope_documents.extractors import ChainedAttributeExtractor, OCRAttributeExtractor
 from hope_documents.llm.extractor import LLMAttributeExtractor
 from hope_documents.ocr.engine import CV2Config, Processor, TSConfig
