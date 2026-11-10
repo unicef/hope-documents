@@ -23,7 +23,7 @@ def test_build_contains_all_sections():
 
 
 def test_build_raises_if_no_sections():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="No sections"):
         PromptBuilder().build()
 
 

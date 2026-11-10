@@ -4,6 +4,7 @@ import re
 import requests
 from PIL import Image
 from celery import shared_task
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import timezone
 from django.utils.module_loading import import_string
@@ -20,17 +21,13 @@ logger = logging.getLogger(__name__)
 
 
 def _build_extractor(processor: Processor) -> AttributeExtractor:
-    from django.conf import settings
-
     items: list[AttributeExtractor] = []
     for name in settings.EXTRACTOR_CHAIN:
         if name == "ocr":
             items.append(OCRAttributeExtractor(processor))
         elif name == "llm":
             if not settings.LLM_BACKEND:
-                raise ImproperlyConfigured(
-                    "HOPE_EXTRACTOR_CHAIN includes 'llm' but HOPE_LLM_BACKEND is not configured"
-                )
+                raise ImproperlyConfigured("HOPE_EXTRACTOR_CHAIN includes 'llm' but HOPE_LLM_BACKEND is not configured")
             cfg = settings.LLM_BACKEND.copy()
             backend_cls = import_string(cfg.pop("provider"))
             items.append(LLMAttributeExtractor(backend_cls(**cfg)))
