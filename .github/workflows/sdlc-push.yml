@@ -80,7 +80,7 @@ jobs:
             --build-arg VERSION="${{ steps.config.outputs.version }}" \
             --build-arg BUILD_DATE="${{ steps.config.outputs.build_date }}" \
             --build-arg GIT_SHA=${{ steps.config.outputs.commit_sha }} \
-            --cache-from ${{ vars.DOCKERHUB_ORGANIZATION }}/${{ vars.DOCKERHUB_REPOSITORY }}:cache-develop \
+            --cache-from ${{ vars.DOCKERHUB_ORGANIZATION }}/${{ vars.DOCKERHUB_REPOSITORY }}:cache-main \
             --cache-from ${{ vars.DOCKERHUB_ORGANIZATION }}/${{ vars.DOCKERHUB_REPOSITORY }}:cache-$IMAGE_TAG \
             --cache-to ${{ vars.DOCKERHUB_ORGANIZATION }}/${{ vars.DOCKERHUB_REPOSITORY }}:cache-$IMAGE_TAG \
             -t ${{ vars.DOCKERHUB_ORGANIZATION }}/${{ vars.DOCKERHUB_REPOSITORY }}:$IMAGE_TAG \
@@ -90,13 +90,13 @@ jobs:
 
   deploy:
     name: "Trigger deployment"
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/main'
     needs: [build-push]
     uses: ./.github/workflows/trigger-azure-pipeline.yml
     with:
       azure-organization: ${{ vars.AZURE_ORGANIZATION }}
       azure-project: ${{ vars.AZURE_PROJECT }}
       azure-pipeline-id: ${{ vars.AZURE_PIPELINE_ID_DEVELOP }}
-      image-tag: "develop"
+      image-tag: "main"
     secrets:
       azure-pat: ${{ secrets.AZURE_PAT }}
