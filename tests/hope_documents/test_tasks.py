@@ -9,7 +9,6 @@ from factories.documents import DocumentAttributeFactory
 from hope_documents.archive.region import BoundingBox
 from hope_documents.extractors import ChainedAttributeExtractor, OCRAttributeExtractor
 from hope_documents.llm.extractor import LLMAttributeExtractor
-from hope_documents.ocr.engine import CV2Config, Processor, TSConfig
 from hope_documents.tasks import _build_extractor, _match_documents, process_analysis_job
 
 
@@ -113,14 +112,10 @@ def test_process_analysis_job_preprocesses_before_fallback():
     mock_preprocess.assert_called_once()
 
 
-def _processor() -> Processor:
-    return Processor(ts_config=TSConfig(), cv2_config=CV2Config())
-
-
 def test_build_extractor_ocr_only(settings):
     settings.EXTRACTOR_CHAIN = ["ocr"]
     settings.LLM_BACKEND = None
-    result = _build_extractor(_processor())
+    result = _build_extractor(MagicMock())
     assert isinstance(result, OCRAttributeExtractor)
 
 
@@ -131,7 +126,7 @@ def test_build_extractor_chain(settings):
         "host": "http://localhost:11434",
         "model": "llama3.2-vision",
     }
-    result = _build_extractor(_processor())
+    result = _build_extractor(MagicMock())
     assert isinstance(result, ChainedAttributeExtractor)
 
 
@@ -142,7 +137,7 @@ def test_build_extractor_llm_only(settings):
         "host": "http://localhost:11434",
         "model": "llama3.2-vision",
     }
-    result = _build_extractor(_processor())
+    result = _build_extractor(MagicMock())
     assert isinstance(result, LLMAttributeExtractor)
 
 
@@ -150,11 +145,11 @@ def test_build_extractor_llm_no_backend_raises(settings):
     settings.EXTRACTOR_CHAIN = ["llm"]
     settings.LLM_BACKEND = None
     with pytest.raises(ImproperlyConfigured):
-        _build_extractor(_processor())
+        _build_extractor(MagicMock())
 
 
 def test_build_extractor_empty_chain_raises(settings):
     settings.EXTRACTOR_CHAIN = [""]
     settings.LLM_BACKEND = None
     with pytest.raises(ImproperlyConfigured):
-        _build_extractor(_processor())
+        _build_extractor(MagicMock())

@@ -29,6 +29,7 @@ class LLMAttributeExtractor:
             builder = builder.with_region_hint(region, image.size)
         prompt = builder.build()
 
+        threshold = config.LLM_CONFIDENCE_THRESHOLD
         try:
             raw = self.backend.complete(prompt, image)
         except Exception:  # noqa: BLE001
@@ -43,7 +44,7 @@ class LLMAttributeExtractor:
             logger.warning("LLM returned non-JSON for attribute '%s': %r", attribute_name, stripped)
             return ""
 
-        if parsed.get("confidence", 0) < config.LLM_CONFIDENCE_THRESHOLD:
+        if parsed.get("confidence", 0) < threshold:
             return ""
 
         value = parsed.get("value")

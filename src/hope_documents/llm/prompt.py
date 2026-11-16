@@ -1,5 +1,7 @@
 from hope_documents.archive.region import BoundingBox
 
+_IMAGE_MIDPOINT = 0.5
+
 
 class PromptBuilder:
     def __init__(self) -> None:
@@ -32,9 +34,8 @@ class PromptBuilder:
             return self
         cx = (region.top_left.x + region.bottom_right.x) / 2
         cy = (region.top_left.y + region.bottom_right.y) / 2
-        _mid = 0.5
-        vert = "upper" if cy / image_size[1] < _mid else "lower"
-        horiz = "left" if cx / image_size[0] < _mid else "right"
+        vert = "upper" if cy / image_size[1] < _IMAGE_MIDPOINT else "lower"
+        horiz = "left" if cx / image_size[0] < _IMAGE_MIDPOINT else "right"
         self._sections.append(f"The field is typically in the {vert}-{horiz} area of the document.")
         return self
 
