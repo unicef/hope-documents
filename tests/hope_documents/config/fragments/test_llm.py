@@ -25,6 +25,11 @@ def reload_llm(monkeypatch):
         return importlib.reload(_mod)
 
     yield _go
+    # Clear any HOPE_* vars set during the test before the restore-reload so that
+    # a "raises" test cannot leave a bad value in os.environ and cause teardown to
+    # raise ImproperlyConfigured.
+    monkeypatch.delenv("HOPE_LLM_BACKEND", raising=False)
+    monkeypatch.delenv("HOPE_EXTRACTOR_CHAIN", raising=False)
     importlib.reload(_mod)
 
 
