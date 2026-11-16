@@ -70,7 +70,7 @@ def test_handle_event_enqueues_empty_documents_batch(mock_delay, request_payload
 
 
 @patch("hope_documents.stream.callbacks.process_ocr_batch.delay")
-def test_handle_event_does_not_log_image_content_for_invalid_request(mock_delay, request_payload, pika_args, caplog):
+def test_handle_event_does_not_log_document_values_for_invalid_request(mock_delay, request_payload, pika_args, caplog):
     ch, method, properties = pika_args
     request_payload["documents"][0]["pattern"] = None
     body = make_event(request_payload).marshall()
@@ -79,7 +79,7 @@ def test_handle_event_does_not_log_image_content_for_invalid_request(mock_delay,
         assert handle_event(OCR_REQUESTS_QUEUE, ch, method, properties, body) is True
 
     mock_delay.assert_not_called()
-    assert request_payload["documents"][0]["content"] not in caplog.text
+    assert request_payload["documents"][0]["filename"] not in caplog.text
     assert "correlation_id=corr-1" in caplog.text
     assert "batch_id=batch-1" in caplog.text
     assert "documents[0]: pattern is not a string" in caplog.text

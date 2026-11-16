@@ -1,9 +1,10 @@
-import base64
 import io
 from unittest.mock import MagicMock
 
 import pytest
 from PIL import Image
+from django.core.files.base import ContentFile
+from django.core.files.storage import Storage, storages
 from streaming.manager import initialize_engine
 
 CONSOLE_STREAMING = {
@@ -23,16 +24,34 @@ def streaming_console(settings):
     initialize_engine(True)
 
 
+@pytest.fixture(autouse=True)
+def hope_storage(settings, tmp_path) -> Storage:
+    settings.STORAGES = {
+        **settings.STORAGES,
+        "hope": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+            "OPTIONS": {"location": str(tmp_path / "hope")},
+        },
+    }
+    return storages["hope"]
+
+
 @pytest.fixture
-def image_b64() -> str:
-    """A tiny valid PNG, base64-encoded the way Country Workspace sends it."""
+def image_bytes() -> bytes:
+    """A tiny valid PNG."""
     buf = io.BytesIO()
     Image.new("RGB", (80, 50), color="white").save(buf, format="PNG")
-    return base64.b64encode(buf.getvalue()).decode()
+    return buf.getvalue()
 
 
 @pytest.fixture
-def request_payload(image_b64):
+def image_filename(hope_storage, image_bytes) -> str:
+    """The image stored under a key shaped the way Country Workspace uploads it."""
+    return hope_storage.save("2024/afghanistan/CP-2024/CW_ind_456_national_id_image.png", ContentFile(image_bytes))
+
+
+@pytest.fixture
+def request_payload(image_filename):
     return {
         "correlation_id": "corr-1",
         "rdp_id": 123,
@@ -42,7 +61,7 @@ def request_payload(image_b64):
         "documents": [
             {
                 "individual_id": 456,
-                "content": image_b64,
+                "filename": image_filename,
                 "pattern": "ID-987654",
             }
         ],

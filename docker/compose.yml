@@ -4,7 +4,7 @@ x-env: &env
     - ADMIN_PASSWORD=password
     - ALLOWED_HOSTS=*
     - CACHE_DEFAULT=redis://redis:6379/0
-    - CELERY_BROKER_URL=redis://host.docker.internal:6379/0
+    - CELERY_BROKER_URL=redis://redis:6379/0
     - CSRF_COOKIE_SECURE=False
     - CSRF_TRUSTED_ORIGINS=http://localhost:8000
     - DATABASE_URL=postgres://postgres:password@db:5432/hope_documents
