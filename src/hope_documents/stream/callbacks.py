@@ -31,7 +31,7 @@ def handle_event(
         return True
 
     if reason := ocr_request_error(payload):
-        # Never log the payload: documents carry the base64 image.
+        # Never log the payload: documents carry document numbers.
         logger.error(
             "Invalid ocr.request queue=%s routing_key=%s correlation_id=%s batch_id=%s reason=%s",
             queue_name,
