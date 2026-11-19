@@ -216,6 +216,65 @@ def test_empty_batch_publishes_empty_documents(mock_publish, request_payload):
 
 
 @patch("hope_documents.stream.ocr.process_document")
+def test_run_ocr_batch_continues_after_unexpected_document_exception(mock_process_document, request_payload):
+    request_payload["documents"].append(
+        {
+            "individual_id": 789,
+            "filename": request_payload["documents"][0]["filename"],
+            "pattern": "OTHER",
+        }
+    )
+    mock_process_document.side_effect = [
+        RuntimeError("boom"),
+        {"status": "ok", "found": False, "match": None, "error": None},
+    ]
+
+    result = run_ocr_batch(request_payload)
+
+    assert result["correlation_id"] == "corr-1"
+    assert result["documents"] == [
+        {
+            "individual_id": 456,
+            "status": "error",
+            "found": False,
+            "match": None,
+            "error": "RuntimeError: boom",
+        },
+        {
+            "individual_id": 789,
+            "status": "ok",
+            "found": False,
+            "match": None,
+            "error": None,
+        },
+    ]
+    assert mock_process_document.call_count == 2
+
+
+@patch("hope_documents.stream.tasks.publish")
+@patch("hope_documents.stream.ocr.process_document")
+def test_process_ocr_batch_publishes_when_one_document_raises(mock_process_document, mock_publish, request_payload):
+    request_payload["documents"].append(
+        {
+            "individual_id": 789,
+            "filename": request_payload["documents"][0]["filename"],
+            "pattern": "OTHER",
+        }
+    )
+    mock_process_document.side_effect = [
+        RuntimeError("boom"),
+        {"status": "ok", "found": False, "match": None, "error": None},
+    ]
+
+    result = process_ocr_batch(request_payload)
+
+    assert [document["individual_id"] for document in result["documents"]] == [456, 789]
+    assert result["documents"][0]["status"] == "error"
+    assert result["documents"][1]["status"] == "ok"
+    mock_publish.assert_called_once_with(OCR_RESULT_ROUTING_KEY, result)
+
+
+@patch("hope_documents.stream.ocr.process_document")
 def test_run_ocr_batch_keeps_individual_id(mock_process_document, request_payload):
     mock_process_document.return_value = {
         "status": "ok",
