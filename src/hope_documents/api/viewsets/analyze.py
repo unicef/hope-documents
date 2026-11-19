@@ -5,7 +5,10 @@ from typing import Any
 import requests as http_client
 from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema, inline_serializer
 from hope_api_auth.views import TokenRequiredView
+from rest_framework import serializers as drf_serializers
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -47,15 +50,85 @@ def _resolve_image(data: dict) -> Any:
     return None
 
 
+_EXAMPLE_ATTRIBUTES = [
+    {"attribute_name": "first_name", "extracted_value": "Test"},
+    {"attribute_name": "last_name", "extracted_value": "Sample"},
+    {"attribute_name": "document_number", "extracted_value": "AA0000000"},
+    {"attribute_name": "date_of_birth", "extracted_value": "1985-06-15"},
+]
+
+_EXAMPLE_JOB_COMPLETED = {
+    "job_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "status": "completed",
+    "document_type": "PAS",
+    "country": "AA",
+    "validation_mode": "fall_back_to_best_match",
+    "version": "v1",
+    "version_matched": True,
+    "attributes": _EXAMPLE_ATTRIBUTES,
+    "error": None,
+}
+
+
 class AnalyzeView(TokenRequiredView):
-    """Submit a document image for OCR analysis.
-
-    Returns a job_id for async polling, or the full result when ?sync=true.
-    """
-
     permission = Grant.API_OCR_EXTRACT
     serializer_class = AnalyzeInputSerializer
 
+    @extend_schema(
+        operation_id="analyze_create",
+        summary="Submit a document image for attribute extraction",
+        description=(
+            "Accepts a document image (file upload, public URL, or base64) and queues an "
+            "extraction job.\n\n"
+            "**Async (default):** returns a `job_id` immediately (HTTP 202). "
+            "Poll `GET /api/analyze/{job_id}/` for the result.\n\n"
+            "**Sync:** add `?sync=true` to block until extraction completes and receive the "
+            "full result in a single call (HTTP 200). Recommended for low-latency "
+            "integrations where the image is small."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="sync",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Set to `true` to wait for extraction and return the result immediately.",
+                enum=["true"],
+            ),
+        ],
+        request=AnalyzeInputSerializer,
+        responses={
+            202: inline_serializer("AnalyzeAsyncResponse", {"job_id": drf_serializers.UUIDField()}),
+            200: AnalysisJobStatusSerializer,
+        },
+        examples=[
+            OpenApiExample(
+                "Request — file upload",
+                summary="Multipart file upload with document type and country",
+                description="Supply exactly one of image_file, image_url, or image_base64.",
+                value={
+                    "document_type": "PAS",
+                    "country": "AA",
+                    "validation_mode": "fall_back_to_best_match",
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Response — async (202)",
+                summary="Job accepted; use the job_id to poll for the result",
+                value={"job_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"},
+                response_only=True,
+                status_codes=["202"],
+            ),
+            OpenApiExample(
+                "Response — sync completed (200)",
+                summary="Full result returned immediately when ?sync=true",
+                value=_EXAMPLE_JOB_COMPLETED,
+                response_only=True,
+                status_codes=["200"],
+            ),
+        ],
+    )
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         serializer = self.serializer_class(data=request.data)
         if not serializer.is_valid():
@@ -83,10 +156,47 @@ class AnalyzeView(TokenRequiredView):
 
 
 class AnalyzeDetailView(TokenRequiredView):
-    """Retrieve the status and result of a previously submitted analysis job."""
-
     permission = Grant.API_OCR_EXTRACT
 
+    @extend_schema(
+        operation_id="analyze_retrieve",
+        summary="Retrieve extraction job status and result",
+        description=(
+            "Returns the current status of an extraction job. "
+            "Poll until `status` is `completed` or `failed`.\n\n"
+            "- `pending` / `running` — job is queued or in progress; `attributes` and `error` are null.\n"
+            "- `completed` — `attributes` contains the extracted fields; "
+            "`version` and `version_matched` are populated.\n"
+            "- `failed` — `error` contains the failure message."
+        ),
+        responses={200: AnalysisJobStatusSerializer},
+        examples=[
+            OpenApiExample(
+                "Completed job",
+                summary="Extraction finished — attributes populated",
+                value=_EXAMPLE_JOB_COMPLETED,
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "Pending job",
+                summary="Job is still queued or running",
+                value={
+                    "job_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                    "status": "pending",
+                    "document_type": "PAS",
+                    "country": "AA",
+                    "validation_mode": "fall_back_to_best_match",
+                    "version": None,
+                    "version_matched": None,
+                    "attributes": None,
+                    "error": None,
+                },
+                response_only=True,
+                status_codes=["200"],
+            ),
+        ],
+    )
     def get(self, request: Request, job_id: Any, *args: Any, **kwargs: Any) -> Response:
         job = get_object_or_404(
             AnalysisJob.objects.select_related("document_type", "country"),
