@@ -6,7 +6,13 @@ import requests as http_client
 from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema, inline_serializer
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_field,
+    inline_serializer,
+)
 from hope_api_auth.views import TokenRequiredView
 from rest_framework import serializers as drf_serializers
 from rest_framework import status
@@ -17,6 +23,17 @@ from hope_documents.api.serializers.analyze import AnalysisJobStatusSerializer, 
 from hope_documents.grants import Grant
 from hope_documents.models import AnalysisJob
 from hope_documents.tasks import process_analysis_job
+
+
+@extend_schema_field({"type": "string", "format": "uri", "example": ""})
+class _OptionalURLField(drf_serializers.URLField):
+    pass
+
+
+@extend_schema_field({"type": "string", "example": ""})
+class _OptionalCharField(drf_serializers.CharField):
+    pass
+
 
 _CONTENT_TYPE_EXT: dict[str, str] = {
     "image/jpeg": ".jpg",
@@ -78,8 +95,11 @@ class AnalyzeView(TokenRequiredView):
         operation_id="analyze_create",
         summary="Submit a document image for attribute extraction",
         description=(
-            "Accepts a document image (file upload, public URL, or base64) and queues an "
-            "extraction job.\n\n"
+            "Accepts a document image and queues an extraction job.\n\n"
+            "**Image input — provide exactly one of:**\n"
+            "- `image_file` — multipart file upload\n"
+            "- `image_url` — publicly accessible URL\n"
+            "- `image_base64` — base64-encoded bytes (optionally with a data URI prefix)\n\n"
             "**Async (default):** returns a `job_id` immediately (HTTP 202). "
             "Poll `GET /api/analyze/{job_id}/` for the result.\n\n"
             "**Sync:** add `?sync=true` to block until extraction completes and receive the "
@@ -96,7 +116,24 @@ class AnalyzeView(TokenRequiredView):
                 enum=["true"],
             ),
         ],
-        request=AnalyzeInputSerializer,
+        request={
+            "multipart/form-data": inline_serializer(
+                "AnalyzeRequest",
+                {
+                    "image_file": drf_serializers.ImageField(required=False),
+                    "image_url": _OptionalURLField(required=False),
+                    "image_base64": _OptionalCharField(required=False),
+                    "document_type": drf_serializers.CharField(),
+                    "country": drf_serializers.CharField(),
+                    "callback_url": _OptionalURLField(required=False),
+                    "validation_mode": drf_serializers.ChoiceField(
+                        choices=AnalysisJob.ValidationMode.choices,
+                        default=AnalysisJob.ValidationMode.FALL_BACK_TO_BEST_MATCH,
+                        required=False,
+                    ),
+                },
+            )
+        },
         responses={
             202: inline_serializer("AnalyzeAsyncResponse", {"job_id": drf_serializers.UUIDField()}),
             200: AnalysisJobStatusSerializer,
