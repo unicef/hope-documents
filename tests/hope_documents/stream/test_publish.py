@@ -105,3 +105,8 @@ def test_publish_ocr_result_gives_up_after_max_retries(mock_publish, mock_logger
     assert mock_publish.call_count == 3
     mock_logger.error.assert_called_once()
     assert "retries exhausted" in mock_logger.error.call_args.args[0]
+
+
+def test_publish_ocr_result_acks_late_so_worker_crash_redelivers():
+    assert publish_ocr_result.acks_late is True
+    assert publish_ocr_result.reject_on_worker_lost is True

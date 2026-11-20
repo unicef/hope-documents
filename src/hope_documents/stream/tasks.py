@@ -39,9 +39,14 @@ def process_ocr_batch(payload: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-@shared_task(bind=True)
+@shared_task(bind=True, acks_late=True, reject_on_worker_lost=True)
 def publish_ocr_result(self: Task, result: dict[str, Any]) -> None:
-    """Retry delivery of an already computed hcw.ocr.result."""
+    """Retry delivery of an already computed hcw.ocr.result.
+
+    Ack only after the run finishes, so a worker crash mid-run leaves the
+    message to be redelivered instead of losing the result. A crash after a
+    successful publish can deliver the result twice; consumers must tolerate that.
+    """
     if publish(OCR_RESULT_ROUTING_KEY, result):
         logger.info(
             "%s: published after %d retries correlation_id=%s batch_id=%s",
