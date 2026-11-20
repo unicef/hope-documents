@@ -35,4 +35,5 @@ CONSTANCE_CONFIG: dict[str, tuple[Any, str, Any]] = {
         "Number of hours to lock out a registration number after too many attempts",
         int,
     ),
+    "LLM_CONFIDENCE_THRESHOLD": (0.5, "Minimum LLM confidence score to accept an extracted value (0.0–1.0)", float),
 }

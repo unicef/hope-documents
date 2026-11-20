@@ -38,6 +38,13 @@ def png_bytes():
     return make_png_bytes()
 
 
+@pytest.fixture(autouse=True)
+def ocr_extractor_chain(settings):
+    """Pin the extractor chain to OCR-only so tests are independent of .env configuration."""
+    settings.EXTRACTOR_CHAIN = ["ocr"]
+    settings.LLM_BACKEND = None
+
+
 @pytest.fixture
 def document_type(db):
     return DocumentTypeFactory(code="PAS", name="Passport")
