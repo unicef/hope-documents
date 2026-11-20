@@ -177,6 +177,27 @@ DEFAULTS = {
         False,
         "The root directory for media files.",
     ),
+    "OCR_RESULT_PUBLISH_MAX_RETRIES": (
+        int,
+        10,
+        10,
+        False,
+        "How many times to retry publishing a computed hcw.ocr.result after the first attempt fails.",
+    ),
+    "OCR_RESULT_PUBLISH_RETRY_BACKOFF": (
+        int,
+        5,
+        5,
+        False,
+        "Base delay in seconds between hcw.ocr.result publish retries. Doubles on every retry.",
+    ),
+    "OCR_RESULT_PUBLISH_RETRY_BACKOFF_MAX": (
+        int,
+        600,
+        600,
+        False,
+        "Maximum delay in seconds between hcw.ocr.result publish retries. Keep below 1 hour (Redis visibility).",
+    ),
     "OTP_VALIDITY_MINUTES": (int, 5, 5, False, "The validity of the OTP in minutes."),
     "REDIS_CACHE_URL": (
         str,
