@@ -1,6 +1,7 @@
 import base64
 import binascii
 
+from drf_spectacular.utils import extend_schema_field, inline_serializer
 from rest_framework import serializers
 
 from hope_documents.archive.models import Country, DocumentType
@@ -78,6 +79,19 @@ class AnalysisJobStatusSerializer(serializers.ModelSerializer):
             return obj.version_matched
         return None
 
+    @extend_schema_field(
+        serializers.ListField(
+            child=inline_serializer(
+                "AttributeResult",
+                {
+                    "attribute_name": serializers.CharField(),
+                    "extracted_value": serializers.CharField(),
+                    "is_valid": serializers.BooleanField(required=False),
+                },
+            ),
+            allow_null=True,
+        )
+    )
     def get_attributes(self, obj: AnalysisJob) -> list | None:
         if obj.status == AnalysisJob.Status.COMPLETED:
             return obj.result or []
