@@ -57,7 +57,7 @@ dependencies = [
   "pytesseract>=0.3.13",
   "pytz",
   "regex>=2025.9.18",
-  "sentry-sdk",
+  "sentry-sdk>=3,<4",
   "social-auth-app-django",
   "unicef-security",
 ]

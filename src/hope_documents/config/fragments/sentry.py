@@ -11,17 +11,19 @@ from .. import env
 SENTRY_DSN = env("SENTRY_DSN")
 
 sentry_logging = LoggingIntegration(
-    level=logging.INFO,  # Capture info and above as breadcrumbs
+    breadcrumb_level=logging.INFO,  # Capture info and above as breadcrumbs
     event_level=logging.ERROR,  # Send errors as events
+    level=None,  # Don't capture Sentry logs
 )
 if SENTRY_DSN:
+    # sentry-sdk 3.x replaced send_default_pii with data_collection; its
+    # defaults already include user info, headers, cookies and request bodies.
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         environment=env("SENTRY_ENVIRONMENT"),
         integrations=[
-            DjangoIntegration(transaction_style="url"),
+            DjangoIntegration(cache_spans=False),
             sentry_logging,
         ],
         release=__version__,
-        send_default_pii=True,
     )

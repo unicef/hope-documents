@@ -1290,7 +1290,7 @@ requires-dist = [
     { name = "pytesseract", specifier = ">=0.3.13" },
     { name = "pytz" },
     { name = "regex", specifier = ">=2025.9.18" },
-    { name = "sentry-sdk" },
+    { name = "sentry-sdk", specifier = ">=3,<4" },
     { name = "social-auth-app-django" },
     { name = "unicef-security" },
 ]
