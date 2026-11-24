@@ -26,3 +26,4 @@ def test_celery_app_setup(mock_celery_class, mock_setdefault, mock_settings):  #
     mock_celery_class.return_value.config_from_object.assert_called_once_with(
         "django.conf:settings", namespace="CELERY", force=True
     )
+    mock_celery_class.return_value.autodiscover_tasks.assert_called_once_with()

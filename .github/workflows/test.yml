@@ -18,7 +18,7 @@ jobs:
       run_tests: ${{ steps.changes.outputs.run_tests }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - id: changes
         name: Check for file changes
         uses: dorny/paths-filter@v4
@@ -66,7 +66,7 @@ jobs:
       matrix:
         cfg: [ "tests" ]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -88,7 +88,7 @@ jobs:
           sudo apt-get install -y tesseract-ocr libtesseract-dev
 
       - name: Install tox
-        run: uv tool install --python-preference only-managed --python 3.14 tox --with tox-uv --with tox-gh-actions
+        run: uv tool install --python-preference only-managed --python 3.14 "tox<4.67.14" --with tox-uv --with tox-gh-actions
 
       - name: Setup test suite
         run: tox run -vv --notest --skip-missing-interpreters false -e tests
@@ -112,7 +112,7 @@ jobs:
         if: ${{ always() }}
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         continue-on-error: true
         with:
           env_vars: OS,PYTHON

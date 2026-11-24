@@ -7,10 +7,10 @@ from unittest.mock import ANY, MagicMock, patch
 import pytest
 import requests
 from PIL import Image as PILImage
-from django.contrib.auth.models import Permission
 from django.core.files.base import ContentFile
 from django.urls import reverse
 from factories.analysis import AnalysisJobFactory
+from factories.api_token import APITokenFactory
 from factories.documents import (
     AttributeFactory,
     CountryFactory,
@@ -18,11 +18,11 @@ from factories.documents import (
     DocumentFactory,
     DocumentTypeFactory,
 )
-from factories.user import UserFactory
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from hope_documents.archive.models import Attribute
+from hope_documents.grants import Grant
 from hope_documents.models import AnalysisJob
 
 
@@ -163,23 +163,25 @@ def test_upload_unauthenticated(png_bytes, document_type, country):
 
 @pytest.mark.django_db
 def test_upload_no_permission(png_bytes, document_type, country):
-    user = UserFactory()
+    from hope_api_auth.models import APILogEntry
+
+    token = APITokenFactory(grants=[Grant.API_PLAN_MANAGE.value])
     client = APIClient()
-    client.force_authenticate(user=user)
+    client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
     b64 = base64.b64encode(png_bytes).decode()
     url = reverse("api:analyze-create")
-    response = client.post(url, {"document_type": document_type.code, "country": country.code2, "image_base64": b64})
+    with patch.object(APILogEntry.objects, "create"):
+        response = client.post(
+            url, {"document_type": document_type.code, "country": country.code2, "image_base64": b64}
+        )
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.django_db
 def test_upload_has_permission(png_bytes, document_type, country):
-    user = UserFactory()
-    perm = Permission.objects.get(codename="add_analysisjob", content_type__app_label="hope_documents")
-    user.user_permissions.add(perm)
-    user = type(user).objects.get(pk=user.pk)  # clear permission cache
+    token = APITokenFactory(grants=[Grant.API_OCR_EXTRACT.value])
     client = APIClient()
-    client.force_authenticate(user=user)
+    client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
     b64 = base64.b64encode(png_bytes).decode()
     url = reverse("api:analyze-create")
     with patch.object(AnalysisJob, "queue"):
@@ -314,9 +316,9 @@ def test_detail_unauthenticated(document_type, country):
 
 @pytest.mark.django_db
 def test_detail_no_permission(document_type, country):
-    user = UserFactory()
+    token = APITokenFactory(grants=[Grant.API_PLAN_MANAGE.value])
     client = APIClient()
-    client.force_authenticate(user=user)
+    client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
     job = AnalysisJobFactory(document_type=document_type, country=country)
     url = reverse("api:analyze-detail", kwargs={"job_id": str(job.id)})
     response = client.get(url)
@@ -325,12 +327,9 @@ def test_detail_no_permission(document_type, country):
 
 @pytest.mark.django_db
 def test_detail_has_permission(document_type, country):
-    user = UserFactory()
-    perm = Permission.objects.get(codename="add_analysisjob", content_type__app_label="hope_documents")
-    user.user_permissions.add(perm)
-    user = type(user).objects.get(pk=user.pk)  # clear permission cache
+    token = APITokenFactory(grants=[Grant.API_OCR_EXTRACT.value])
     client = APIClient()
-    client.force_authenticate(user=user)
+    client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
     job = AnalysisJobFactory(document_type=document_type, country=country)
     url = reverse("api:analyze-detail", kwargs={"job_id": str(job.id)})
     response = client.get(url)

@@ -1,3 +1,4 @@
+from .api_auth import *  # noqa
 from .app import *  # noqa
 from .celery import *  # noqa
 from .constance import *  # noqa

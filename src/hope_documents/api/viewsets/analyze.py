@@ -5,13 +5,13 @@ from typing import Any
 import requests as http_client
 from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
+from hope_api_auth.views import TokenRequiredView
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
-from hope_documents.api.permissions import CanAnalyzeDocuments
 from hope_documents.api.serializers.analyze import AnalysisJobStatusSerializer, AnalyzeInputSerializer
+from hope_documents.grants import Grant
 from hope_documents.models import AnalysisJob
 from hope_documents.tasks import process_analysis_job
 
@@ -47,13 +47,13 @@ def _resolve_image(data: dict) -> Any:
     return None
 
 
-class AnalyzeView(APIView):
+class AnalyzeView(TokenRequiredView):
     """Submit a document image for OCR analysis.
 
     Returns a job_id for async polling, or the full result when ?sync=true.
     """
 
-    permission_classes = (CanAnalyzeDocuments,)
+    permission = Grant.API_OCR_EXTRACT
     serializer_class = AnalyzeInputSerializer
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
@@ -82,10 +82,10 @@ class AnalyzeView(APIView):
         return Response({"job_id": str(job.id)}, status=status.HTTP_202_ACCEPTED)
 
 
-class AnalyzeDetailView(APIView):
+class AnalyzeDetailView(TokenRequiredView):
     """Retrieve the status and result of a previously submitted analysis job."""
 
-    permission_classes = (CanAnalyzeDocuments,)
+    permission = Grant.API_OCR_EXTRACT
 
     def get(self, request: Request, job_id: Any, *args: Any, **kwargs: Any) -> Response:
         job = get_object_or_404(
