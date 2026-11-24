@@ -12,10 +12,13 @@ ALLOWED_HOSTS = ["*"]
 INSTALLED_APPS = [
     # Default apps:
     "unicef_security",
+    "hope_api_auth",
     "hope_documents.apps.Config",
     "hope_documents.api",
     "hope_documents.modules.security",
     "hope_documents.archive",
+    "streaming",
+    "hope_documents.stream.apps.StreamConfig",
     "unfold",  # before django.contrib.admin
     "unfold.contrib.filters",  # optional, if special filters are needed
     "unfold.contrib.forms",  # optional, if special form elements are needed
@@ -32,6 +35,7 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.postgres",
     "django.forms",
     # security
     "csp",
