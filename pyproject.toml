@@ -61,7 +61,7 @@ dependencies = [
   "regex>=2025.9.18",
   "sentry-sdk",
   "social-auth-app-django>=7.2",
-  "unicef-security",
+  "unicef-security>=1.12",
 ]
 
 scripts.doc = "hope_documents.ocr.__cli__:cli"
