@@ -6,13 +6,14 @@
 [![Documentation](https://github.com/unicef/hope-documents/actions/workflows/docs.yml/badge.svg)](https://unicef.github.io/hope-documents/)
 [![Pypi](https://badge.fury.io/py/hope-documents.svg)](https://badge.fury.io/py/hope-documents)
 
-Hope Documents is a Django-based application for automated identity document scanning and structured field extraction using OCR.
+Hope Documents is a Django-based application for automated identity document scanning and structured field extraction using OCR and LLM-assisted fallback.
 
 The system processes uploaded document images, extracts named field values (e.g. `first_name`, `document_number`) using configurable per-field extraction regions, and returns structured JSON — synchronously or via an async Celery pipeline with an optional webhook callback.
 
 ## Features
 
 -   **OCR Processing**: Extracts text from document images using Tesseract and OpenCV.
+-   **LLM fallback extraction**: When OCR confidence is insufficient, an optional LLM step attempts extraction from the full image.
 -   **Structured extraction**: Returns per-field values rather than raw text, driven by a configurable document catalog.
 -   **Command-Line Interface**: Easy-to-use CLI for development, batch processing, and OCR debugging.
 -   **Configurable OCR Engine**: Options to fine-tune Tesseract and OpenCV parameters for better results.

@@ -2,11 +2,12 @@
 
 ## Overview
 
-HOPE Documents is a single Django package (`hope_documents`) with three logical layers:
+HOPE Documents is a single Django package (`hope_documents`) with four logical layers:
 
 - **Archive** (`hope_documents.archive`) — document catalog, admin UI, and document pre-processing. Defines which fields exist for each document type, country, and version.
 - **Processing** (`hope_documents`) — REST API, async analysis pipeline, and the `AnalysisJob` model.
 - **OCR** (`hope_documents.ocr`) — Tesseract + OpenCV image processing engine; used by both the archive admin and the processing layer.
+- **Stream** (`hope_documents.stream`) — batch OCR pipeline that reads documents from HOPE Azure storage and publishes results via a message broker.
 
 ### Key components
 
@@ -14,11 +15,12 @@ HOPE Documents is a single Django package (`hope_documents`) with three logical 
 |---|---|---|
 | OCR engine | `hope_documents/ocr/engine.py` | Tesseract + OpenCV image processing |
 | Document catalog | `hope_documents/archive/models.py` | Config layer: countries, document types, attributes, regions |
-| Extraction protocol | `hope_documents/extractors.py` | `AttributeExtractor` Protocol + `OCRAttributeExtractor` |
+| Extraction protocol | `hope_documents/extractors.py` | `AttributeExtractor` Protocol + `OCRAttributeExtractor` + `LLMAttributeExtractor` + `ChainedAttributeExtractor` |
 | Document pre-processing | `hope_documents/utils/preprocessing.py` | Detect document boundary, deskew, crop background |
 | Analysis task | `hope_documents/tasks.py` | Celery task that runs extraction and persists results |
 | REST API | `hope_documents/api/` | DRF views + serializers for `POST /api/analyze/` |
 | Admin | `hope_documents/archive/admin.py` | Catalog management + Define Regions canvas UI + Test Regions overlay |
+| Grants | `hope_documents/grants.py` | `Grant` enum used by `TokenRequiredView` to gate API endpoints |
 
 ---
 
@@ -86,11 +88,16 @@ AnalyzeView
                          (score candidate versions against extracted values)
                                    │
                                    ▼
-                         OCRAttributeExtractor.extract()
-                           for each DocumentAttribute:
-                             ├─ region defined → scale coords by (processed_size / reference_size)
-                             │                 → crop image → OCR crop (PSM 6)
-                             └─ no region → fuzzy label search (find_single) on full image
+                         ChainedAttributeExtractor.extract()
+                           ├─ OCRAttributeExtractor.extract()
+                           │    for each DocumentAttribute:
+                           │      ├─ region defined → scale coords by (processed_size / reference_size)
+                           │      │                 → crop image → OCR crop (PSM 6)
+                           │      └─ no region → fuzzy label search (find_single) on full image
+                           │
+                           └─ LLMAttributeExtractor.extract() (if configured)
+                                sends full image + field names to LLM backend
+                                fills in any attributes not extracted by OCR
                                    │
                                    ▼
                          validate against validation_expression
@@ -128,7 +135,7 @@ If `reference_width`/`reference_height` are not set (e.g. the document was confi
 
 ## Extraction abstraction
 
-`AttributeExtractor` is a `Protocol` in `hope_documents/extractors.py`:
+`AttributeExtractor` is a runtime-checkable `Protocol` in `hope_documents/extractors.py`:
 
 ```python
 class AttributeExtractor(Protocol):
@@ -140,7 +147,13 @@ class AttributeExtractor(Protocol):
     ) -> str: ...
 ```
 
-`OCRAttributeExtractor` is the current implementation. A future `LLMAttributeExtractor` is planned for low-confidence fallback (see todo list).
+Three concrete implementations ship with the package:
+
+- **`OCRAttributeExtractor`** — crops each field region and runs Tesseract. The default and primary extractor.
+- **`LLMAttributeExtractor`** — sends the full document image to an Ollama or OpenAI-compatible backend with a structured prompt listing the fields to extract. Used as a fallback when OCR yields nothing for an attribute.
+- **`ChainedAttributeExtractor`** — wraps a list of extractors and tries each in order, stopping as soon as one returns a non-empty value for an attribute. This is what `tasks.py` builds when `EXTRACTOR_CHAIN` contains more than one entry.
+
+The active chain is controlled by the `HOPE_EXTRACTOR_CHAIN` environment variable (see [Configuration — LLM](#llm-extraction-optional)).
 
 ---
 
@@ -150,7 +163,9 @@ class AttributeExtractor(Protocol):
 |---|---|
 | Web framework | Django + Django REST Framework |
 | OCR | Tesseract (via pytesseract), OpenCV |
+| LLM backends | Ollama (local), any OpenAI-compatible API |
 | Async tasks | Celery |
 | Admin UI | Unfold + django-admin-extra-buttons |
 | API schema | drf-spectacular (Swagger / ReDoc) |
+| API auth | hope-api-auth (`TokenRequiredView` + `Grant` enum) |
 | CLI | Click (via mkdocs-click autogen) |

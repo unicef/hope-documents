@@ -13,34 +13,29 @@ cd hope-documents
 
 ## Development Environment
 
-We use `tox` to manage the development environment and ensure consistency. Make sure you have `tox` installed:
+We use `uv` to manage the development environment. Install it from [https://docs.astral.sh/uv/](https://docs.astral.sh/uv/), then install all dependencies:
 
 ```bash
-pip install tox
+uv sync
 ```
 
 ### Running Tests
 
-To run the test suite, use the following command:
-
 ```bash
-tox -e d52-py313
+uv run pytest
 ```
 
 ### Linting
 
-To check for code style and linting errors, run:
-
 ```bash
-tox lint
+uv run ruff check src/
+uv run ruff format --check src/
 ```
 
 ### Building the Documentation
 
-To build the documentation locally, use:
-
 ```bash
-tox docs
+uv run --group docs mkdocs build
 ```
 
 The documentation will be generated in the `~build/docs` directory.

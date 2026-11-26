@@ -117,3 +117,34 @@ Leave blank to accept any extracted value.
 4. **Create a Document** — Admin → ID Documents → Documents → Add. Select the type and country, enter a version label.
 5. **Add DocumentAttributes** inline on the Document form — select an Attribute, optionally enter a `validation_expression`.
 6. **Define extraction regions** — on the Document change page click **Define Regions**, upload a reference image, and draw bounding boxes for each attribute.
+
+---
+
+## LLM extraction (optional)
+
+By default only the OCR extractor runs. Setting `HOPE_EXTRACTOR_CHAIN=ocr,llm` enables a chained pipeline where the LLM step is tried for any attribute the OCR step could not extract.
+
+### Environment variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `HOPE_EXTRACTOR_CHAIN` | No | Comma-separated list of extractors to chain. Default: `ocr`. Use `ocr,llm` to enable the LLM fallback. |
+| `HOPE_LLM_BACKEND` | Yes (if `llm` in chain) | Dotted path to the backend class: `hope_documents.llm.OllamaBackend` or `hope_documents.llm.OpenAICompatibleBackend` |
+| `HOPE_LLM_API_URL` | Yes (if `llm` in chain) | Base URL of the LLM API, e.g. `http://localhost:11434` for local Ollama |
+| `HOPE_LLM_MODEL` | Yes (if `llm` in chain) | Model name as accepted by the backend, e.g. `qwen2.5vl:3b` |
+| `HOPE_LLM_API_KEY` | No | API key for authenticated OpenAI-compatible endpoints; leave unset for local Ollama |
+
+### Backends
+
+**`OllamaBackend`** — connects to a local [Ollama](https://ollama.com) instance. Recommended models for document OCR: `qwen2.5vl:3b` (fast, good accuracy on CPU), `qwen3-vl:8b` (best quality, needs GPU).
+
+**`OpenAICompatibleBackend`** — calls any endpoint that implements the OpenAI chat completions API (OpenAI, Azure OpenAI, vLLM, LM Studio, etc.).
+
+### Example `.env`
+
+```
+HOPE_EXTRACTOR_CHAIN=ocr,llm
+HOPE_LLM_BACKEND=hope_documents.llm.OllamaBackend
+HOPE_LLM_API_URL=http://localhost:11434
+HOPE_LLM_MODEL=qwen2.5vl:3b
+```
