@@ -2,11 +2,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from PIL import Image as PILImage
+from django.core.exceptions import ImproperlyConfigured
 from factories.analysis import AnalysisJobFactory
 from factories.documents import DocumentAttributeFactory
 
 from hope_documents.archive.region import BoundingBox
-from hope_documents.tasks import _match_documents, process_analysis_job
+from hope_documents.extractors import ChainedAttributeExtractor, OCRAttributeExtractor
+from hope_documents.llm.extractor import LLMAttributeExtractor
+from hope_documents.tasks import _build_extractor, _match_documents, process_analysis_job
 
 
 def _small_image() -> PILImage.Image:
@@ -107,3 +110,46 @@ def test_process_analysis_job_preprocesses_before_fallback():
         process_analysis_job(str(job.pk))
 
     mock_preprocess.assert_called_once()
+
+
+def test_build_extractor_ocr_only(settings):
+    settings.EXTRACTOR_CHAIN = ["ocr"]
+    settings.LLM_BACKEND = None
+    result = _build_extractor(MagicMock())
+    assert isinstance(result, OCRAttributeExtractor)
+
+
+def test_build_extractor_chain(settings):
+    settings.EXTRACTOR_CHAIN = ["ocr", "llm"]
+    settings.LLM_BACKEND = {
+        "provider": "hope_documents.llm.backends.OllamaBackend",
+        "host": "http://localhost:11434",
+        "model": "llama3.2-vision",
+    }
+    result = _build_extractor(MagicMock())
+    assert isinstance(result, ChainedAttributeExtractor)
+
+
+def test_build_extractor_llm_only(settings):
+    settings.EXTRACTOR_CHAIN = ["llm"]
+    settings.LLM_BACKEND = {
+        "provider": "hope_documents.llm.backends.OllamaBackend",
+        "host": "http://localhost:11434",
+        "model": "llama3.2-vision",
+    }
+    result = _build_extractor(MagicMock())
+    assert isinstance(result, LLMAttributeExtractor)
+
+
+def test_build_extractor_llm_no_backend_raises(settings):
+    settings.EXTRACTOR_CHAIN = ["llm"]
+    settings.LLM_BACKEND = None
+    with pytest.raises(ImproperlyConfigured):
+        _build_extractor(MagicMock())
+
+
+def test_build_extractor_empty_chain_raises(settings):
+    settings.EXTRACTOR_CHAIN = [""]
+    settings.LLM_BACKEND = None
+    with pytest.raises(ImproperlyConfigured):
+        _build_extractor(MagicMock())

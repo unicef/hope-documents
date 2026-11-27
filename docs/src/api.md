@@ -9,15 +9,13 @@ ReDoc: `/api/rest/redoc/`
 
 ## Authentication
 
-All endpoints require authentication. Three methods are supported:
+All API endpoints use token authentication via `hope-api-auth`. Every request must carry an API token in the `Authorization` header:
 
-| Method | Header |
-|---|---|
-| Basic | `Authorization: Basic <base64(username:password)>` |
-| Token | `Authorization: Token <token>` |
-| Session | Django session cookie (browser / admin) |
+```
+Authorization: Token <token-key>
+```
 
-Unauthenticated requests receive `401 Unauthorized`.
+Tokens are managed in the admin at **Hope API Auth → API Tokens**. The token owner must hold the `API_OCR_EXTRACT` grant to call the analyze endpoints.
 
 ---
 
@@ -77,6 +75,7 @@ When `?sync=true` the task runs in-process and the response contains the full re
 |---|---|
 | 400 | Missing or invalid fields (see error body for detail) |
 | 401 | Not authenticated |
+| 403 | Token valid but missing `API_OCR_EXTRACT` grant |
 
 ---
 

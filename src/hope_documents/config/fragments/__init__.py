@@ -1,5 +1,6 @@
 from .api_auth import *  # noqa
 from .app import *  # noqa
+from .llm import *  # noqa
 from .celery import *  # noqa
 from .constance import *  # noqa
 from .cors import *  # noqa
