@@ -1107,7 +1107,7 @@ requires-dist = [
     { name = "djangorestframework" },
     { name = "drf-spectacular" },
     { name = "drf-spectacular-sidecar" },
-    { name = "hope-api-auth", specifier = "==0.3.0" },
+    { name = "hope-api-auth", specifier = ">=0.3" },
     { name = "humanize", specifier = ">=4.14" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "matplotlib", specifier = ">=3.10.7" },
