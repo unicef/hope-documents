@@ -970,7 +970,7 @@ wheels = [
 
 [[package]]
 name = "hope-api-auth"
-version = "0.1.1"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
@@ -981,9 +981,9 @@ dependencies = [
     { name = "psycopg2-binary" },
     { name = "swapper" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2d/34/43feb73012bbf6008b99398b4bbcea0df88b3a57dd8b9d2e0fff4c964d3b/hope_api_auth-0.1.1.tar.gz", hash = "sha256:59fc5f99ae354dabea3642dd963227dd07bc1c026eae422ccffbfa6acbce6be9", size = 5908, upload-time = "2026-06-10T14:55:21.823Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/93/44/c7b6ccdd8482995dfbddcdea926548e8b221350dc99882e7d82b262709eb/hope_api_auth-0.3.0.tar.gz", hash = "sha256:f6fe145a6287a5fc38a5eec95329094da7bdaa96781763806e6b570b5c934211", size = 6013, upload-time = "2026-08-31T10:36:19.24Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/30/da/eae5ff52bb0def1caadc7f42566219a37a1c7f0fc80470c189fc564226d4/hope_api_auth-0.1.1-py2.py3-none-any.whl", hash = "sha256:2eda8bb1bcccf897ed5b1b3d0b805147939a66a9b12966b1ce9ed98d33a9f9a1", size = 8215, upload-time = "2026-06-10T14:55:20.768Z" },
+    { url = "https://files.pythonhosted.org/packages/9b/f3/70c247691c72559b6ca8aa64a234a90db5951dcdd44fa18f4ed03ea069ab/hope_api_auth-0.3.0-py2.py3-none-any.whl", hash = "sha256:90d2c44ebb98e5bd0e9a563f219926648fe85d37e56ca5b7eab616727840bd60", size = 8299, upload-time = "2026-08-31T10:36:17.998Z" },
 ]
 
 [[package]]
@@ -1107,7 +1107,7 @@ requires-dist = [
     { name = "djangorestframework" },
     { name = "drf-spectacular" },
     { name = "drf-spectacular-sidecar" },
-    { name = "hope-api-auth", specifier = "==0.1.1" },
+    { name = "hope-api-auth", specifier = ">=0.3" },
     { name = "humanize", specifier = ">=4.14" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "matplotlib", specifier = ">=3.10.7" },
@@ -1119,7 +1119,7 @@ requires-dist = [
     { name = "regex", specifier = ">=2025.9.18" },
     { name = "sentry-sdk" },
     { name = "social-auth-app-django", specifier = ">=7.2" },
-    { name = "unicef-security", specifier = ">=1.12.0" },
+    { name = "unicef-security", specifier = ">=1.12" },
 ]
 
 [package.metadata.requires-dev]
