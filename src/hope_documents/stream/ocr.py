@@ -85,14 +85,26 @@ def process_document(filename: str, pattern: str, *, individual_id: object = Non
 
 
 def run_ocr_batch(payload: dict[str, Any]) -> dict[str, Any]:
-    """Run OCR for every document in a batch and return the ocr.result payload."""
-    documents: list[dict[str, Any]] = []
-    for item in payload.get("documents") or []:
-        outcome = process_document(item["filename"], item["pattern"], individual_id=item["individual_id"])
-        documents.append({"individual_id": item["individual_id"], **outcome})
+    """Run OCR for every document in a batch and return the ocr.result payload.
+
+    An unexpected exception from one document becomes that document's error result.
+    The other documents are still processed.
+    """
+    documents = [_document_result(item) for item in payload.get("documents") or []]
     result = envelope_from(payload)
     result["documents"] = documents
     return result
+
+
+def _document_result(item: dict[str, Any]) -> dict[str, Any]:
+    """OCR one request item, converting an unexpected failure into an error result."""
+    individual_id = item.get("individual_id")
+    try:
+        outcome = process_document(item["filename"], item["pattern"], individual_id=individual_id)
+    except Exception as exc:  # noqa: BLE001 - one document must not abort the batch
+        outcome = _error(f"{type(exc).__name__}: {next(iter(str(exc).splitlines()), '')}")
+        logger.exception("OCR document failed individual_id=%s", individual_id)
+    return {"individual_id": individual_id, **outcome}
 
 
 def _document_error(item: object) -> str | None:
